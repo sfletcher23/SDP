@@ -8,82 +8,94 @@ N = 10;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 1000;
-costParam.expansion_cost = 4000;
+costParam.shortage_cost = 10000;
+costParam.expansion_cost = 1000000;
 costParam.pumping_cost = 1;
 
 % Water paramters
 water = struct;
-water.demandPerCapita = 2;
-water.desal_capacity_initial = 5;
-water.desal_capacity_expansion = 20;
+water.demandPerCapita = 100;    % L/p/d
+water.desal_capacity_initial = 1E6;
+water.desal_capacity_expansion = 5E5;
 
 % Population parameters
 popParam = struct;
-popParam.pop_initial = 100;
+popParam.pop_initial = 4;   % in millions 
 popParam.min_growth = 0.02;
 popParam.max_growth = 0.08;
 popParam.max_growth_delta = 0.01;
-popParam.discrete_step_pop = 5;
-popParam.discrete_step_growth = 0.01;
+popParam.discrete_step_pop = 0.1;
+popParam.discrete_step_growth = 0.005;
+
+% GW Parameters
+gwParam = struct;
+gwParam.initialDrawdown = 0;
+gwParam.sampleSize = 10000;
+gwParam.depthLimit = 5000;
+gwParam.pumpingRate = 5E5;
 
 
-%% State Definitions for Groundwater and Expansion Decision
-% Number states for gw, expansion
-s_gw = 1:5;
+%% State Definitions and Transition for Pop and Growth
+
+[s_pop, s_growth, T_growth_lookup, nextPop, max_end_pop] = gen_pop_growth_states(popParam, N);
+pop_M = length(s_pop);
+growth_M = length(s_growth);
+popParam.growth_initial = 0.03;
+
+
+%% Calculate Demand
+
+% For now, assume some percentage of demand per capita comes from single
+% well
+fraction = 1/100;
+demand_range = demand(water, s_pop, fraction); % in m^3/y
+
+%% State and Action Definitions for Groundwater 
+
+
+% Import groundwater well data and aquifer properties
+% T in units m^2/sec, drawdown and depth in unit meters
+groundwaterWells = readtable('Water Decision Model Data Inputs.xlsx', 'Sheet', 4, ...
+    'Range', 'A6:I19', 'ReadVariableNames', true, 'ReadRowNames', true);
+aquifer = readtable('Water Decision Model Data Inputs.xlsx', 'Sheet', 4, ...
+    'Range', 'A25:J27', 'ReadVariableNames', true, 'ReadRowNames', true);
+
+% Generate state space for groundwater head and demand range
+[s_gw, gw_M, drawdownMaxAnnual, gwParam.stepSize] = gen_water_growth_states(gwParam, N, demand_range, water, ...
+    groundwaterWells, aquifer);
+
+% Actions: Pump groundwater this period (full demand) or not
+a_gw_available = [0 1];
+a_gw_depleted = [0];
+
+
+%% Drawdown distribution for Groundwater
+
+% Rows: withdrawal volume (demand)
+% Columns: Drawdown amount
+% Value: probability of each drawdown amount given withdrawal volume
+% Each row for each withdrawal volume must sum to 1
+   
+% Use water model to caluclate transition probabilities
+[dd_prob, dd_values] = drawdown_prob(gwParam, demand_range, groundwaterWells, aquifer, drawdownMaxAnnual);
+
+
+%% Desalination Expansions: State Definitions and Actions
+
+% State definitions
 s_expand = 1:2;
-gw_M = length(s_gw); % Groundawter
 exp_M = length(s_expand); % Desalination expanded = 2
 
-% Actions: groundwater pumping high or low or none, expand desal
-% a1 pumping actions: 0 no pumping, 1 low pumping, 2 high pumping
-a_gw_available = [0 1 2];
-a_gw_depleted = [0];
 % a2 desal actions: 0 no expand, 1 expand
 a_expand_available = [0 1];
 a_expand_unavailable = [0];
 
 
-%% Transition Matrix for Groundwater
-
-% Groundwater transition matrix: varies depending on pumping action
-% T2: high pumping
-T2_gw = zeros(gw_M,gw_M);
-T2_gw(1,1) = 1;
-for i = 2:gw_M
-    T2_gw(i,i) = 0.5;
-    T2_gw(i,i-1) = 0.5;
-end
-
-% T1: low pumping
-T1_gw = zeros(gw_M,gw_M);
-T1_gw(1,1) = 1;
-for i = 2:gw_M
-    T1_gw(i,i) = 0.8;
-    T1_gw(i,i-1) = 0.2;
-end
-
-% T0: no pumping
-T0_gw = zeros(gw_M,gw_M);
-T0_gw(1,1) = 1;
-for i = 2:gw_M
-    T0_gw(i,i) = 1;
-    T0_gw(i,i-1) = 0;
-end
-
-
-%% State Definitions and Transition for Pop and Growth
-
-[s_pop, s_growth, T_growth_lookup, nextPop] = gen_pop_growth_states(popParam, N);
-pop_M = length(s_pop);
-growth_M = length(s_growth);
-popParam.growth_initial = s_growth(round(length(s_growth/2)));
-
 %% Initialize best value and best action matrices
 % Groundwater states x desal states x time
-V = zeros(gw_M, exp_M, pop_M, growth_M, N+1);
-X1 = zeros(gw_M, exp_M, pop_M, growth_M, N+1);
-X2 = zeros(gw_M, exp_M, pop_M, growth_M, N+1);
+V = NaN(gw_M, exp_M, pop_M, growth_M, N+1);
+X1 = NaN(gw_M, exp_M, pop_M, growth_M, N+1);
+X2 = NaN(gw_M, exp_M, pop_M, growth_M, N+1);
 
 % Terminal period
 X1(:,:,:,:,N+1) = zeros(gw_M, exp_M, pop_M, growth_M, 1);
@@ -96,24 +108,34 @@ V(:,:,:,:,N+1) = zeros(gw_M, exp_M, pop_M, growth_M, 1);
 % Loop over all time periods
 for t = linspace(N,1,N)
     
+    % Calculate range of possible population states this time step
+    s_pop_thisPeriod = pop_states_this_period(s_pop, t, nextPop);
+        % Check that subset of total pop states
+        isSubset = ismembertol(s_pop_thisPeriod,s_pop, 1E-4);
+        test = sum(~isSubset);
+        if test > 0
+            error('Pop growth state set this period invalid')
+        end
+        
+    
     % Loop over all states
     % Loop over groundwater state: 1 is depleted, M1 is full
     for s1 = s_gw       
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
         for s2 = s_expand
             % Loop over population state
-            for s3 = s_pop
+            for s3 = s_pop_thisPeriod
                 % Loop over growth state
                 for s4 = s_growth
                 
-                    bestV = 999999999;
+                    bestV = Inf;
                     bestX = [0 0];  % Groundwater action and expansion action
 
                     % Update available actions based on whether gw depleted
-                    if s1 > 1 
-                        a_gw = a_gw_available;
-                    else
+                    if s1 == max(s_gw) 
                         a_gw = a_gw_depleted;
+                    else
+                        a_gw = a_gw_available;
                     end
 
                     % Update available actions based on whether expansion available
@@ -129,27 +151,24 @@ for t = linspace(N,1,N)
                         % Loop over expansion action: 1 is do not expand, 2 is expand
                         for a2 = a_expand
                             
-                            % Calculate cost this period
-                            [shortage, ~] =  shortageThisPeriod(a1, a2, s1, s2, s3, water);
-                            cost = costThisPeriod(a1, a2, costParam, shortage);
+                            % Calculate demand
+                            demandThisPeriod = demand(water, s3, fraction);
+                            
+                            % Calculate cost and shortages this period
+                            [shortage, ~, ~, gw_supply] =  shortageThisPeriod(a1, a2, s1, s2, s3, water, demandThisPeriod, s_gw, gwParam);
+                            cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply);
                             
                             % Caculate state indexes
                             index_s1= find(s1 == s_gw);
                             index_s2 = find(s2 == s_expand);
-                            index_s3 = find(s3 == s_pop);
+                            index_s3 = find(abs(s3 - s_pop) < 1E-3);
                             index_s4 = find(s4 == s_growth);
                             
                             % Calculate transition matrix
                                 
-                                % Pick transmat vector for gw based on action, current
+                                % Get transmat vector for gw based on action, current
                                 % gw state
-                                if a1 == 0 
-                                    T_gw = T0_gw(s1,:);
-                                elseif a1 == 1
-                                    T_gw = T1_gw(s1,:);
-                                else
-                                    T_gw = T2_gw(s1,:);
-                                end
+                                T_gw = gw_transrow(s1, s_gw, a1, dd_values, dd_prob, index_s1, index_s3, demand_range, demandThisPeriod);
 
                                 % Get transmat vector for next expansion state
                                 % (deterministic)
@@ -178,10 +197,11 @@ for t = linspace(N,1,N)
                                 TRows{3} = T_pop;
                                 TRows{4} = T_growth;
                                 [ T ] = transrow2mat( TRows );
-
-                           % Calculate expected future cost
-                           nextV = V(:,:,:,:,t+1);                         
-                           expV = sum(T .* nextV);
+                             
+                             % Calculate expected future cost
+                           nextV = V(:,:,:,:,t+1);
+                           indexNonZeroT = find(T > 0);
+                           expV = sum(T(indexNonZeroT) .* nextV(indexNonZeroT));
                            for i = 2:4
                                expV = sum(expV);
                            end
@@ -195,7 +215,12 @@ for t = linspace(N,1,N)
 
                         end
                     end
-
+                    
+                    % Check that bestV is not Inf
+                    if bestV == Inf
+                        error('BestV is Inf, did not pick an action')
+                    end
+                    
                     % Save best value and action for current state
                     V(index_s1, index_s2, index_s3, index_s4, t) = bestV;
                     X1(index_s1, index_s2, index_s3, index_s4, t) = bestX(1);
@@ -206,6 +231,8 @@ for t = linspace(N,1,N)
         end
     end
 end
+
+
 
 %% Simulate performance
 % SDP above finds optimal policy for each state and time period. Now, use
@@ -220,12 +247,16 @@ state_growth = zeros(1,N);
 action_gw = zeros(1,N);
 action_expand = zeros(1,N);
 costOverTime = zeros(1,N);
+shortageCostOverTime = zeros(1,N);
+expansionCostOverTime = zeros(1,N);
+pumpingCostOverTime = zeros(1,N);
 shortageOverTime = zeros(1,N);
 supplyOverTime = zeros(1,N);
+gwSupplyOverTime = zeros(1,N);
 demandOverTime = zeros(1,N);
 
 % Initial state
-s_gw_initial = 5;
+s_gw_initial = s_gw(1);
 s_expand_initial = 1;
 s_pop_initial = popParam.pop_initial;
 s_growth_initial = popParam.growth_initial;
@@ -248,29 +279,24 @@ for t = 1:N
     action_expand(t) = X2(index_state_gw, index_state_expand, index_state_pop, index_state_growth, t);
     
     % Calculate demand, shortage, and cost for current t
-    [shortageOverTime(t), supplyOverTime(t), demandOverTime(t)] = shortageThisPeriod(action_gw(t), ...
-        action_expand(t), state_gw(t), state_expand(t), state_pop(t), water);
-    costOverTime(t) = costThisPeriod(action_gw(t), action_expand(t), ...
-        costParam, shortageOverTime(t));
+    demandOverTime(t) = demand( water, state_pop(t), fraction);
+    [shortageOverTime(t), supplyOverTime(t), ~, gwSupplyOverTime(t)] = shortageThisPeriod(action_gw(t), ...
+        action_expand(t), state_gw(t), state_expand(t), state_pop(t), water, demandOverTime(t), s_gw, gwParam);
+    [costOverTime(t), shortageCostOverTime(t), expansionCostOverTime(t), pumpingCostOverTime(t)]  = ...
+        costThisPeriod(action_gw(t), action_expand(t), costParam, shortageOverTime(t),gwSupplyOverTime(t));
     
     % Get transisition mat to next state give current state and actions
 
         % Get transmat vector to next GW state
-        if action_gw(t) == 0
-            T_current_gw = T0_gw(state_gw(t),:);
-        elseif action_gw(t) == 1
-            T_current_gw = T1_gw(state_gw(t),:);
-        elseif action_gw(t) == 2
-            T_current_gw = T2_gw(state_gw(t),:);
-        else
-            error('invalid action')
-        end
+        T_current_gw = gw_transrow(state_gw(t), s_gw, action_gw(t), dd_values, dd_prob, ...
+            index_state_gw, index_state_pop, demand_range, demandOverTime(t));
+
     
         % Get transmat vector for next expansion state (deterministic)
         if action_expand(t) == 1 || state_expand(t) == 2   % desal already expanded or will expand
             T_current_expand = [0 1];
         else
-            T__current_expand = [1 0];
+            T_current_expand = [1 0];
         end
         
         % Get transmat vector for next growth state
@@ -333,35 +359,45 @@ end
 % Plot state evolution w/ actions
 figure;
 subplot(3,2,1)
+yyaxis left
 plot(1:N, state_gw')
 hold on
+yyaxis right
 scatter(1:N, action_gw)
 xlabel('time')
 legend('GW state', 'pumping level')
+
 subplot(3,2,2)
 plot(1:N, state_expand')
 hold on
 scatter(1:N, action_expand')
 xlabel('time')
 legend('Expansion state', 'Expansion decision')
+
 subplot(3,2,3)
 plot(1:N, state_pop')
 legend('Population state')
+
 subplot(3,2,4)
 plot(1:N, state_growth')
 legend('Growth state')
+
 
 % Plot system performance
 subplot(3,2,5)
 plot(1:N,costOverTime);
 h = gca;
 h.YLim(1) = 0;
-legend('Costs')
+hold on
+area(1:N, [shortageCostOverTime; expansionCostOverTime; pumpingCostOverTime]');
+legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost')
+
 subplot(3,2,6)
 plot(1:N,shortageOverTime)
 hold on
 plot(1:N,demandOverTime)
 plot(1:N,supplyOverTime)
-legend('shortage', 'demand', 'supply')
+plot(1:N, gwSupplyOverTime)
+legend('shortage', 'demand', 'supply', 'gw pumped')
 
 toc

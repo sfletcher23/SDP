@@ -37,6 +37,16 @@ for i = 1:length(s_pop)
     end
 end
 
+% Expect that V should never have Inf value because one of the available
+% actions will be better than that
+indexCountInf = find(V == Inf);
+sumInf = sum(sum(sum(sum(sum(indexCountInf)))));
+if sumInf > 0
+    error('V has Inf values, did not choose an optimal action')
+end
+
+
+
 % Expect that V is always lower (cheaper) with desalination expanded,
 % holding everything else the same
 

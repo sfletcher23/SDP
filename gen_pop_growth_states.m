@@ -1,4 +1,4 @@
-function [s_pop, s_growth, T_growth, nextPop] = gen_pop_growth_states(popParam, N)
+function [s_pop, s_growth, T_growth, nextPop, max_end_pop] = gen_pop_growth_states(popParam, N)
 
 % gen_pop_growth_states: Generates state space and transition informaiton 
 % for input paramters about population growth
