@@ -37,6 +37,7 @@ gwParam.depthLimit = 5000;
 gwParam.pumpingRate = 5E5;
 
 
+
 %% State Definitions and Transition for Pop and Growth
 
 [s_pop, s_growth, T_growth_lookup, nextPop, max_end_pop] = gen_pop_growth_states(popParam, N);
@@ -71,17 +72,25 @@ a_gw_available = [0 1];
 a_gw_depleted = [0];
 
 
-%% Drawdown distribution for Groundwater
+%% Calculate kernel functions
+% Calculate kernel functions measuring the response to a unit impulse of
+% pumping from each well over time. 
+% Kernel is a [numObserve x numTime x numParameterValues x numPumpWells] matrix
 
-% Rows: withdrawal volume (demand)
-% Columns: Drawdown amount
-% Value: probability of each drawdown amount given withdrawal volume
-% Each row for each withdrawal volume must sum to 1
-   
-% Use water model to caluclate transition probabilities
-[dd_prob, dd_values] = drawdown_prob(gwParam, demand_range, groundwaterWells, aquifer, drawdownMaxAnnual);
+[kernel, T_S_pairs] = gen_kernel(groundwaterWells, aquifer);
 
 
+%% Calculate pt(k), generate samples of k for each t
+
+index_T_S_samples = zeros(gwParam.sampleSize,N);
+for t = 1:N
+    % Define pt(k)
+        [T_S_pair_cdf] = gen_param_dist(T_S_pairs, t);
+    % Generate samples from pt(K)
+        p = rand(1,gwParam.sampleSize);
+        index_T_S_samples(:,t) = arrayfun(@(x) find(x < T_S_pair_cdf,1), p);
+        clear T_S_pair_cdf p
+end
 %% Desalination Expansions: State Definitions and Actions
 
 % State definitions
@@ -118,7 +127,6 @@ for t = linspace(N,1,N)
         if test > 0
             error('Pop growth state set this period invalid')
         end
-        
     
     % Loop over all states
     % Loop over groundwater state: 1 is depleted, M1 is full
@@ -170,7 +178,7 @@ for t = linspace(N,1,N)
                                 
                                 % Get transmat vector for gw based on action, current
                                 % gw state
-                                T_gw = gw_transrow(s1, s_gw, a1, dd_values, dd_prob, index_s1, index_s3, demand_range, demandThisPeriod);
+                                T_gw = gw_transrow_kernel(gw_supply, kernel, index_T_S_samples(:,t), t, s1, s_gw );
 
                                 % Get transmat vector for next expansion state
                                 % (deterministic)
@@ -289,11 +297,9 @@ for t = 1:N
     
     % Get transisition mat to next state give current state and actions
 
-        % Get transmat vector to next GW state
-        T_current_gw = gw_transrow(state_gw(t), s_gw, action_gw(t), dd_values, dd_prob, ...
-            index_state_gw, index_state_pop, demand_range, demandOverTime(t));
-
-    
+        % Get transmat vector to next GW state 
+        T_current_gw = gw_transrow_kernel(gwSupplyOverTime(t), kernel, index_T_S_samples(:,t), t, state_gw(t), s_gw );
+ 
         % Get transmat vector for next expansion state (deterministic)
         if action_expand(t) == 1 || state_expand(t) == 2   % desal already expanded or will expand
             T_current_expand = [0 1];
@@ -401,5 +407,33 @@ plot(1:N,demandOverTime)
 plot(1:N,supplyOverTime)
 plot(1:N, gwSupplyOverTime)
 legend('shortage', 'demand', 'supply', 'gw pumped')
+
+% Plot parameter changes over time
+figure;
+for i = 1:N
+    Tsamples = T_S_pairs(index_T_S_samples(:,i),1);
+    Ssamples = T_S_pairs(index_T_S_samples(:,i),2);
+    hold on
+    subplot(1,2,1)
+    cdfplot(Tsamples)
+    hold on
+    subplot(1,2,2)
+    cdfplot(Ssamples)
+end
+leg = arrayfun(@num2str, 1:N, 'UniformOutput', false);
+subplot(1,2,1)
+title('T distribution over time')
+legend(leg)
+subplot(1,2,2)
+title('S distribution over time')
+legend(leg)
+
+datetime=datestr(now);
+datetime=strrep(datetime,':','_'); %Replace colon with underscore
+datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
+datetime=strrep(datetime,' ','_');%Replace space with underscore
+mkdir(datetime)
+save(datetime);
+
 
 toc

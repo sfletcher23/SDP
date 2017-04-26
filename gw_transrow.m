@@ -1,10 +1,13 @@
 function [ T_gw ] = gw_transrow(s1, s_gw, a1, dd_values, dd_prob, index_s1, index_s3, demand_range, demandThisPeriod)
+% Calculates the transition probabilities for the next groundwater state
+% given current state, pumping volume (demand), and drawdown values and
+% probabilities
 
 T_gw = zeros(1,length(s_gw));
 
 switch a1
     case 1
-
+  
     % Get range of next groundwater values
     next_s = s1 + dd_values;
 

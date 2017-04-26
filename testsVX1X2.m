@@ -21,10 +21,6 @@ for i = 1:length(s_pop)
     for j = 1:length(s_growth)
         for k = i:length(s_expand)
             for t = 1:N
-                index_s2 = find(k == s_expand);
-                index_s3 = find(i == s_pop);
-                index_s4 = find(j == s_growth);
-
                 for gw = 2:length(s_gw)
                     diff = V(gw-1,k,i,j,t) - V(gw,k,i,j,t);
                     index = diff < 0;

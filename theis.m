@@ -4,6 +4,9 @@ function [ drawdown ] = theis( Q, pumpStep, T, S, pumpLocation, observeLocation,
 
     % Assumes: Confined aquifer, no recharge, observations wells sufficiently 
     % far away from pumping wells
+    
+    % Drawdown is a [numObserve x numTime x runs] matrix
+    % that gives the drawdown in each obseration well over time.
 
 % Throw errors if incorrect input sizes
 
@@ -81,14 +84,12 @@ for k = 1:numPumpStep
     % Calculate well function for superposed well. W is a [numObserve x 
     % numPumpWells x numTime x runs] matrix, which describes the well function
     % for each observation location from each well in every time step.
-    t3 = zeros(1,1,length(tk));
-    t3(1,1,:) = tk;
-    rep_t = repmat(t3, [1,numObserve,numPumpWells,runs]);
-    rep_t = reshape(rep_t, [numObserve, numTime, numPumpStep, runs]);
-    rep_T = repmat(T, [numObserve,numPumpWells, numPumpStep,1]);
-    rep_T = reshape(rep_T, [numObserve, numTime, numPumpStep, runs]);
-    rep_S = repmat(S, [numObserve,numPumpWells, numPumpStep,1]);
-    rep_S = reshape(rep_S, [numObserve, numTime, numPumpStep, runs]);
+    rep_t = repmat(tk', [1,numObserve,numPumpWells,runs]);  % [numTime x numObserve x numPumpWells x runs]
+    rep_t = permute(rep_t, [2 3 1 4]);  % [numObserve x numPumpWells x numTime x runs]
+    rep_T = repmat(T', [numObserve,1,numPumpWells,numTime]);    % [numObserve x runs x numPumpWells x numTime]
+    rep_T = permute(rep_T, [1 3 4 2]);  % [numObserve x numPumpWells x numTime x runs]
+    rep_S = repmat(S', [numObserve,1, numPumpWells, numTime]);   % [numObserve x runs x numPumpWells x numTime]
+    rep_S = permute(rep_S, [1 3 4 2]);  % [numObserve x numPumpWells x numTime x runs]
     U = repR2 .* rep_S ./ (4 * rep_T .* rep_t);
     W = arrayfun(@(x) expint(x), U);
     W(isnan(W)) = 0;
