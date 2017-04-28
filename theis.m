@@ -7,6 +7,8 @@ function [ drawdown ] = theis( Q, pumpStep, T, S, pumpLocation, observeLocation,
     
     % Drawdown is a [numObserve x numTime x runs] matrix
     % that gives the drawdown in each obseration well over time.
+    
+    % t is a vector
 
 % Throw errors if incorrect input sizes
 

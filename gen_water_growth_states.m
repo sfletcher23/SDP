@@ -10,15 +10,15 @@ observeLocation = 10;
 
 % Theis Paramters
 pumpStep = 0;
-QTheis = max(demand_range);
+QTheisMax = max(demand_range);
+QTheisMin = zeros(N,1);
+QTheisMin(1) = min(demand_range);
 locUnits = 'meters';
 
 %% Min and Max drawdown
     
 Tmax = aquifer.TransmissivityUpperBound(aquiferNames{a}) * 60 * 60 *24 * 365; % [ m^2/year]
 Tmin = aquifer.TransmissivityLowerBound(aquiferNames{a}) * 60 * 60 *24 * 365; % [ m^2/year]
-% drawdownLimitMax = aquifer.DepthLow(aquiferNames{a}) - aquifer.InitialDrawdownLow(aquiferNames{a});
-% drawdownLimitMin = aquifer.DepthHigh(aquiferNames{a}) - aquifer.InitialDrawdownLow(aquiferNames{a});
 
 % Deterministic storativity
 S = aquifer.Storativity(aquiferNames{a});   
@@ -26,8 +26,10 @@ S = aquifer.Storativity(aquiferNames{a});
 % Using Theis restricted didn't work because of only 1 pumpstep. In
 % general, need to figure out how to deal with 
 
-drawdownMaxAnnual = theis(QTheis, pumpStep, Tmin, S, pumpLocation, observeLocation, locUnits, 1,1);
-drawdownMinAnnual = theis(QTheis, pumpStep, Tmax, S, pumpLocation, observeLocation, locUnits, 1,1);
+output = theis(QTheisMax, pumpStep, Tmin, S, pumpLocation, observeLocation, locUnits, 1:N,1);
+drawdownMaxAnnual = max(output);
+output = theis(QTheisMin, pumpStep, Tmax, S, pumpLocation, observeLocation, locUnits, 1:N,1);
+drawdownMinAnnual = min(output);
 
 drawdownMax = drawdownMaxAnnual * N;
 drawdownMin = drawdownMinAnnual * N;

@@ -11,13 +11,13 @@ N = 10;
 % Cost paramters
 costParam = struct;
 costParam.shortage_cost = 10000;
-costParam.expansion_cost = 1000000;
-costParam.pumping_cost = 1;
+costParam.expansion_cost = 1000000000000; 
+costParam.pumping_cost = 10000;
 
 % Water paramters
 water = struct;
-water.demandPerCapita = 100;    % L/p/d
-water.desal_capacity_initial = 1E6;
+water.demandPerCapita = 120;    % L/p/d
+water.desal_capacity_initial = 7E5;
 water.desal_capacity_expansion = 5E5;
 
 % Population parameters
@@ -428,6 +428,8 @@ subplot(1,2,2)
 title('S distribution over time')
 legend(leg)
 
+
+%%
 datetime=datestr(now);
 datetime=strrep(datetime,':','_'); %Replace colon with underscore
 datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
