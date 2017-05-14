@@ -6,18 +6,20 @@ tic
 %% Parameters
 
 % Time period
-N = 10;
+N = 15;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 10000;
-costParam.expansion_cost = 1000000000000; 
-costParam.pumping_cost = 10000;
+costParam.shortage_cost = 25;
+costParam.expansion_cost = 100000000; 
+costParam.pumping_cost = 10000000;
+costParam.discount_rate = 0.04;
 
 % Water paramters
 water = struct;
 water.demandPerCapita = 120;    % L/p/d
-water.desal_capacity_initial = 7E5;
+water.demandFraction = 1/100;
+water.desal_capacity_initial = 10E5;
 water.desal_capacity_expansion = 5E5;
 
 % Population parameters
@@ -34,7 +36,7 @@ gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 10000;
 gwParam.depthLimit = 5000;
-gwParam.pumpingRate = 5E5;
+gwParam.pumpingRate = 7E5;
 
 
 
@@ -50,7 +52,7 @@ popParam.growth_initial = 0.03;
 
 % For now, assume some percentage of demand per capita comes from single
 % well
-fraction = 1/100;
+fraction = water.demandFraction;
 demand_range = demand(water, s_pop, fraction); % in m^3/y
 
 %% State and Action Definitions for Groundwater 
@@ -166,7 +168,7 @@ for t = linspace(N,1,N)
                             
                             % Calculate cost and shortages this period
                             [shortage, ~, ~, gw_supply] =  shortageThisPeriod(a1, a2, s1, s2, s3, water, demandThisPeriod, s_gw, gwParam);
-                            cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply);
+                            cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t);
                             
                             % Caculate state indexes
                             index_s1= find(s1 == s_gw);
