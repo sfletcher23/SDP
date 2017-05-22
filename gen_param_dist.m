@@ -15,8 +15,8 @@ S_median = median(S);
 T_S_pair_pmf = zeros(numPairs,1);
 
 % Cutoff top 10% of T and S each time, assume uniform.
-T_90 = T_upper * .9^t;
-S_90 = S_upper * .9^t;
+T_90 = T_upper * .95^t;
+S_90 = S_upper * .95^t;
 indexNonZeroT = T_S_pairs(:,1) < T_90;
 indexNonZeroS = T_S_pairs(:,2) < S_90;
 indexNonZero = indexNonZeroT .* indexNonZeroS;

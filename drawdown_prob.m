@@ -1,4 +1,4 @@
-function [dd_prob dd_values] = drawdown_prob(gwParam, demand_range, groundwaterWells, aquifer, drawdownMaxAnnual
+function [dd_prob, dd_values] = drawdown_prob(gwParam, demand_range, groundwaterWells, aquifer, drawdownMaxAnnual)
 
 %% Theis Parameters
 

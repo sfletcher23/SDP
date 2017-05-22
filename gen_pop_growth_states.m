@@ -62,13 +62,14 @@ currentPop = repmat(currentPop, 1, growth_M);
 nextPopUnrounded = currentPop .* ( ones(pop_M,growth_M) + growthMat );
 nextPop = round2x(nextPopUnrounded,s_pop);
 
-% % Check discretization error
-% err = abs(nextPop - nextPopUnrounded);
-% margin = discrete_step_pop;
-% if sum(err > margin)
-%     error('Invaild Next Population State Matrix')
-% end
-% Throws error because when at high states and have high error, limited.
-% Should never get there though. Put a test in somewhere else that the
-% population never gets that big.
+% Check discretization error
+indexCapped = nextPopUnrounded > s_pop(end);
+nextPopUnrounded_capped = nextPopUnrounded;
+nextPopUnrounded_capped(indexCapped) = s_pop(end);  % Cap at max pop, will never get there
+err = abs(nextPop - nextPopUnrounded_capped);
+margin = discrete_step_pop/2;
+if sum(err > margin)
+    error('Population discretizaiton too small')
+end
+disp(['Max population discretization error is ', num2str(max(max(err)))])
 

@@ -6,13 +6,13 @@ tic
 %% Parameters
 
 % Time period
-N = 15;
+N = 10;
 
 % Cost paramters
 costParam = struct;
 costParam.shortage_cost = 25;
-costParam.expansion_cost = 100000000; 
-costParam.pumping_cost = 10000000;
+costParam.expansion_cost = 10000000; 
+costParam.pumping_cost = 100000;
 costParam.discount_rate = 0.04;
 
 % Water paramters
@@ -28,8 +28,10 @@ popParam.pop_initial = 4;   % in millions
 popParam.min_growth = 0.02;
 popParam.max_growth = 0.08;
 popParam.max_growth_delta = 0.01;
-popParam.discrete_step_pop = 0.1;
+popParam.discrete_step_pop = 0.07;
 popParam.discrete_step_growth = 0.005;
+popParam.growth_initial = 0.03;
+
 
 % GW Parameters
 gwParam = struct;
@@ -45,7 +47,6 @@ gwParam.pumpingRate = 7E5;
 [s_pop, s_growth, T_growth_lookup, nextPop, max_end_pop] = gen_pop_growth_states(popParam, N);
 pop_M = length(s_pop);
 growth_M = length(s_growth);
-popParam.growth_initial = 0.03;
 
 
 %% Calculate Demand
@@ -268,7 +269,7 @@ gwSupplyOverTime = zeros(1,N);
 demandOverTime = zeros(1,N);
 
 % Initial state
-s_gw_initial = s_gw(1);
+s_gw_initial = s_gw(end);
 s_expand_initial = 1;
 s_pop_initial = popParam.pop_initial;
 s_growth_initial = popParam.growth_initial;
@@ -295,12 +296,15 @@ for t = 1:N
     [shortageOverTime(t), supplyOverTime(t), ~, gwSupplyOverTime(t)] = shortageThisPeriod(action_gw(t), ...
         action_expand(t), state_gw(t), state_expand(t), state_pop(t), water, demandOverTime(t), s_gw, gwParam);
     [costOverTime(t), shortageCostOverTime(t), expansionCostOverTime(t), pumpingCostOverTime(t)]  = ...
-        costThisPeriod(action_gw(t), action_expand(t), costParam, shortageOverTime(t),gwSupplyOverTime(t));
+        costThisPeriod(action_gw(t), action_expand(t), costParam, shortageOverTime(t),gwSupplyOverTime(t),t);
     
     % Get transisition mat to next state give current state and actions
 
         % Get transmat vector to next GW state 
         T_current_gw = gw_transrow_kernel(gwSupplyOverTime(t), kernel, index_T_S_samples(:,t), t, state_gw(t), s_gw );
+%         [dd_prob, dd_values] = drawdown_prob(gwParam, demand_range, groundwaterWells, aquifer, drawdownMaxAnnual);
+%         [ T_gw ] = gw_transrow(state_gw(t), s_gw, action_gw(t), dd_values, dd_prob, index_state_gw, index_state_pop, demand_range, demandOverTime(t))
+        
  
         % Get transmat vector for next expansion state (deterministic)
         if action_expand(t) == 1 || state_expand(t) == 2   % desal already expanded or will expand
@@ -309,7 +313,7 @@ for t = 1:N
             T_current_expand = [1 0];
         end
         
-        % Get transmat vector for next growth state
+        % Get transmat vector for next growth state 
         T_current_growth = T_growth_lookup(index_state_growth,:);
 
         % Get transmat vector for next population state
@@ -432,7 +436,7 @@ legend(leg)
 
 
 %%
-datetime=datestr(now);
+datetime=datestr(now);  
 datetime=strrep(datetime,':','_'); %Replace colon with underscore
 datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
 datetime=strrep(datetime,' ','_');%Replace space with underscore
