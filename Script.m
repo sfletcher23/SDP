@@ -15,7 +15,7 @@ costParam.expansion_cost = 10000000;
 costParam.pumping_cost = 100000;
 costParam.discount_rate = 0.04;
 
-% Water paramters
+% Water infrastructure paramters
 water = struct;
 water.demandPerCapita = 120;    % L/p/d
 water.demandFraction = 1/100;
@@ -44,6 +44,8 @@ gwParam.pumpingRate = 7E5;
 
 %% State Definitions and Transition for Pop and Growth
 
+% Generate population growth states based on discreitzation above, check
+% that the error is less than 1/2 discretization given.
 [s_pop, s_growth, T_growth_lookup, nextPop, max_end_pop] = gen_pop_growth_states(popParam, N);
 pop_M = length(s_pop);
 growth_M = length(s_growth);
@@ -51,8 +53,7 @@ growth_M = length(s_growth);
 
 %% Calculate Demand
 
-% For now, assume some percentage of demand per capita comes from single
-% well
+% For now, assume some percentage of demand per capita comes from single well
 fraction = water.demandFraction;
 demand_range = demand(water, s_pop, fraction); % in m^3/y
 
@@ -71,6 +72,7 @@ aquifer = readtable('Water Decision Model Data Inputs.xlsx', 'Sheet', 4, ...
     groundwaterWells, aquifer);
 
 % Actions: Pump groundwater this period (full demand) or not
+    % 1 is pump, 0 is no pump
 a_gw_available = [0 1];
 a_gw_depleted = [0];
 
@@ -79,11 +81,25 @@ a_gw_depleted = [0];
 % Calculate kernel functions measuring the response to a unit impulse of
 % pumping from each well over time. 
 % Kernel is a [numObserve x numTime x numParameterValues x numPumpWells] matrix
+% T_S_pairs is a vector of samples from T and S 
 
 [kernel, T_S_pairs] = gen_kernel(groundwaterWells, aquifer);
 
+    % Test that kernel functions provide reasonable drawdowns for demand
+    testmin = min(max(kernel * min(demand_range)));
+    testmax = max(max(kernel * max(demand_range)));
+    test1 = testmin > gwParam.stepSize;
+    test2 = testmax < max(s_gw);
+    if ~test1
+        error('Kernels generate unrealistically low drawdown')
+    end
+    if ~test2
+        error('Kernels generate unrealistically high drawdown')
+    end
 
-%% Calculate pt(k), generate samples of k for each t
+
+%% Calculate pt(k), the distribution over parameter vector k in time t
+    % and generate samples of k for each t
 
 index_T_S_samples = zeros(gwParam.sampleSize,N);
 for t = 1:N
@@ -94,6 +110,7 @@ for t = 1:N
         index_T_S_samples(:,t) = arrayfun(@(x) find(x < T_S_pair_cdf,1), p);
         clear T_S_pair_cdf p
 end
+
 %% Desalination Expansions: State Definitions and Actions
 
 % State definitions
@@ -131,15 +148,28 @@ for t = linspace(N,1,N)
             error('Pop growth state set this period invalid')
         end
     
+    % Calculate nextV    
+    nextV = V(:,:,:,:,t+1);
+    
+    % Get T S index for this period
+    index_T_S_samples_thisPierod = index_T_S_samples(:,t);
+    
     % Loop over all states
     % Loop over groundwater state: 1 is depleted, M1 is full
-    for s1 = s_gw       
+    parfor index_s1 = 1:gw_M
+        s1 = s_gw(index_s1);
+        
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
-        for s2 = s_expand
+        for index_s2 = 1:expand_M
+            s2 = s_expand(index_s2);
+            
             % Loop over population state
-            for s3 = s_pop_thisPeriod
+            for index_s3 = 1:length(s_pop_thisPeriod)
+                s3 = s_pop_this_period(index_s3)
+                
                 % Loop over growth state
-                for s4 = s_growth
+                for index_s4 = 1:length(s_growth)
+                    s4 = s_growth(index_s4);
                 
                     bestV = Inf;
                     bestX = [0 0];  % Groundwater action and expansion action
@@ -171,17 +201,11 @@ for t = linspace(N,1,N)
                             [shortage, ~, ~, gw_supply] =  shortageThisPeriod(a1, a2, s1, s2, s3, water, demandThisPeriod, s_gw, gwParam);
                             cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t);
                             
-                            % Caculate state indexes
-                            index_s1= find(s1 == s_gw);
-                            index_s2 = find(s2 == s_expand);
-                            index_s3 = find(abs(s3 - s_pop) < 1E-3);
-                            index_s4 = find(s4 == s_growth);
-                            
                             % Calculate transition matrix
                                 
                                 % Get transmat vector for gw based on action, current
                                 % gw state
-                                T_gw = gw_transrow_kernel(gw_supply, kernel, index_T_S_samples(:,t), t, s1, s_gw );
+                                T_gw = gw_transrow_kernel(gw_supply, kernel, index_T_S_samples_thisPierod, t, s1, s_gw );
 
                                 % Get transmat vector for next expansion state
                                 % (deterministic)
@@ -212,7 +236,7 @@ for t = linspace(N,1,N)
                                 [ T ] = transrow2mat( TRows );
                              
                              % Calculate expected future cost
-                           nextV = V(:,:,:,:,t+1);
+                           %nextV = V(:,:,:,:,t+1);
                            indexNonZeroT = find(T > 0);
                            expV = sum(T(indexNonZeroT) .* nextV(indexNonZeroT));
                            for i = 2:4
@@ -226,6 +250,8 @@ for t = linspace(N,1,N)
                                bestX = [a1 a2];
                            end
 
+                           bestX1 = a1;
+                           bestX2 = a2;
                         end
                     end
                     
@@ -234,14 +260,18 @@ for t = linspace(N,1,N)
                         error('BestV is Inf, did not pick an action')
                     end
                     
+                    
+                    
                     % Save best value and action for current state
                     V(index_s1, index_s2, index_s3, index_s4, t) = bestV;
-                    X1(index_s1, index_s2, index_s3, index_s4, t) = bestX(1);
-                    X2(index_s1, index_s2, index_s3, index_s4, t) = bestX(2);
+                    X1(index_s1, index_s2, index_s3, index_s4, t) = bestX1;
+                    X2(index_s1, index_s2, index_s3, index_s4, t) = bestX2;
 
                 end
             end
         end
+        
+        
     end
 end
 

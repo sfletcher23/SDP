@@ -1,5 +1,10 @@
 function [kernel, T_S_pairs] = gen_kernel(groundwaterWells, aquifer)
 
+% Each kernel function measures drawdown at a set of observation locations
+% for unit pumping impulse from a single pumping well
+
+% Kernel is a [numObserve x numTime x numParameterValues x numPumpWells] matrix
+
 %% Theis Parameters
 
 a = [1 ];  % well rows

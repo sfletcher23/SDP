@@ -14,9 +14,17 @@ S_median = median(S);
 [numPairs, ~] = size(T_S_pairs);
 T_S_pair_pmf = zeros(numPairs,1);
 
-% Cutoff top 10% of T and S each time, assume uniform.
+% Cutoff top 10% of T and S each time, assume uniform. Check that there is
+% still a minimal range in each. 
 T_90 = T_upper * .95^t;
 S_90 = S_upper * .95^t;
+if T_90 < T_lower * 1.2
+    T_90 = T_lower * 1.2;
+end
+if S_90 < S_lower * 1.2
+    S_90 = S_lower * 1.2;
+end
+
 indexNonZeroT = T_S_pairs(:,1) < T_90;
 indexNonZeroS = T_S_pairs(:,2) < S_90;
 indexNonZero = indexNonZeroT .* indexNonZeroS;
