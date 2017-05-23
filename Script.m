@@ -11,8 +11,8 @@ N = 10;
 % Cost paramters
 costParam = struct;
 costParam.shortage_cost = 25;
-costParam.expansion_cost = 10000000; 
-costParam.pumping_cost = 100000;
+costParam.expansion_cost = 100000000; 
+costParam.pumping_cost = 10000;
 costParam.discount_rate = 0.04;
 
 % Water infrastructure paramters
@@ -28,7 +28,7 @@ popParam.pop_initial = 4;   % in millions
 popParam.min_growth = 0.02;
 popParam.max_growth = 0.08;
 popParam.max_growth_delta = 0.01;
-popParam.discrete_step_pop = 0.07;
+popParam.discrete_step_pop =  0.07;
 popParam.discrete_step_growth = 0.005;
 popParam.growth_initial = 0.03;
 
@@ -141,6 +141,7 @@ for t = linspace(N,1,N)
     
     % Calculate range of possible population states this time step
     s_pop_thisPeriod = pop_states_this_period(s_pop, t, nextPop);
+    num_pop_thisPeriod = length(s_pop_thisPeriod);
         % Check that subset of total pop states
         isSubset = ismembertol(s_pop_thisPeriod,s_pop, 1E-4);
         test = sum(~isSubset);
@@ -153,24 +154,26 @@ for t = linspace(N,1,N)
     
     % Get T S index for this period
     index_T_S_samples_thisPierod = index_T_S_samples(:,t);
+
     
     % Loop over all states
     % Loop over groundwater state: 1 is depleted, M1 is full
+    
     parfor index_s1 = 1:gw_M
         s1 = s_gw(index_s1);
         
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
-        for index_s2 = 1:expand_M
+        for index_s2 = 1:exp_M
             s2 = s_expand(index_s2);
             
             % Loop over population state
-            for index_s3 = 1:length(s_pop_thisPeriod)
-                s3 = s_pop_this_period(index_s3)
+            for index_s3 = 1:num_pop_thisPeriod
+                s3 = s_pop_thisPeriod(index_s3)
                 
                 % Loop over growth state
-                for index_s4 = 1:length(s_growth)
+                for index_s4 = 1:growth_M
                     s4 = s_growth(index_s4);
-                
+               
                     bestV = Inf;
                     bestX = [0 0];  % Groundwater action and expansion action
 
@@ -187,12 +190,18 @@ for t = linspace(N,1,N)
                     else
                         a_expand = a_expand_unavailable;
                     end
-
+                    
+                    num_a_gw = length(a_gw);
+                    num_a_expand = length(a_expand);
+                    
                     % Loop over all actions
                     % Loop over groundwater pumping action
-                    for a1 = a_gw
+                    for index_a1 = 1:num_a_gw
+                        a1 = a_gw(index_a1);
+                        
                         % Loop over expansion action: 1 is do not expand, 2 is expand
-                        for a2 = a_expand
+                        for index_a2 = 1:num_a_expand
+                            a2 = a_expand(index_a2);
                             
                             % Calculate demand
                             demandThisPeriod = demand(water, s3, fraction);
@@ -261,7 +270,6 @@ for t = linspace(N,1,N)
                     end
                     
                     
-                    
                     % Save best value and action for current state
                     V(index_s1, index_s2, index_s3, index_s4, t) = bestV;
                     X1(index_s1, index_s2, index_s3, index_s4, t) = bestX1;
@@ -299,7 +307,7 @@ gwSupplyOverTime = zeros(1,N);
 demandOverTime = zeros(1,N);
 
 % Initial state
-s_gw_initial = s_gw(end);
+s_gw_initial = s_gw(1);
 s_expand_initial = 1;
 s_pop_initial = popParam.pop_initial;
 s_growth_initial = popParam.growth_initial;
