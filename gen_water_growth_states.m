@@ -56,7 +56,7 @@ limit = min(drawdownMax, gwParam.depthLimit);
 %  Calculate discretization size
     % avgDiff = mean([diff(outputmin) diff(outputmax)]);  % Average difference between drawdown impacts
     % step = ceil(avgDiff);
-step = ceil(drawdownMinAnnual / 2);
+step = ceil(drawdownMinAnnual);
 
 % Define states: 
 s_gw = 0: step: limit;

@@ -339,10 +339,7 @@ for t = 1:N
     % Get transisition mat to next state give current state and actions
 
         % Get transmat vector to next GW state 
-        T_current_gw = gw_transrow_kernel(gwSupplyOverTime(t), kernel, index_T_S_samples(:,t), t, state_gw(t), s_gw );
-%         [dd_prob, dd_values] = drawdown_prob(gwParam, demand_range, groundwaterWells, aquifer, drawdownMaxAnnual);
-%         [ T_gw ] = gw_transrow(state_gw(t), s_gw, action_gw(t), dd_values, dd_prob, index_state_gw, index_state_pop, demand_range, demandOverTime(t))
-        
+        T_current_gw = gw_transrow_kernel(gwSupplyOverTime(t), kernel, index_T_S_samples(:,t), t, state_gw(t), s_gw );        
  
         % Get transmat vector for next expansion state (deterministic)
         if action_expand(t) == 1 || state_expand(t) == 2   % desal already expanded or will expand
@@ -381,7 +378,7 @@ for t = 1:N
                 error('Invalid sample from T_current')
             end
             
-        state_gw(t+1) = s_gw(ind_s1);
+        state_gw(t+1) = s_gw(ind_s1); 
         state_expand(t+1) = s_expand(ind_s2);
         state_pop(t+1) = s_pop(ind_s3);
         state_growth(t+1) = s_growth(ind_s4);
