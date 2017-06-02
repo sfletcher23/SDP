@@ -11,17 +11,11 @@
 % S is the magnitude of the state space or action space.
 
 
-function [index, S] = vectorIndex(vectorInd, vectors)
+function [index] = vectorIndex(vectorInd, vectors)
     [~, numVectors] = size(vectors);
-    S = 1;
-    vectorLength = zeros(1,numVectors);
-    for i = 1:numVectors
-        S = S * length(vectors{i});
-        vectorLength(i) = length(vectors{i});
-    end
-
+    vectorLength = cellfun(@length, vectors);
     A = [1 cumprod(vectorLength)];
-    index = 1:S;
+    index = 1:A(end);
     for i = numVectors:-1:1
         groupSize = A(i);
         groupNum = vectorInd(i);
