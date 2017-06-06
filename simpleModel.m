@@ -11,9 +11,9 @@ N = 10;
 % Cost paramters
 costParam = struct;
 costParam.shortage_cost = 4500;
-costParam.expansion_cost = 100000000; 
-costParam.pumping_cost = 3001;
-costParam.discount_rate = 0.07;
+costParam.expansion_cost = 18000000; 
+costParam.pumping_cost = 3025.0;
+costParam.discount_rate = 0.01;
 
 
 numStateVectors = 3;
@@ -48,11 +48,11 @@ T_exp{2} = [0 1 ; 0 1];
 % GW parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.depthLimit = 100;
+gwParam.depthLimit = 400;
 gwParam.pumpingRate = 7E5;
 
 % States
-s_gw = 0:10:200;
+s_gw = 0:20:gwParam.depthLimit;
 gw_M = length(s_gw);
 
 % Actions: Pump groundwater this period (full demand) or not
@@ -63,16 +63,17 @@ gw_A = [0 1]';
 T_gw = cell(1,2);
 T_gw{2} = zeros(gw_M);
 for i = 1:gw_M
-    if i+3 <= gw_M
-        T_gw{2}(i,i:i+3) = 1/4;
+    if i+4 <= gw_M
+        T_gw{2}(i,i:i+4) = 1/5;
+    elseif i+3 <= gw_M
+        T_gw{2}(i,i:i+2) = 1/5;
+        T_gw{2}(i,i+3) = 2/5;
     elseif i+2 <= gw_M
-        T_gw{2}(i,i:i+1) = 1/4;
-        T_gw{2}(i,i+2) = 1/2;
+        T_gw{2}(i,i:i+1) = 1/5;
+        T_gw{2}(i,i+2) = 3/5;
     elseif i+1 <= gw_M
-        T_gw{2}(i,i) = 1/4;
-        T_gw{2}(i,i+1) = 3/4;
-    else
-        T_gw{2}(i,i) = 1;
+        T_gw{2}(i,i) = 1/5;
+        T_gw{2}(i,i+1) = 4/5;
     end
 end
 T_gw{1} = diag(ones(1,gw_M));
@@ -186,7 +187,7 @@ for s1 = s_gw
                         cost = 1e30;
                     else % Calculate cost and shortages     
                         demand = get_demand(water, s3, water.demandFraction); % Calculate demand
-                        [ cost, ~, ~, ~ ] = getCost(a1, a2, s1, s2, water, demand, s_gw, gwParam, costParam);  % Can vectorize this fucntion later
+                        [ cost, ~, ~, ~, ~, ~, ~] = getCost(a1, a2, s1, s2, water, demand, s_gw, gwParam, costParam);  % Can vectorize this fucntion later
                     end
 
                     % Calculate action index
@@ -213,14 +214,14 @@ error_msg = mdp_check(T , R);
 %[policy, iter, cpu_time_value] = mdp_value_iteration (T, R, costParam.discount_rate); 
 [V, policy, iter, cpu_time_policy] = mdp_policy_iteration (T, R, costParam.discount_rate); 
 
-%% Visualize results
+%% Visualize results: plot optimal policies
 
 gw_step = s_gw(2) - s_gw(1);
 exp_step = s_expand(2) - s_expand(1);
 color = {'b', 'g', 'y', 'r'};
 fig = figure;
 
-samplePop = [4 4.5 5 5.5 6 6.5];
+samplePop = [4.3 4.4 4.5 4.6 4.7 4.8];
 for i = 1:length(samplePop)
     indexSamplePop(i) = find(samplePop(i) == s_pop);
 end
@@ -257,4 +258,120 @@ for k = 1:length(samplePop)
     ylabel('Expand state')
     ax.YTickLabel = {'Not expanded', 'Expanded'};
     title(strcat('Population: ', num2str(s_pop(indexSamplePop(k)))))
+    ax.XTickLabelRotation = 90;
 end
+
+
+%% Simulate water system
+% SDP above finds optimal policy for each state and time period. Now, use
+% intial state, and transition matrix to simulate performance of the
+% system
+
+N = 20;
+
+% Initialize vector tracking state, actions, water balance, costs over time 
+state_gw = zeros(1,N);
+state_expand = zeros(1,N);
+state_pop = zeros(1,N);
+action_gw = zeros(1,N);
+action_expand = zeros(1,N);
+costOverTime = zeros(1,N);
+shortageCostOverTime = zeros(1,N);
+expansionCostOverTime = zeros(1,N);
+pumpingCostOverTime = zeros(1,N);
+shortageOverTime = zeros(1,N);
+supplyOverTime = zeros(1,N);
+gwSupplyOverTime = zeros(1,N);
+demandOverTime = zeros(1,N);
+
+% Initial state
+s_gw_initial = s_gw(1);
+s_expand_initial = 1;
+s_pop_initial = popParam.pop_initial;
+
+state_gw(1) = s_gw_initial;
+state_expand(1) = s_expand_initial;
+state_pop(1) = s_pop_initial;
+
+index_state_gw = find(state_gw(1) == s_gw);
+index_state_expand = find(state_expand(1) == s_expand);
+index_state_pop = find(state_pop(1) == s_pop);
+
+
+for t = 1:N
+    
+    % Lookup optimal policy for current state
+    currentState = vectorIndex([index_state_gw index_state_expand index_state_pop], {s_gw', s_expand', s_pop'});
+    bestPolicy = policy(currentState);
+    action_gw(t) = A(bestPolicy,1);
+    action_expand(t) = A(bestPolicy,2);
+    
+    % Calculate demand, shortage, and cost for current t
+    demandOverTime(t) = get_demand( water, state_pop(t), water.demandFraction );
+    [costOverTime(t), shortageCostOverTime(t), expansionCostOverTime(t), pumpingCostOverTime(t), ...
+        shortageOverTime(t), gwSupplyOverTime(t), supplyOverTime(t)]  = ...
+        getCost(action_gw(t), action_expand(t), state_gw(t), state_expand(t), water, demandOverTime(t), s_gw, gwParam, costParam);
+        
+    % Simulate next state
+    if t < N
+        p = rand();
+        Tcum = cumsum(T{bestPolicy}(currentState,:));
+        nextState = find(p < Tcum,1);
+        nextStateVectors = linIndex2VecIndex(nextState, {s_gw', s_expand', s_pop'});
+
+        index_state_gw = nextStateVectors(1); 
+        index_state_expand = nextStateVectors(2);
+        index_state_pop = nextStateVectors(3);
+        
+        state_gw(t+1) = s_gw(index_state_gw);
+        state_expand(t+1) = s_expand(index_state_expand);
+        state_pop(t+1) = s_pop(index_state_pop);
+
+    end
+    
+end
+
+%% Plot simulation results
+
+% Plot state evolution w/ actions
+figure;
+subplot(3,2,1)
+yyaxis left
+plot(1:N, state_gw')
+hold on
+yyaxis right
+scatter(1:N, action_gw)
+xlabel('time')
+legend('GW state', 'pumping level')
+
+subplot(3,2,2)
+plot(1:N, state_expand')
+hold on
+scatter(1:N, action_expand')
+xlabel('time')
+legend('Expansion state', 'Expansion decision')
+
+subplot(3,2,3)
+plot(1:N, state_pop')
+legend('Population state')
+
+
+% Plot system performance
+subplot(3,2,5)
+plot(1:N,costOverTime);
+h = gca;
+h.YLim(1) = 0;
+hold on
+area(1:N, [shortageCostOverTime; expansionCostOverTime; pumpingCostOverTime]');
+legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost')
+
+subplot(3,2,4)
+plot(1:N,shortageOverTime)
+hold on
+plot(1:N,demandOverTime)
+plot(1:N,supplyOverTime)
+plot(1:N, gwSupplyOverTime)
+legend('shortage', 'demand', 'supply', 'gw pumped')
+
+
+

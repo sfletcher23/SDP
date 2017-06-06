@@ -1,4 +1,5 @@
-function [ cost, shortageCost, expansionCost, pumpingCost ] = getCost(a1, a2, s1, s2, water, demand, s_gw, gwParam, costParam)
+function [ cost, shortageCost, expansionCost, pumpingCost, shortage, gw_supply, supply ]...
+    = getCost(a1, a2, s1, s2, water, demand, s_gw, gwParam, costParam)
 % Calculates shortage in current period gives states, actions, and demand
 
 % Groundwater supplied this period
