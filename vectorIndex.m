@@ -13,7 +13,7 @@
 
 function [index] = vectorIndex(vectorInd, vectors)
     [~, numVectors] = size(vectors);
-    vectorLength = cellfun(@length, vectors);
+    [vectorLength,~] = cellfun(@size, vectors);
     A = [1 cumprod(vectorLength)];
     index = 1:A(end);
     for i = numVectors:-1:1

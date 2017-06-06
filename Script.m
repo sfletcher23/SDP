@@ -24,11 +24,11 @@ water.desal_capacity_expansion = 5E5;
 
 % Population parameters
 popParam = struct;
-popParam.pop_initial = 4;   % in millions 
+popParam.pop_initial = 6;   % in millions 
 popParam.min_growth = 0.02;
 popParam.max_growth = 0.08;
 popParam.max_growth_delta = 0.01;
-popParam.discrete_step_pop =  0.07;
+popParam.discrete_step_pop =  0.2;
 popParam.discrete_step_growth = 0.005;
 popParam.growth_initial = 0.03;
 
