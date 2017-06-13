@@ -1,4 +1,4 @@
-function [kernel, T_S_pairs] = gen_kernel(groundwaterWells, aquifer)
+function [kernel, T_S_pairs] = gen_kernel(groundwaterWells, aquifer, N)
 
 % Each kernel function measures drawdown at a set of observation locations
 % for unit pumping impulse from a single pumping well
@@ -11,7 +11,7 @@ a = [1 ];  % well rows
 pumpLocation = [groundwaterWells.Lattitude(a) groundwaterWells.Longitude(a)];
 observeLocation = 10;
 pumpStep = 0;
-time = 1:1:10;
+time = 1:1:N;
 locUnits = 'meters';
 
 

@@ -1,5 +1,5 @@
 %% Compute reward matrix
-
+tic
 R = zeros(S, sizeA);
 for s1 = s_gw'
     index_s1 = find(s1 == s_gw);
@@ -32,7 +32,9 @@ for s1 = s_gw'
         end
     end
 end
+toc
 
+tic
 
 % Vectorized version
 RV = zeros(S, sizeA);
@@ -80,6 +82,7 @@ RV(indexMaxDrawdown, 4) = -infeasibleCost;
 % Expanding when already expanded
 RV(indexExpanded,3:4) = -infeasibleCost;
 
+toc
 % Check R and RV
 diff = R - RV;
 err = 0.01;
