@@ -20,12 +20,11 @@ N = 10;
 costParam = struct;
 costParam.shortage_cost = 10000;
 costParam.expansion_cost = 100000000; 
-costParam.pumping_cost = 500.0;
+costParam.pumping_cost = 1200.0;
 costParam.discount_rate = 0.07;
 
 
 numStateVectors = 3;
-numActionVectors = 2;
 
 
 %% Desalination Expansion State vector, transition array, and actions
@@ -73,6 +72,8 @@ end
 
 %% GW State vector, actions, and transition array
 
+% Assume multiple identical pumping wells
+
 % GW parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
@@ -80,6 +81,7 @@ gwParam.depthLimit = 400;
 gwParam.pumpingRate = 7E6;
 gwParam.stepSize = 5;
 gwParam.sampleSize = 1000; 
+gwParam.numPumpWells = 1;
 
 % Actions: Pump groundwater this period (full demand) or not
     % 1 is pump, 0 is no pump
@@ -114,7 +116,8 @@ if useSimpleGwT
 
 % Otherwise, calculate groundwater T from kernels    
 else
-    % Calculate new kernels if not using existing kernels
+    % Calculate new kernels if not using existing kernels (for now, assume
+    % same kernsl for each well, no interaction effects)
     if calculateKernels
         
         % Calculate kernels and samples
@@ -124,10 +127,34 @@ else
         T_gw = cell(1,2);
         T_gw{1} = spdiags(ones(gw_M,1),0,gw_M,gw_M);
         temp = gw_transmat_kernel(gwParam.pumpingRate, kernel, index_T_S_samples, s_gw, gw_M );
-        T_gw{2} = temp;
+        T_gw{2} = sparse(temp);
         
         
     end
+end
+
+% Update s_gw, gw_M, adn T_gw to include multiple wells
+
+if gwParam.numPumpWells > 1
+    
+    % Calculate new s_gw and gw_M
+    s_gw_new = s_gw;
+    gw_M_new = gw_M;
+    for i = 2:gwParam.numPumpWells
+        temp = repmat(s_gw_new, [gw_M 1]);
+        temp2 = reshape(repmat(s_gw', [gw_M_new, 1]), [gw_M * gw_M_new, 1]);
+        s_gw_new = [temp temp2];
+        [gw_M_new, ~] = size(s_gw_new);
+    end
+    s_gw = s_gw_new;
+    gw_M_well = gw_M;
+    gw_M = gw_M_new;
+    clear gw_M_new s_gw_new temp temp2 
+    
+    % Calculate new T_gw for 2 wells
+    
+    [T_gw] = gw_transmat_multiwell(T_gw, gw_M, gw_M_well);
+    
 end
 
 
@@ -140,9 +167,11 @@ stateSizes = [gw_M exp_M pop_M];
 
 %% Compute action matrix
 
-A_vectors = cell(1,numActionVectors);
-A_vectors{1} = gw_A;
-A_vectors{2} = exp_A;
+A_vectors = cell(1,1);
+for i = 1:gwParam.numPumpWells
+    A_vectors{i} = gw_A;
+end
+A_vectors{end+1} = exp_A;
 
 % A3 Combine column vectors so that every permutation of the column vectors is
 % a row in a matrix with numActionVectors colums
@@ -229,11 +258,8 @@ ind2 = mod(1:S,gw_M*2) == 0;
 indexExpanded = ind1 | ind2;
 supply(indexExpanded,:) = supply(indexExpanded,:) + water.desal_capacity_expansion; 
 % Add pumping supply
-gw_supply = zeros(size(R));
-gw_supply(:,1) = 0;  % no pump, no exp
-gw_supply(:,2) = gwParam.pumpingRate;  % pump, no exp
-gw_supply(:,3) = 0;  % no pump, exp
-gw_supply(:,4) = gwParam.pumpingRate;  % pump, exp
+numPumpWells = sum(A(:,1:gwParam.numPumpWells),2)';
+gw_supply = repmat(numPumpWells,[S,1]) * gwParam.pumpingRate;
 supply = supply + gw_supply;
 
 % Calculate shortage
@@ -242,18 +268,22 @@ shortage = max(0, dmd - supply);
 % Costs include shortage costs, expansion costs, and pumping costs
 shortageCost = shortage * costParam.shortage_cost;
 expansionCost = zeros(size(R));
-expansionCost(:,3:4) = costParam.expansion_cost;
+indexExp = [A(:,end) == 1]';
+expansionCost(:,indexExp) = costParam.expansion_cost;
 pumpingCost = costParam.pumping_cost * gw_supply;
 R = -(shortageCost + expansionCost + pumpingCost);
 
 % Infeasible actions
 infeasibleCost = 1e30;
 % Pumping with max drawdown
-indexMaxDrawdown = (mod(1:S,gw_M) == 0);
-R(indexMaxDrawdown, 2) = -infeasibleCost;
-R(indexMaxDrawdown, 4) = -infeasibleCost;
+for i = 1:gwParam.numPumpWells
+    indexPerGWM = s_gw(:,i) == max(s_gw(:,i));
+    indexMaxDrawdown = repmat(indexPerGWM, [S/length(indexPerGWM), 1]);
+    indexPump = A(:,i) == 1;
+    R(indexMaxDrawdown, indexPump) = -infeasibleCost;    
+end
 % Expanding when already expanded
-R(indexExpanded,3:4) = -infeasibleCost;
+R(indexExpanded,indexExp) = -infeasibleCost;
 
 %% Solve Infinite time horizon SDP using value iteration
 
@@ -274,51 +304,50 @@ mdp_silent()
 %% Visualize results: plot optimal policies
 
 if plotsOn
-    gw_step = s_gw(2) - s_gw(1);
-    exp_step = s_expand(2) - s_expand(1);
-    color = {'b', 'g', 'y', 'r'};
-    fig = figure;
+        gw_step = s_gw(2,1) - s_gw(1,1);
+        exp_step = s_expand(2) - s_expand(1);
+        color = {'b', 'g', 'y', 'r'};
+        fig = figure;
 
-    samplePop = [6 6.5 7 7.5 8 8.5 9 9.5 10 10.5 11];
-    for i = 1:length(samplePop)
-        indexSamplePop(i) = find(samplePop(i) == s_pop(:,1),1);
-    end
-    for k = 1:length(samplePop)
-        subplot(4,3,k)
-        for i = 1:gw_M
-            for j = 1:exp_M
-
-                if k == length(samplePop)
-                    patch(1,1,color{1}) % Just to make legend work, will be covered up later
-                    patch(1,1,color{2})
-                    patch(1,1,color{3})
-                    patch(1,1,color{4})
-                    leg = legend('No pump, no expand', 'Pump, no expand', 'No pump, expand', 'Pump, expand');
-    %                 leg.Location = 'southeastoutside';
-                end
-
-                x = [s_gw(i)-(gw_step/2) s_gw(i)-(gw_step/2) s_gw(i)+(gw_step/2) s_gw(i)+(gw_step/2)];
-                y = [s_expand(j)-(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)-(exp_step/2)];
-                stateIndex =  vectorIndex([i j indexSamplePop(k)], {s_gw, s_expand, s_pop});
-                policyThisState = policy(stateIndex);
-                colorThisState = color{policyThisState};
-                patch(x,y,colorThisState)
-                hold on  
-
-            end
+        samplePop = [6 6.5 7 7.5 8 8.5 9 9.5 10 10.5 11];
+        for i = 1:length(samplePop)
+            indexSamplePop(i) = find(samplePop(i) == s_pop(:,1),1);
         end
-        ax = gca;
-        ax.XTick = s_gw;
-        ax.YTick = s_expand;
-        xlim([s_gw(1)-gw_step/2 s_gw(end)+gw_step/2])
-        ylim([s_expand(1)-exp_step/2 s_expand(end)+exp_step/2])
-        xlabel('Groundwater state')
-        ylabel('Expand state')
-        ax.YTickLabel = {'Not expanded', 'Expanded'};
-        title(strcat('Population: ', num2str(s_pop(indexSamplePop(k)))))
-        ax.XTickLabelRotation = 90;
-    end
+        for k = 1:length(samplePop)
+            subplot(4,3,k)
+            for i = 1:gw_M_well
+                for j = 1:exp_M
 
+                    if k == length(samplePop)
+                        patch(1,1,color{1}) % Just to make legend work, will be covered up later
+                        patch(1,1,color{2})
+                        patch(1,1,color{3})
+                        patch(1,1,color{4})
+                        leg = legend('No pump, no expand', 'Pump, no expand', 'No pump, expand', 'Pump, expand');
+        %                 leg.Location = 'southeastoutside';
+                    end
+
+                    x = [s_gw(i)-(gw_step/2) s_gw(i)-(gw_step/2) s_gw(i)+(gw_step/2) s_gw(i)+(gw_step/2)];
+                    y = [s_expand(j)-(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)-(exp_step/2)];
+                    stateIndex =  vectorIndex([i j indexSamplePop(k)], {s_gw, s_expand, s_pop});
+                    policyThisState = policy(stateIndex);
+                    colorThisState = color{policyThisState};
+                    patch(x,y,colorThisState)
+                    hold on  
+
+                end
+            end
+            ax = gca;
+            ax.XTick = s_gw(1:gw_M_well,1);
+            ax.YTick = s_expand;
+            xlim([s_gw(1)-gw_step/2 s_gw(end)+gw_step/2])
+            ylim([s_expand(1)-exp_step/2 s_expand(end)+exp_step/2])
+            xlabel('Groundwater state')
+            ylabel('Expand state')
+            ax.YTickLabel = {'Not expanded', 'Expanded'};
+            title(strcat('Population: ', num2str(s_pop(indexSamplePop(k)))))
+            ax.XTickLabelRotation = 90;
+        end
 end
 %% Simulate water system
 % SDP above finds optimal policy for each state and time period. Now, use
