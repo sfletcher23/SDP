@@ -1,4 +1,4 @@
-%% Simple SDP gw Model
+%% Run: finite horizion model 
 
 tic
 
@@ -6,7 +6,7 @@ tic
 %% Parameters
 
 % Time period
-N = 10;
+N = 2;
 
 % Cost paramters
 costParam = struct;
@@ -28,7 +28,7 @@ popParam.pop_initial = 6;   % in millions
 popParam.min_growth = 0.02;
 popParam.max_growth = 0.08;
 popParam.max_growth_delta = 0.01;
-popParam.discrete_step_pop =  0.2;
+popParam.discrete_step_pop =  1;
 popParam.discrete_step_growth = 0.005;
 popParam.growth_initial = 0.03;
 
@@ -55,7 +55,7 @@ growth_M = length(s_growth);
 
 % For now, assume some percentage of demand per capita comes from single well
 fraction = water.demandFraction;
-demand_range = demand(water, s_pop, fraction); % in m^3/y
+demand_range = demand(water, s_pop); % in m^3/y
 
 %% State and Action Definitions for Groundwater 
 

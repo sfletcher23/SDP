@@ -1,4 +1,4 @@
-%% Simple model to test MDP Toolbox
+%% Run: infinite horizon model
 
 % State space only on groundwater level, expansion
 % Assume constant population / demand
