@@ -18,7 +18,7 @@ N = 10;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 10000;
+costParam.shortage_cost = 20000;
 costParam.expansion_cost = 100000000; 
 costParam.pumping_cost = 1200.0;
 costParam.discount_rate = 0.07;
@@ -81,7 +81,7 @@ gwParam.depthLimit = 400;
 gwParam.pumpingRate = 7E6;
 gwParam.stepSize = 5;
 gwParam.sampleSize = 1000; 
-gwParam.numPumpWells = 1;
+gwParam.numPumpWells = 2;
 
 % Actions: Pump groundwater this period (full demand) or not
     % 1 is pump, 0 is no pump
@@ -113,6 +113,7 @@ if useSimpleGwT
         end
     end
     T_gw{1} = spdiags(ones(gw_M,1),0,gw_M,gw_M);
+    gw_M_well = gw_M;
 
 % Otherwise, calculate groundwater T from kernels    
 else
@@ -221,7 +222,7 @@ for i = 1:sizeA
     T_gw_exp{i}(1:gw_M, range) = T_gw{a+1}; % Fill relevant 2nd range
 end
 
-clear T_gw T_exp
+% clear T_gw T_exp
 
 for i = 1:sizeA
     tempTCell = cell(pop_M);
@@ -235,7 +236,7 @@ end
 
 % Later: test this 
 
-clear T_gw_exp T_pop
+% clear T_gw_exp T_pop
 
 %% Compute reward matrix
 
