@@ -5,12 +5,17 @@ tic
 %test comment
 %% Parameters
 
+% Run paramters
+parforOn = false; % Parallel processing on?
+plotsOn = true; % Plot results if true
+saveOn = false; % Save output if true
+
 % Time period
-N = 2;
+N = 3;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 25;
+costParam.shortage_cost = 2500;
 costParam.expansion_cost = 100000000; 
 costParam.pumping_cost = 10000;
 costParam.discount_rate = 0.04;
@@ -83,12 +88,12 @@ a_gw_depleted = [0];
 % Kernel is a [numObserve x numTime x numParameterValues x numPumpWells] matrix
 % T_S_pairs is a vector of samples from T and S 
 
-[kernel, T_S_pairs] = gen_kernel(groundwaterWells, aquifer);
+[kernel, T_S_pairs] = gen_kernel(groundwaterWells, aquifer, N);
 
     % Test that kernel functions provide reasonable drawdowns for demand
     testmin = min(max(kernel * min(demand_range)));
     testmax = max(max(kernel * max(demand_range)));
-    test1 = testmin > gwParam.stepSize;
+    test1 = testmin > gwParam.stepSize/2;
     test2 = testmax < max(s_gw);
     if ~test1
         error('Kernels generate unrealistically low drawdown')
@@ -158,9 +163,11 @@ for t = linspace(N,1,N)
     
     % Loop over all states
     % Loop over groundwater state: 1 is depleted, M1 is full
-    
-    parfor index_s1 = 1:gw_M
+
+      for index_s1 = 1:gw_M 
+%     parfor index_s1 = 1:gw_M
         s1 = s_gw(index_s1);
+       
         
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
         for index_s2 = 1:exp_M
@@ -168,7 +175,7 @@ for t = linspace(N,1,N)
             
             % Loop over population state
             for index_s3 = 1:num_pop_thisPeriod
-                s3 = s_pop_thisPeriod(index_s3)
+                s3 = s_pop_thisPeriod(index_s3);
                 
                 % Loop over growth state
                 for index_s4 = 1:growth_M
@@ -204,7 +211,7 @@ for t = linspace(N,1,N)
                             a2 = a_expand(index_a2);
                             
                             % Calculate demand
-                            demandThisPeriod = demand(water, s3, fraction);
+                            demandThisPeriod = demand(water, s3);
                             
                             % Calculate cost and shortages this period
                             [shortage, ~, ~, gw_supply] =  shortageThisPeriod(a1, a2, s1, s2, s3, water, demandThisPeriod, s_gw, gwParam);
@@ -330,7 +337,7 @@ for t = 1:N
     action_expand(t) = X2(index_state_gw, index_state_expand, index_state_pop, index_state_growth, t);
     
     % Calculate demand, shortage, and cost for current t
-    demandOverTime(t) = demand( water, state_pop(t), fraction);
+    demandOverTime(t) = demand( water, state_pop(t));
     [shortageOverTime(t), supplyOverTime(t), ~, gwSupplyOverTime(t)] = shortageThisPeriod(action_gw(t), ...
         action_expand(t), state_gw(t), state_expand(t), state_pop(t), water, demandOverTime(t), s_gw, gwParam);
     [costOverTime(t), shortageCostOverTime(t), expansionCostOverTime(t), pumpingCostOverTime(t)]  = ...
@@ -470,13 +477,16 @@ title('S distribution over time')
 legend(leg)
 
 
-%%
-datetime=datestr(now);  
-datetime=strrep(datetime,':','_'); %Replace colon with underscore
-datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
-datetime=strrep(datetime,' ','_');%Replace space with underscore
-mkdir(datetime)
-save(datetime);
+%% Save results
+
+if saveOn
+    datetime=datestr(now);  
+    datetime=strrep(datetime,':','_'); %Replace colon with underscore
+    datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
+    datetime=strrep(datetime,' ','_');%Replace space with underscore
+    mkdir(datetime)
+    save(datetime);
+end
 
 
 toc

@@ -154,6 +154,8 @@ if gwParam.numPumpWells > 1
     % Calculate new T_gw for 2 wells
     
     [T_gw] = gw_transmat_multiwell(T_gw, gw_M, gw_M_well);
+else
+    gw_M_well = gw_M;
     
 end
 
