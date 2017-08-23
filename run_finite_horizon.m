@@ -110,7 +110,7 @@ index_T_S_samples = zeros(gwParam.sampleSize,N);
 for t = 1:N
     % Define pt(k)
         [T_S_pair_cdf] = gen_param_dist(T_S_pairs, t);
-    % Generate samples from pt(K)
+    % Generate samples from pt(K) 
         p = rand(1,gwParam.sampleSize);
         index_T_S_samples(:,t) = arrayfun(@(x) find(x < T_S_pair_cdf,1), p);
         clear T_S_pair_cdf p
@@ -205,7 +205,7 @@ for t = linspace(N,1,N)
                     % Loop over groundwater pumping action
                     for index_a1 = 1:num_a_gw
                         a1 = a_gw(index_a1);
-                        
+                         
                         % Loop over expansion action: 1 is do not expand, 2 is expand
                         for index_a2 = 1:num_a_expand
                             a2 = a_expand(index_a2);
