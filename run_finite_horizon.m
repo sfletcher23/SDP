@@ -37,14 +37,17 @@ popParam.discrete_step_pop =  1;
 popParam.discrete_step_growth = 0.005;
 popParam.growth_initial = 0.03;
 
-
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 10000;
 gwParam.depthLimit = 5000;
 gwParam.pumpingRate = 7E5;
+gwParam.nnNumber = 17182;
+gwParam.wellIndex = 55;
 
+% Information scenarios
+infoScenario = 'high_narrow';
 
 
 %% State Definitions and Transition for Pop and Growth
@@ -62,8 +65,8 @@ growth_M = length(s_growth);
 fraction = water.demandFraction;
 demand_range = demand(water, s_pop); % in m^3/y
 
-%% State and Action Definitions for Groundwater 
 
+%% State and Action Definitions for Groundwater 
 
 % Import groundwater well data and aquifer properties
 % T in units m^2/sec, drawdown and depth in unit meters
@@ -82,39 +85,20 @@ a_gw_available = [0 1];
 a_gw_depleted = [0];
 
 
-%% Calculate kernel functions
-% Calculate kernel functions measuring the response to a unit impulse of
-% pumping from each well over time. 
-% Kernel is a [numObserve x numTime x numParameterValues x numPumpWells] matrix
-% T_S_pairs is a vector of samples from T and S 
 
-[kernel, T_S_pairs] = gen_kernel(groundwaterWells, aquifer, N);
-
-    % Test that kernel functions provide reasonable drawdowns for demand
-    testmin = min(max(kernel * min(demand_range)));
-    testmax = max(max(kernel * max(demand_range)));
-    test1 = testmin > gwParam.stepSize/2;
-    test2 = testmax < max(s_gw);
-    if ~test1
-        error('Kernels generate unrealistically low drawdown')
-    end
-    if ~test2
-        error('Kernels generate unrealistically high drawdown')
-    end
-
-
-%% Calculate pt(k), the distribution over parameter vector k in time t
-    % and generate samples of k for each t
-
-index_T_S_samples = zeros(gwParam.sampleSize,N);
-for t = 1:N
-    % Define pt(k)
-        [T_S_pair_cdf] = gen_param_dist(T_S_pairs, t);
-    % Generate samples from pt(K) 
-        p = rand(1,gwParam.sampleSize);
-        index_T_S_samples(:,t) = arrayfun(@(x) find(x < T_S_pair_cdf,1), p);
-        clear T_S_pair_cdf p
-end
+% %% Calculate pt(k), the distribution over parameter vector k in time t
+%     % and generate samples of k for each t
+% 
+%     
+% index_T_S_samples = zeros(gwParam.sampleSize,N);
+% for t = 1:N
+%     % Define pt(k)
+%         [T_S_pair_cdf] = gen_param_dist(T_S_pairs, t);
+%     % Generate samples from pt(K) 
+%         p = rand(1,gwParam.sampleSize);
+%         index_T_S_samples(:,t) = arrayfun(@(x) find(x < T_S_pair_cdf,1), p);
+%         clear T_S_pair_cdf p
+% end
 
 %% Desalination Expansions: State Definitions and Actions
 
@@ -157,10 +141,9 @@ for t = linspace(N,1,N)
     % Calculate nextV    
     nextV = V(:,:,:,:,t+1);
     
-    % Get T S index for this period
-    index_T_S_samples_thisPierod = index_T_S_samples(:,t);
-
-    
+    % Get K S samples for this period
+    [K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist(infoScenario, gwParam, t, N);
+        
     % Loop over all states
     % Loop over groundwater state: 1 is depleted, M1 is full
 
@@ -168,7 +151,6 @@ for t = linspace(N,1,N)
 %     parfor index_s1 = 1:gw_M
         s1 = s_gw(index_s1);
        
-        
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
         for index_s2 = 1:exp_M
             s2 = s_expand(index_s2);
@@ -221,7 +203,7 @@ for t = linspace(N,1,N)
                                 
                                 % Get transmat vector for gw based on action, current
                                 % gw state
-                                T_gw = gw_transrow_kernel(gw_supply, kernel, index_T_S_samples_thisPierod, t, s1, s_gw );
+                                T_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw  );
 
                                 % Get transmat vector for next expansion state
                                 % (deterministic)
@@ -455,26 +437,6 @@ plot(1:N,demandOverTime)
 plot(1:N,supplyOverTime)
 plot(1:N, gwSupplyOverTime)
 legend('shortage', 'demand', 'supply', 'gw pumped')
-
-% Plot parameter changes over time
-figure;
-for i = 1:N
-    Tsamples = T_S_pairs(index_T_S_samples(:,i),1);
-    Ssamples = T_S_pairs(index_T_S_samples(:,i),2);
-    hold on
-    subplot(1,2,1)
-    cdfplot(Tsamples)
-    hold on
-    subplot(1,2,2)
-    cdfplot(Ssamples)
-end
-leg = arrayfun(@num2str, 1:N, 'UniformOutput', false);
-subplot(1,2,1)
-title('T distribution over time')
-legend(leg)
-subplot(1,2,2)
-title('S distribution over time')
-legend(leg)
 
 
 %% Save results

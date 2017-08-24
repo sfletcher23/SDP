@@ -1,37 +1,102 @@
-function [T_S_pair_cdf] = gen_param_dist(T_S_pairs, t)
-% Generate joint CDF across the aquifer parameters
-% For now, assume uniform distribution with 10% cut off the top of the
-% range of both T and S each time step
+function [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam, t, N)
+% Generate N samples of the aquifer parameters in time period t given the
+% information scenario number 
 
-T = T_S_pairs(:,1);
-S = T_S_pairs(:,2);
-T_upper = max(T);
-T_lower = min(T);
-T_median = median(T);
-S_upper = max(S);
-S_lower = min(S);
-S_median = median(S);
-[numPairs, ~] = size(T_S_pairs);
-T_S_pair_pmf = zeros(numPairs,1);
+% Starting parameter values
+K_lower = 0.4; % [ m^2/day]
+K_upper = 2.5;
+K_mean = 1.170;
+K_sigma = 0.56;
+S_lower = 0.02;
+S_upper = 3e-1;
+S_mean = 0.13;
 
-% Cutoff top 10% of T and S each time, assume uniform. Check that there is
-% still a minimal range in each. 
-T_90 = T_upper * .95^t;
-S_90 = S_upper * .95^t;
-if T_90 < T_lower * 1.2
-    T_90 = T_lower * 1.2;
+
+% Define mean and stddev for each distribution over time
+switch infoScenario
+    case 'high_narrow'
+        K_start = K_mean;
+        K_end = K_upper * .8 + K_mean * .2;
+        K_sigma_start = K_sigma;
+        K_sigma_end = K_sigma / 3;
+        S_start = S_mean;
+        S_end = S_upper * .8 + S_mean * .2;
+        S_lower_end = S_upper * .5 + S_mean * .5;
+        S_upper_end = S_upper;
+        
+    case 'low_narrow'
+        K_start = K_mean;
+        K_end = K_lower * .8 + K_mean * .2;
+        K_sigma_start = K_sigma;
+        K_sigma_end = K_sigma / 3;
+        S_start = S_mean;
+        S_end = S_lower * .8 + S_mean * .2;
+        S_lower_end = S_lower;
+        S_upper_end = S_lower * .5 + S_mean *.5;
+        
+    case 'medium_narrow'
+        K_start = K_mean;
+        K_end = K_mean;
+        K_sigma_start = K_sigma;
+        K_sigma_end = K_sigma / 3;
+        S_start = S_mean;
+        S_end = S_mean;
+        S_lower_end = S_lower * .5 + S_mean *.5;
+        S_upper_end = S_upper *.5 + S_mean * .5;
+        
+    case 'high_wide'
+        K_start = K_mean;
+        K_end = K_upper * .8 + K_mean * .2;
+        K_sigma_start = K_sigma;
+        K_sigma_end = K_sigma * .9;
+        S_start = S_mean;
+        S_end = S_upper * .8 + S_mean * .2;
+        S_upper_end = S_upper;
+        S_lower_end = S_lower * .5 + S_mean *.5;
+        
+    case 'low_wide'
+        K_start = K_mean;
+        K_end = K_lower * .8 + K_mean * .2;
+        K_sigma_start = K_sigma;
+        K_sigma_end = K_sigma * .9;
+        S_start = S_mean;
+        S_end = S_lower * .8 + S_mean * .2;
+        S_lower_end = S_lower;
+        S_upper_end = S_upper * .5 + S_mean * .5;
+        
+    case 'medium_wide'
+        K_start = K_mean;
+        K_end = K_mean;
+        K_sigma_start = K_sigma;
+        K_sigma_end = K_sigma * .9;
+        S_start = S_mean;
+        S_end = S_mean;
+        S_lower_end = S_lower * .9 + S_mean * .1;
+        S_upper_end = S_upper * .9 + S_mean * .1;
+        
+    otherwise
+        error('invalid information scenario name')
 end
-if S_90 < S_lower * 1.2
-    S_90 = S_lower * 1.2;
-end
 
-indexNonZeroT = T_S_pairs(:,1) < T_90;
-indexNonZeroS = T_S_pairs(:,2) < S_90;
-indexNonZero = indexNonZeroT .* indexNonZeroS;
-countNonZero = sum(indexNonZero);
-uniProb = 1/countNonZero;
-T_S_pair_pmf(logical(indexNonZero)) = uniProb; 
-T_S_pair_cdf = cumsum(T_S_pair_pmf);
+% Calulate K Param values for time period t
+K_step = (K_end - K_start) / N;
+K_t = K_start + K_step * t;
+K_sigma_step = (K_sigma_end - K_sigma_start) / N;
+K_sigma_t = K_sigma_start + K_sigma_step * t;
+
+% Calculate S Param values for time period t
+S_step = (S_end - S_start) / N;
+S_t  = S_start + S_step * t;
+S_lower_step = (S_lower_end - S_lower) / N;
+S_upper_step = (S_upper_end - S_upper) / N;
+S_lower_t = S_lower + S_lower_step * t;
+S_upper_t = S_upper + S_upper_step * t;
+
+% Draw samples from K (lognorm) and S (triangular) distributions
+K_mu_t = log(K_t) - (K_sigma_t ^ 2) / 2;
+K_samples = lognrnd(K_mu_t,K_sigma_t, [1 gwParam.sampleSize]); 
+pd = makedist('Triangular','a',S_lower_t,'b',S_t,'c',S_upper_t);
+S_samples = random(pd, [1 gwParam.sampleSize]);
 
 
 end

@@ -1,4 +1,4 @@
-function[T_gw] = gw_transrow_nn(nnNumber,wellIndex, t, index_T_S_samples, s1, s_gw ) 
+function[T_gw] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw ) 
 
 % Calculates drawdown between time t-1 and time t predicted by the neural
 % net indicated for each of the T and S samples indicated. 
@@ -13,16 +13,15 @@ netscript = str2func(netname);
 
 timeStepSize = 365;
 
-samples = T_S_pairs(index_T_S_samples, :)';
-[~, numSamples] = size(samples);
+[~, numSamples] = size(K_samples_thisPeriod);
 time = repmat(t*timeStepSize, [1 numSamples]);
-x = [samples; time];
+x = [K_samples_thisPeriod; S_samples_thisPeriod; time];
 head_t = netscript(x);
 head_t = head_t(wellIndex,:);
 
 if t>1
     time = repmat(t-1, [1 numSamples]);
-    x = [samples; time];
+    x = [K_samples_thisPeriod; S_samples_thisPeriod; time];
     head_t_previous = netscript(x);
     head_t_previous = head_t_previous(wellIndex,:);
 else
