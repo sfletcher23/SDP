@@ -41,7 +41,7 @@ popParam.growth_initial = 0.03;
 gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 10000;
-gwParam.depthLimit = 5000;
+gwParam.depthLimit = 200;
 gwParam.pumpingRate = 7E5;
 gwParam.nnNumber = 17182;
 gwParam.wellIndex = 55;
@@ -76,7 +76,7 @@ aquifer = readtable('Water Decision Model Data Inputs.xlsx', 'Sheet', 4, ...
     'Range', 'A25:J27', 'ReadVariableNames', true, 'ReadRowNames', true);
 
 % Generate state space for groundwater head and demand range
-[s_gw, gw_M, drawdownMaxAnnual, gwParam.stepSize] = gen_water_growth_states(gwParam, N, demand_range, water, ...
+[s_gw, gw_M] = gen_water_growth_states(gwParam, N, demand_range, water, ...
     groundwaterWells, aquifer);
 
 % Actions: Pump groundwater this period (full demand) or not
@@ -84,21 +84,6 @@ aquifer = readtable('Water Decision Model Data Inputs.xlsx', 'Sheet', 4, ...
 a_gw_available = [0 1];
 a_gw_depleted = [0];
 
-
-
-% %% Calculate pt(k), the distribution over parameter vector k in time t
-%     % and generate samples of k for each t
-% 
-%     
-% index_T_S_samples = zeros(gwParam.sampleSize,N);
-% for t = 1:N
-%     % Define pt(k)
-%         [T_S_pair_cdf] = gen_param_dist(T_S_pairs, t);
-%     % Generate samples from pt(K) 
-%         p = rand(1,gwParam.sampleSize);
-%         index_T_S_samples(:,t) = arrayfun(@(x) find(x < T_S_pair_cdf,1), p);
-%         clear T_S_pair_cdf p
-% end
 
 %% Desalination Expansions: State Definitions and Actions
 
@@ -279,6 +264,8 @@ end
 % intial state, and transition matrix to simulate performance of the
 % system
 
+if false
+
 % Initialize vector tracking state, actions, water balance, costs over time 
 state_gw = zeros(1,N);
 state_expand = zeros(1,N);
@@ -438,7 +425,7 @@ plot(1:N,supplyOverTime)
 plot(1:N, gwSupplyOverTime)
 legend('shortage', 'demand', 'supply', 'gw pumped')
 
-
+end
 %% Save results
 
 if saveOn
