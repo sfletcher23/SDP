@@ -1,4 +1,4 @@
-function [s_gw, gw_M] = gen_water_growth_states(gwParam, N, demand_range, water, groundwaterWells, aquifer)
+function [s_gw, gw_M] = gen_water_growth_states(gwParam)
 
 % Takes input paramters generates groundwater state space 
 limit = gwParam.depthLimit;

@@ -1,4 +1,4 @@
-function [shortage, supply, demand, gw_supply] = shortageThisPeriod(a1, a2, s1, s2, s3, water, demand, s_gw, gwParam)
+function [shortage, supply, demand, gw_supply] = shortageThisPeriod(a1, s1, s2, water, demand, s_gw, gwParam)
 % Calculates shortage in current period gives states, actions, and demand
 
 % Groundwater supplied this period
