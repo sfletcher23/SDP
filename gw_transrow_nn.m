@@ -27,7 +27,7 @@ if t>1
 else
     head_t_previous = repmat(200, [1 numSamples]);
 end
-
+    
 % Calculate drawdown between t and t-1
 drawdown = head_t_previous - head_t;
 
