@@ -10,15 +10,24 @@ f=0.013;
 D=0.508;
 v=0.24669;
   
-pump_cost=density * 9.81 * (((f*s1^2*v^2)/(2*9.81*D))+s1) * conversion_factor ...
+pump_cost_perunit=density * 9.81 * (((f*s1^2*v^2)/(2*9.81*D))+s1) * conversion_factor ...
     * (100/percent_eff) * cost_per_kwh;
  
 
+% Expansion costs
+switch a2
+    case 0
+        expansionCost = 0;
+    case 1
+        expansionCost = costParam.expansion_cost.capex.small;
+    case 2
+        expansionCost = costParam.expansion_cost.capex.large;
+end
+        
 % Costs include shortage costs, expansion costs, and pumping costs
 discountFactor = 1/((1+costParam.discount_rate)^t);
 shortageCost = shortage * costParam.shortage_cost * discountFactor;
-expansionCost = costParam.expansion_cost * a2 * discountFactor;
-pumpingCost =  pump_cost * a1 * gw_supply * discountFactor;
+pumpingCost =  pump_cost_perunit * a1 * gw_supply * discountFactor;
 cost = shortageCost + expansionCost + pumpingCost;
 
 

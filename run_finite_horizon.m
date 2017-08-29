@@ -18,9 +18,9 @@ N = 30;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 50;
-costParam.expansion_cost = 10000000; 
-costParam.pumping_cost = 1000;
+costParam.shortage_cost = 5;    % $/m^2
+costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
+costParam.expansion_cost.capex.small = 258658804;
 costParam.discount_rate = 0.04;
 
 % Water infrastructure paramters
@@ -131,13 +131,23 @@ a_gw_depleted = [0];
 
 %% Desalination Expansions: State Definitions and Actions
 
-
 % a2 desal actions: 0 no expand, 1 expand small, 2 expand large
-a_expand_available = [0 1];
+a_expand_available = [0 1 2];
 a_expand_unavailable = 0;
 
-% State definitions
-s_expand = 1:2;
+% State definition: volume of additional capacity
+maxNumSmallExp = 3;
+maxNumLargeExp = 1;
+
+% Check that large capacity is a multiple of small capacity
+if mod(water.desal_capacity_expansion.large , water.desal_capacity_expansion.small) ~= 0
+    error('Large capacity is not a multiple of small capacity')
+end
+
+% Get max capacity, state space between 0 and max cap in steps of small capacity
+maxExpCap = water.desal_capacity_expansion.small * maxNumSmallExp + ...
+    water.desal_capacity_expansion.large * maxNumLargeExp;
+s_expand = 0:water.desal_capacity_expansion.small:maxExpCap;
 exp_M = length(s_expand); % Desalination expanded = 2
 
 
@@ -190,10 +200,12 @@ for t = linspace(N,1,N)
             end
 
             % Update available actions based on whether expansion available
-            if s2 < 2
-                a_expand = a_expand_available;
+            if s2 == s_expand(end)
+                a_expand = 0;
+            elseif s2 == s_expand(end-1)      % Future: Generalize this depending on size ratio
+                a_expand = [0 1];
             else
-                a_expand = a_expand_unavailable;
+                a_expand = [0 1 2];
             end
 
             num_a_gw = length(a_gw);
@@ -212,7 +224,7 @@ for t = linspace(N,1,N)
                     demandThisPeriod = demand(water, population(t), t);
 
                     % Calculate cost and shortages this period
-                    [shortage, ~, ~, gw_supply] =  shortageThisPeriod(a1, s1, s2, water, demandThisPeriod, s_gw, gwParam);
+                    [shortage, ~, ~, gw_supply, exp_supply] =  shortageThisPeriod(a1, s1, s2, water, demandThisPeriod, s_gw, gwParam);
                     cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t, s1);
 
                     % Calculate transition matrix
@@ -222,13 +234,16 @@ for t = linspace(N,1,N)
                     T_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw  );
 
                     % Get transmat vector for next expansion state
-                    % (deterministic)
-                    if a2 == 1 || s2 == 2   % desal already expanded or will expand
-                        T_expand = [0 1];
-                    else
-                        T_expand = [1 0];
+                    % (deterministic)                  
+                    T_expand = zeros(1,exp_M);
+                    if a2 == 0
+                        T_expand(index_s2) = 1; % Stay in current state
+                    elseif a2 == 1
+                        T_expand(index_s2 + 1) = 1; % Move up one state
+                    elseif a2 == 2
+                        T_expand(index_s2 + 2) = 1; % Move up two states
                     end
-
+                    
                     % Calculate full transition matrix
                     % T gives probability of next state given
                     % current state and actions
@@ -344,7 +359,7 @@ demandOverTime = zeros(1,N);
 
 % Initial state
 s_gw_initial = s_gw(1);
-s_expand_initial = 1;
+s_expand_initial = 0;
 
 state_gw(1) = s_gw_initial;
 state_expand(1) = s_expand_initial;
@@ -361,7 +376,7 @@ for t = 1:N
     
     % Calculate demand, shortage, and cost for current t
     demandOverTime(t) = demand( water, population(t), t);
-    [shortageOverTime(t), supplyOverTime(t), ~, gwSupplyOverTime(t)] = shortageThisPeriod(action_gw(t), ...   
+    [shortageOverTime(t), supplyOverTime(t), ~, gwSupplyOverTime(t), ~] = shortageThisPeriod(action_gw(t), ...   
         state_gw(t), state_expand(t), water, demandOverTime(t), s_gw, gwParam);
     [costOverTime(t), shortageCostOverTime(t), expansionCostOverTime(t), pumpingCostOverTime(t)]  = ...
         costThisPeriod(action_gw(t), action_expand(t), costParam, shortageOverTime(t),gwSupplyOverTime(t), t, state_gw(t));  
@@ -373,10 +388,13 @@ for t = 1:N
         T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, state_gw(t), s_gw );     
  
         % Get transmat vector for next expansion state (deterministic)
-        if action_expand(t) == 1 || state_expand(t) == 2   % desal already expanded or will expand
-            T_current_expand = [0 1];
-        else
-            T_current_expand = [1 0];
+        T_current_expand = zeros(1,exp_M);
+        if a2 == 0
+            T_current_expand(index_state_expand) = 1; % Stay in current state
+        elseif a2 == 1
+            T_current_expand(index_state_expand + 1) = 1; % Move up one state
+        elseif a2 == 2
+            T_current_expand(index_state_expand + 2) = 1; % Move up two states
         end
         
         % Get Transition Matrix from rows
