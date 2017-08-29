@@ -11,30 +11,31 @@ parforOn = false; % Parallel processing on?
 simulateOn = true;
 simPlotsOn = true; % Plot results if true
 saveOn = false; % Save output if true
+plotInitialWaterBalance = true;
 
 % Time period
-N = 3;
+N = 30;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 2500;
-costParam.expansion_cost = 100000000; 
-costParam.pumping_cost = 10000;
+costParam.shortage_cost = 50;
+costParam.expansion_cost = 10000000; 
+costParam.pumping_cost = 1000;
 costParam.discount_rate = 0.04;
 
 % Water infrastructure paramters
 water = struct;
-water.desal_capacity_initial = 10E5;
-water.desal_capacity_expansion = 5E5;
-water.demandFraction = 1/10;
-water.demandPerCapita = 110;
+water.desal_capacity_initial = 1.3E6 * 365; % m^3/y
+water.desal_capacity_expansion = 0.5E6 * 365;
+water.demandFraction = 1;
+water.demandPerCapita = 300:-2:300-2*(N-1);
 
 % Population parameters
 popParam = struct;
 popParam.pop_initial = 6;   % in millions 
 popParam.growth.medium = 0.03;
-popParam.growth.high = 0.06;
-popParam.growth.low = 0.01;
+popParam.growth.high = 0.04;
+popParam.growth.low = 0.02;
 popParam.growthScenario = 'medium';
 
 % GW Parameters
@@ -42,12 +43,15 @@ gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 10000;
 gwParam.depthLimit = 200;
-gwParam.pumpingRate = 7E5;
+gwParam.pumpingRate = 640000 * 365;  % m^3/y
+gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
 gwParam.wellIndex = 55;
 
+
 % Information scenarios
 infoScenario = 'high_narrow';
+
 
 
 %% Define population growth and demand
@@ -62,6 +66,56 @@ end
 % For now, assume some percentage of demand per capita comes from single well
 fraction = water.demandFraction;
 
+%Plot initial supply - demand balance
+if plotInitialWaterBalance
+    
+    population_low = zeros(1,N);
+    population_medium = zeros(1,N);
+    population_high = zeros(1,N);
+    population_low(1) = popParam.pop_initial;
+    population_medium(1) = popParam.pop_initial;
+    population_high(1) = popParam.pop_initial;
+    for t = 2:N
+        growthRate = popParam.growth.low;
+        population_low(t) = population_low(t-1) * (1 + growthRate);
+        growthRate = popParam.growth.medium;
+        population_medium(t) = population_medium(t-1) * (1 + growthRate);
+        growthRate = popParam.growth.high;
+        population_high(t) = population_high(t-1) * (1 + growthRate);
+    end
+    
+    gw_Minjur = ones(1,N) * gwParam.pumpingRate;
+    gw_other = ones(1,N) * gwParam.otherPumpingRate;
+    desal = ones(1,N) * water.desal_capacity_initial;
+    desal_exp = ones(1,N) * water.desal_capacity_expansion; 
+    waterDemand_low = demand(water, population_low, 1:N);
+    waterDemand_medium = demand(water, population_medium, 1:N);
+    waterDemand_high = demand(water, population_high, 1:N);
+    figure;
+    subplot(1,2,1)
+    area(1:N, [gw_Minjur; gw_other; desal; desal_exp]' ./ 1E6);
+    hold on;
+    plot(1:N, waterDemand_low/1E6)
+    plot(1:N, waterDemand_medium/1E6)
+    plot(1:N, waterDemand_high/1E6)
+    legend('Minjur GW', 'Other GW', 'Desal', 'Desal Expansion', 'Demand Low', 'Demand Medium', 'Demand High')
+    legend('Location','northwest')
+    ylabel('MCM/y')
+    xlabel('Year')
+    title('Water Balance: With Minjur')
+    subplot(1,2,2)
+    area(1:N, [gw_other; desal; desal_exp]' ./ 1E6);
+    hold on;
+    plot(1:N, waterDemand_low/1E6)
+    plot(1:N, waterDemand_medium/1E6)
+    plot(1:N, waterDemand_high/1E6)
+    legend('Other GW', 'Desal', 'Desal Expansion', 'Demand Low', 'Demand Medium', 'Demand High')
+    legend('Location','northwest')
+    ylabel('MCM/y')
+    xlabel('Year')
+    title('Water Balance: Without Minjur')
+    
+end
 
 %% State and Action Definitions for Groundwater 
 
@@ -99,6 +153,11 @@ V(:,:,N+1) = zeros(gw_M, exp_M, 1);
 
 %% Backwards Recursion
 
+% If running on cluster, get number of workers 
+if exist(getenv('SLURM_CPUS_PER_TASK'))
+    parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
+end
+
 % Loop over all time periods
 for t = linspace(N,1,N)
     
@@ -111,7 +170,7 @@ for t = linspace(N,1,N)
     % Loop over all states
     
     % Loop over groundwater state: 1 is depleted, M1 is full
-    for index_s1 = 1:gw_M 
+    parfor index_s1 = 1:gw_M 
         s1 = s_gw(index_s1);
        
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
@@ -148,7 +207,7 @@ for t = linspace(N,1,N)
                     a2 = a_expand(index_a2);
 
                     % Calculate demand
-                    demandThisPeriod = demand(water, population(t));
+                    demandThisPeriod = demand(water, population(t), t);
 
                     % Calculate cost and shortages this period
                     [shortage, ~, ~, gw_supply] =  shortageThisPeriod(a1, s1, s2, water, demandThisPeriod, s_gw, gwParam);
@@ -299,7 +358,7 @@ for t = 1:N
     action_expand(t) = X2(index_state_gw, index_state_expand, t);
     
     % Calculate demand, shortage, and cost for current t
-    demandOverTime(t) = demand( water, population(t));
+    demandOverTime(t) = demand( water, population(t), t);
     [shortageOverTime(t), supplyOverTime(t), ~, gwSupplyOverTime(t)] = shortageThisPeriod(action_gw(t), ...   
         state_gw(t), state_expand(t), water, demandOverTime(t), s_gw, gwParam);
     [costOverTime(t), shortageCostOverTime(t), expansionCostOverTime(t), pumpingCostOverTime(t)]  = ...
