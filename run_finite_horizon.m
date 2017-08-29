@@ -220,16 +220,16 @@ if policyPlotsOn
     fig = figure;
     for t = 1:N
         subplot(N,1,t)
+        if t == 1
+            patch(1,1,color{1}) % Just to make legend work, will be covered up later
+            patch(1,1,color{2})
+            patch(1,1,color{3})
+            patch(1,1,color{4})
+            leg = legend('No pump, no expand', 'Pump, no expand', 'No pump, expand', 'Pump, expand');
+%                 leg.Location = 'southeastoutside';
+        end
         for i = 1:gw_M
             for j = 1:exp_M
-                if true
-                    patch(1,1,color{1}) % Just to make legend work, will be covered up later
-                    patch(1,1,color{2})
-                    patch(1,1,color{3})
-                    patch(1,1,color{4})
-                    leg = legend('No pump, no expand', 'Pump, no expand', 'No pump, expand', 'Pump, expand');
-    %                 leg.Location = 'southeastoutside';
-                end
                 x = [s_gw(i)-(gw_step/2) s_gw(i)-(gw_step/2) s_gw(i)+(gw_step/2) s_gw(i)+(gw_step/2)];
                 y = [s_expand(j)-(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)-(exp_step/2)];
                 if X1(i,j,1) == 0 && X2(i,j,1) == 0
@@ -245,7 +245,7 @@ if policyPlotsOn
                 hold on  
             end
         end
-    end
+    
     ax = gca;
     ax.XTick = 0:5:s_gw(end);
     ax.YTick = s_expand;
@@ -256,6 +256,7 @@ if policyPlotsOn
     ax.YTickLabel = {'Not expanded', 'Expanded'};
     title(strcat('Time step: ', num2str(t)))
     ax.XTickLabelRotation = 90;
+    end
 end
 
 
@@ -347,12 +348,6 @@ for t = 1:N
             if ~test_expand
                 error('Invalid expand state tranisition')
             end
-            if ~test_pop
-                error('Invalid pop state tranisition')
-            end
-            if ~test_growth
-                error('Invalid growth state tranisition')
-            end
     end
     
 end
@@ -365,7 +360,7 @@ if simPlotsOn
 
 % Plot state evolution w/ actions
 figure;
-subplot(3,2,1)
+subplot(2,2,1)
 yyaxis left
 plot(1:N, state_gw')
 hold on
@@ -374,24 +369,16 @@ scatter(1:N, action_gw)
 xlabel('time')
 legend('GW state', 'pumping level')
 
-subplot(3,2,2)
+subplot(2,2,2)
 plot(1:N, state_expand')
 hold on
 scatter(1:N, action_expand')
 xlabel('time')
 legend('Expansion state', 'Expansion decision')
 
-subplot(3,2,3)
-plot(1:N, state_pop')
-legend('Population state')
-
-subplot(3,2,4)
-plot(1:N, state_growth')
-legend('Growth state')
-
 
 % Plot system performance
-subplot(3,2,5)
+subplot(2,2,3)
 plot(1:N,costOverTime);
 h = gca;
 h.YLim(1) = 0;
@@ -399,7 +386,7 @@ hold on
 area(1:N, [shortageCostOverTime; expansionCostOverTime; pumpingCostOverTime]');
 legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost')
 
-subplot(3,2,6)
+subplot(2,2,4)
 plot(1:N,shortageOverTime)
 hold on
 plot(1:N,demandOverTime)
