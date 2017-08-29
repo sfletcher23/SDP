@@ -6,12 +6,12 @@ tic
 %% Parameters
 
 % Run paramters
-policyPlotsOn = true;
+policyPlotsOn = false;
 parforOn = false; % Parallel processing on?
-simulateOn = true;
-simPlotsOn = true; % Plot results if true
-saveOn = false; % Save output if true
-plotInitialWaterBalance = true;
+simulateOn = false;
+simPlotsOn = false; % Plot results if true
+saveOn = true; % Save output if true
+plotInitialWaterBalance = false;
 
 % Time period
 N = 30;
