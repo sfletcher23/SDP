@@ -6,12 +6,12 @@ tic
 %% Parameters
 
 % Run paramters
-policyPlotsOn = false;
+policyPlotsOn = true;
 parforOn = false; % Parallel processing on?
-simulateOn = false;
-simPlotsOn = false; % Plot results if true
+simulateOn = true;
+simPlotsOn = true; % Plot results if true
 saveOn = true; % Save output if true
-plotInitialWaterBalance = false;
+plotInitialWaterBalance = true;
 
 % Time period
 N = 30;
@@ -26,7 +26,8 @@ costParam.discount_rate = 0.04;
 % Water infrastructure paramters
 water = struct;
 water.desal_capacity_initial = 1.3E6 * 365; % m^3/y
-water.desal_capacity_expansion = 0.5E6 * 365;
+water.desal_capacity_expansion.large = 0.5E6 * 365;
+water.desal_capacity_expansion.small = 0.25E6 * 365;
 water.demandFraction = 1;
 water.demandPerCapita = 300:-2:300-2*(N-1);
 
@@ -87,7 +88,7 @@ if plotInitialWaterBalance
     gw_Minjur = ones(1,N) * gwParam.pumpingRate;
     gw_other = ones(1,N) * gwParam.otherPumpingRate;
     desal = ones(1,N) * water.desal_capacity_initial;
-    desal_exp = ones(1,N) * water.desal_capacity_expansion; 
+    desal_exp = ones(1,N) * water.desal_capacity_expansion.small; 
     waterDemand_low = demand(water, population_low, 1:N);
     waterDemand_medium = demand(water, population_medium, 1:N);
     waterDemand_high = demand(water, population_high, 1:N);
@@ -130,13 +131,14 @@ a_gw_depleted = [0];
 
 %% Desalination Expansions: State Definitions and Actions
 
+
+% a2 desal actions: 0 no expand, 1 expand small, 2 expand large
+a_expand_available = [0 1];
+a_expand_unavailable = 0;
+
 % State definitions
 s_expand = 1:2;
 exp_M = length(s_expand); % Desalination expanded = 2
-
-% a2 desal actions: 0 no expand, 1 expand
-a_expand_available = [0 1];
-a_expand_unavailable = [0];
 
 
 %% Initialize best value and best action matrices
@@ -211,7 +213,7 @@ for t = linspace(N,1,N)
 
                     % Calculate cost and shortages this period
                     [shortage, ~, ~, gw_supply] =  shortageThisPeriod(a1, s1, s2, water, demandThisPeriod, s_gw, gwParam);
-                    cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t);
+                    cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t, s1);
 
                     % Calculate transition matrix
 
@@ -362,7 +364,7 @@ for t = 1:N
     [shortageOverTime(t), supplyOverTime(t), ~, gwSupplyOverTime(t)] = shortageThisPeriod(action_gw(t), ...   
         state_gw(t), state_expand(t), water, demandOverTime(t), s_gw, gwParam);
     [costOverTime(t), shortageCostOverTime(t), expansionCostOverTime(t), pumpingCostOverTime(t)]  = ...
-        costThisPeriod(action_gw(t), action_expand(t), costParam, shortageOverTime(t),gwSupplyOverTime(t),t);  
+        costThisPeriod(action_gw(t), action_expand(t), costParam, shortageOverTime(t),gwSupplyOverTime(t), t, state_gw(t));  
     
     % Get transisition mat to next state give current state and actions
 
@@ -413,7 +415,6 @@ end
 
 end
 
-%% Plot simulation results
 
 if simPlotsOn
 
@@ -461,7 +462,6 @@ if saveOn
     datetime=strrep(datetime,':','_'); %Replace colon with underscore
     datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
     datetime=strrep(datetime,' ','_');%Replace space with underscore
-    mkdir(datetime)
     save(datetime);
 end
 
