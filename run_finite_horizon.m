@@ -6,8 +6,7 @@ tic
 %% Parameters
 
 % Run paramters
-parforOn = false; % Parallel processing on?
-plotsOn = true; % Plot results if true
+plotsOn = false; % Plot results if true
 saveOn = false; % Save output if true
 
 % Time period
@@ -380,7 +379,6 @@ if saveOn
     datetime=strrep(datetime,':','_'); %Replace colon with underscore
     datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
     datetime=strrep(datetime,' ','_');%Replace space with underscore
-    mkdir(datetime)
     save(datetime);
 end
 
