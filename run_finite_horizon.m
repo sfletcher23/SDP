@@ -6,13 +6,13 @@ tic
 %% Parameters
 
 % Run paramters
-policyPlotsOn = true;
+policyPlotsOn = false;
 parforOn = false; % Parallel processing on?
-simulateOn = true;
-simPlotsOn = true; % Plot results if true
+simulateOn = false;
+simPlotsOn = false; % Plot results if true
 saveOn = true; % Save output if true
-plotInitialWaterBalance = true;
-simulateHydrograph = true;
+plotInitialWaterBalance = false;
+adjustOutput = true;
 
 % Time period
 N = 30;
@@ -43,12 +43,12 @@ popParam.growthScenario = 'medium';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 10000;
+gwParam.sampleSize = 100000;
 gwParam.depthLimit = 200;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
-gwParam.wellIndex = 55;
+gwParam.wellIndex = 108;
 
 
 % Information scenarios
@@ -152,6 +152,33 @@ s_expand = 0:water.desal_capacity_expansion.small:maxExpCap;
 exp_M = length(s_expand); % Desalination expanded = 2
 
 
+%% Get K and S samples and use to prune state space
+
+[K_samples, S_samples] = gen_param_dist('full_range', 10000, 1, N);
+
+% Get min and max hydrograph
+% Get neural net script
+netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
+netscript = str2func(netname);
+maxK = max(K_samples);
+minK = min(K_samples);
+maxS = max(S_samples);
+minS = min(S_samples);
+time = 1*365:365:N*365;
+x = [ones(1,N) * maxK; ones(1,N) * maxS; time]; 
+y = netscript(x, adjustOutput);
+minDrawdownHydrograph = y(gwParam.wellIndex,:);
+x = [ones(1,N) * minK; ones(1,N) * minS; time]; 
+y = netscript(x, adjustOutput);
+maxDrawdownHydrograph = y(gwParam.wellIndex,:);
+s_gw_time = {};
+gw_M_time = [];
+for t = 1:N
+    indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t);
+    s_gw_time{t} = s_gw(indexValidState);
+    gw_M_time(t) = length(s_gw_time{t});
+end
+
 %% Initialize best value and best action matrices
 % Groundwater states x desal states x time
 V = NaN(gw_M, exp_M, N+1);
@@ -162,7 +189,6 @@ X2 = NaN(gw_M, exp_M, N+1);
 X1(:,:,N+1) = zeros(gw_M, exp_M, 1);
 X2(:,:,N+1) = zeros(gw_M, exp_M, 1);
 V(:,:,N+1) = zeros(gw_M, exp_M, 1);
-    
 
 %% Backwards Recursion
 
@@ -173,19 +199,19 @@ end
 
 % Loop over all time periods
 for t = linspace(N,1,N)
-    
     % Calculate nextV    
     nextV = V(:,:,t+1);
-    
-    % Get K S samples for this period
-    [K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist(infoScenario, gwParam, t, N);
-        
+          
     % Loop over all states
     
     % Loop over groundwater state: 1 is depleted, M1 is full
-    parfor index_s1 = 1:gw_M 
+    gw_M_thisPeriod = gw_M_time(t); 
+    parfor index_s1 = 1:gw_M_thisPeriod
         s1 = s_gw(index_s1);
        
+        % Get transmat vector for gw when pumping for current gw state
+        T_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, s1, s_gw, adjustOutput);  
+        
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
         for index_s2 = 1:exp_M
             s2 = s_expand(index_s2);
@@ -229,10 +255,13 @@ for t = linspace(N,1,N)
                     cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t, s1);
 
                     % Calculate transition matrix
-
-                    % Get transmat vector for gw based on action, current
-                    % gw state
-                    T_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw  );
+                    
+                    % If no pumping, stay in same state. Otherwise, use
+                    % T_gw calculated above. 
+                    if a1 == 0
+                        T_gw = zeros(1,gw_M);
+                        T_gw(index_s1) = 1;
+                    end
 
                     % Get transmat vector for next expansion state
                     % (deterministic)                  
@@ -385,8 +414,8 @@ for t = 1:N
     % Get transisition mat to next state give current state and actions
 
         % Get transmat vector to next GW state 
-        [K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist(infoScenario, gwParam, t, N);
-        T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, state_gw(t), s_gw );     
+        [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, t, N);
+        T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, state_gw(t), s_gw, adjustOutput );     
  
         % Get transmat vector for next expansion state (deterministic)
         T_current_expand = zeros(1,exp_M);
@@ -476,26 +505,6 @@ plot(1:N, gwSupplyOverTime)
 legend('shortage', 'demand', 'supply', 'gw pumped')
 
 end
-%% Simulate hydrograph
-
-if simulateHydrograph
-    runsToPlot = 5;
-    gw_state = zeros(runsToPlot,N);
-    for i = 1:runsToPlot
-        for t = 1:N-1
-            % Get transmat vector to next GW state 
-            [K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist(infoScenario, gwParam, t, N);
-            T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, state_gw(t), s_gw );
-            p = rand();
-            index = find(p < cumsum(T_current_gw),1);
-            gw_state(i,t+1) = s_gw(index);
-        end
-    end
-    figure;
-    drawdown = 200 - gw_state;
-    plot(1:N, drawdown)
-end
-
 
 
 %% Save results

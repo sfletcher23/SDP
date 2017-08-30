@@ -3,3 +3,4 @@
 
 # MATLAB ignores
 *.m~
+*.mat
