@@ -12,13 +12,14 @@ simulateOn = true;
 simPlotsOn = true; % Plot results if true
 saveOn = true; % Save output if true
 plotInitialWaterBalance = true;
+simulateHydrograph = true;
 
 % Time period
 N = 30;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 5;    % $/m^2
+costParam.shortage_cost = 0.05;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 costParam.expansion_cost.capex.small = 258658804;
 costParam.discount_rate = 0.04;
@@ -389,11 +390,11 @@ for t = 1:N
  
         % Get transmat vector for next expansion state (deterministic)
         T_current_expand = zeros(1,exp_M);
-        if a2 == 0
+        if action_expand(t) == 0
             T_current_expand(index_state_expand) = 1; % Stay in current state
-        elseif a2 == 1
+        elseif action_expand(t) == 1
             T_current_expand(index_state_expand + 1) = 1; % Move up one state
-        elseif a2 == 2
+        elseif action_expand(t) == 2
             T_current_expand(index_state_expand + 2) = 1; % Move up two states
         end
         
@@ -440,16 +441,18 @@ if simPlotsOn
 figure;
 subplot(2,2,1)
 yyaxis left
-plot(1:N, state_gw')
+plot(1:N, 200 - state_gw')
 hold on
 yyaxis right
 scatter(1:N, action_gw)
 xlabel('time')
-legend('GW state', 'pumping level')
+legend('Drawdown', 'pumping on?')
 
 subplot(2,2,2)
+yyaxis left
 plot(1:N, state_expand')
 hold on
+yyaxis right
 scatter(1:N, action_expand')
 xlabel('time')
 legend('Expansion state', 'Expansion decision')
@@ -473,6 +476,28 @@ plot(1:N, gwSupplyOverTime)
 legend('shortage', 'demand', 'supply', 'gw pumped')
 
 end
+%% Simulate hydrograph
+
+if simulateHydrograph
+    runsToPlot = 5;
+    gw_state = zeros(runsToPlot,N);
+    for i = 1:runsToPlot
+        for t = 1:N-1
+            % Get transmat vector to next GW state 
+            [K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist(infoScenario, gwParam, t, N);
+            T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, state_gw(t), s_gw );
+            p = rand();
+            index = find(p < cumsum(T_current_gw),1);
+            gw_state(i,t+1) = s_gw(index);
+        end
+    end
+    figure;
+    drawdown = 200 - gw_state;
+    plot(1:N, drawdown)
+end
+
+
+
 %% Save results
 
 if saveOn
