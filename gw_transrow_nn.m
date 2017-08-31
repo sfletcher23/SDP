@@ -1,4 +1,4 @@
-function[T_gw, numRelevantSamples, stateInfeasible] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw, adjustOutput ) 
+function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw, adjustOutput ) 
 
 % Calculates drawdown between time t-1 and time t predicted by the neural
 % net indicated for each of the T and S samples indicated. 
@@ -6,6 +6,8 @@ function[T_gw, numRelevantSamples, stateInfeasible] = gw_transrow_nn(nnNumber,we
 % next groundwater state
 
 stateInfeasible = false;
+indexAbove = [];
+indexBelow = [];
 
 % If at max drawdown, stay at max drawdown
 if s1 == s_gw(end)
@@ -32,7 +34,7 @@ if t>1
     x = [K_samples_thisPeriod; S_samples_thisPeriod; time];
     head_t_previous = netscript(x, adjustOutput);
     head_t_previous = head_t_previous(wellIndex,:);
-else
+else 
     head_t_previous = repmat(200, [1 numSamples]);
 end
 margin = 5; 
@@ -42,11 +44,15 @@ if numRelevantSamples == 0
     warning(strcat('infeasible groundwater state : t=',num2str(t), ', 200-s1 = ', num2str(200-s1), ...
         ', min previous head =', num2str(min(head_t_previous)), ', max previous head =', num2str(max(head_t_previous)) ));
     stateInfeasible = true;
+    % Use closest sample even if outside error marign
     [~, bestIndex] = min(abs(head_t_previous - (200 -s1)));
     indexRelevantSamples = zeros([1 numSamples]);
     indexRelevantSamples(bestIndex) = 1;
     indexRelevantSamples = logical(indexRelevantSamples);
     numRelevantSamples = 1;
+    % Find above and below samples for analysis
+    [~, indexAbove] = min(head_t_previous - (200 -s1));
+    [~, indexBelow] = min((200 -s1) - head_t_previous);
 end
 
 % Update samples from previous period to include only relevant samples

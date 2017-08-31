@@ -13,7 +13,8 @@ simPlotsOn = false; % Plot results if true
 saveOn = true; % Save output if true
 plotInitialWaterBalance = false;
 adjustOutput = true;
-plotHeatMaps = true;
+plotHeatMaps = false;
+plotSamples = false;
 
 % Time period
 N = 30;
@@ -44,7 +45,7 @@ popParam.growthScenario = 'medium';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 100000;
+gwParam.sampleSize = 200000;
 gwParam.depthLimit = 200;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
@@ -200,7 +201,8 @@ end
 
 stateInfeasible = true(gw_M, N);
 numRelevantSamples = zeros(gw_M, N);
-
+indexAbove = cell(gw_M, N);
+indexBelow = cell(gw_M, N);
 % Loop over all time periods
 for t = linspace(N,1,N)
     % Calculate nextV    
@@ -214,10 +216,12 @@ for t = linspace(N,1,N)
         s1 = s_gw(index_s1);
        
         % Get transmat vector for gw when pumping for current gw state
-        [T_gw, numRel, stateInf] = ...
+        [T_gw, numRel, stateInf, indAbv, indBlw] = ...
             gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, s1, s_gw, adjustOutput);  
         numRelevantSamples(index_s1,t) = numRel;
         stateInfeasible(index_s1,t) = stateInf;
+        indexAbove{index_s1, t} = indAbv;
+        indexBelow{index_s1, t} = indBlw;
         
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
         for index_s2 = 1:exp_M
@@ -373,8 +377,21 @@ if policyPlotsOn
 end
 
 if plotHeatMaps
-    hm1 = HeatMap(flipud(double(~stateInfeasible)))
-    hm2 = HeatMap(flipud(numRelevantSamples)) 
+    hm1 = HeatMap(flipud(double(~stateInfeasible)), 'Title', 'Infeasible States (in black)')
+    hm2 = HeatMap(flipud(numRelevantSamples), 'Title', 'NumRelevantSamples: Red is high(good)') 
+end
+
+if plotSamples
+   hk = [];
+   sy = [];
+   counter = 1;
+   for t = 1:n
+       for i = 1:gw_M
+           hk(counter) = K_samples(indexAbove{i,t});
+           sy(counter) = S_samples(indexAbove{i,t});
+           counter = counter + 1;
+       end
+   end
 end
 
 %% Simulate performance
