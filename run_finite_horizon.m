@@ -21,7 +21,7 @@ N = 30;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 0.05;    % $/m^2
+costParam.shortage_cost = 10;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 costParam.expansion_cost.capex.small = 258658804;
 costParam.discount_rate = 0.04;
@@ -45,12 +45,12 @@ popParam.growthScenario = 'medium';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 200000;
+gwParam.sampleSize = 50000;
 gwParam.depthLimit = 200;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
-gwParam.wellIndex = 108;
+gwParam.wellIndex = 68;
 
 
 % Information scenarios
@@ -228,8 +228,9 @@ for t = linspace(N,1,N)
             s2 = s_expand(index_s2);
 
             bestV = Inf;
-            bestX = [0 0];  % Groundwater action and expansion action
-
+            bestX1= 0;  % Groundwater action and expansion action
+            bestX2= 0;
+            
             % Update available actions based on whether gw depleted
             if s1 == max(s_gw) 
                 a_gw = a_gw_depleted;
@@ -306,11 +307,9 @@ for t = linspace(N,1,N)
                     checkV = cost + expV;
                     if checkV < bestV
                         bestV = checkV;
-                        bestX = [a1 a2];
+                        bestX1 = a1;
+                        bestX2 = a2;
                     end
-
-                    bestX1 = a1;
-                    bestX2 = a2;
                 end
             end
 
@@ -377,22 +376,43 @@ if policyPlotsOn
 end
 
 if plotHeatMaps
-    hm1 = HeatMap(flipud(double(~stateInfeasible)), 'Title', 'Infeasible States (in black)')
-    hm2 = HeatMap(flipud(numRelevantSamples), 'Title', 'NumRelevantSamples: Red is high(good)') 
+    hm1 = HeatMap(flipud(double(~stateInfeasible)), 'Title', 'Infeasible States (in black) from nn samples')
+    hm2 = HeatMap(flipud(numRelevantSamples), 'Title', 'NumRelevantSamples: Red is high(good)')
+    temp = permute(isnan(X1(:,1,:)),[1 3 2]);
+    hm3 = HeatMap(flipud(double(~temp)), 'Title', 'Infeasible states (in black) from pruned tree')
 end
 
 if plotSamples
-   hk = [];
-   sy = [];
+   hk = zeros(1, sum(sum(stateInfeasible)));
+   sy = zeros(1, sum(sum(stateInfeasible)));
    counter = 1;
-   for t = 1:n
+   for t = 1:N
        for i = 1:gw_M
-           hk(counter) = K_samples(indexAbove{i,t});
-           sy(counter) = S_samples(indexAbove{i,t});
-           counter = counter + 1;
+           k_temp = K_samples(indexAbove{i,t});
+           s_temp = S_samples(indexAbove{i,t});
+           if ~isempty(k_temp)
+               hk_above(counter) = k_temp;
+               sy_above(counter) = s_temp;
+               hk_below(counter) = K_samples(indexBelow{i,t});
+               sy_below(counter) = S_samples(indexBelow{i,t});
+               counter = counter + 1;
+           end
        end
    end
+figure
+scatter(K_samples, S_samples, 'k')
+hold on
+scatter(hk_above, sy_above, 'r')
+scatter(hk_below, sy_below, 'b')    
+for i = 1:counter-1
+    x = [hk_above(i) hk_below(i)]';
+    y =  [sy_above(i) sy_below(i)]';
+    line(x, y)
 end
+xlabel('hk')
+ylabel('sy')
+end
+
 
 %% Simulate performance
 % SDP above finds optimal policy for each state and time period. Now, use
@@ -422,6 +442,8 @@ s_expand_initial = 0;
 state_gw(1) = s_gw_initial;
 state_expand(1) = s_expand_initial;
 
+T_gw_time = zeros(gw_M,N);
+
 for t = 1:N
     
     % Caculate state indexes
@@ -443,7 +465,8 @@ for t = 1:N
 
         % Get transmat vector to next GW state 
         [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, t, N);
-        T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, state_gw(t), s_gw, adjustOutput );     
+        T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, state_gw(t), s_gw, adjustOutput );  
+        T_gw_time(:,t) = T_current_gw;
  
         % Get transmat vector for next expansion state (deterministic)
         T_current_expand = zeros(1,exp_M);

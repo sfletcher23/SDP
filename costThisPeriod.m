@@ -9,6 +9,7 @@ percent_eff=80;
 f=0.013;
 D=0.508;
 v=0.24669;
+aquiferDepth = 1200;
   
 pump_cost_perunit=density * 9.81 * (((f*s1^2*v^2)/(2*9.81*D))+s1) * conversion_factor ...
     * (100/percent_eff) * cost_per_kwh;
