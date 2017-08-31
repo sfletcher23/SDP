@@ -13,6 +13,7 @@ simPlotsOn = false; % Plot results if true
 saveOn = true; % Save output if true
 plotInitialWaterBalance = false;
 adjustOutput = true;
+plotHeatMaps = false;
 
 % Time period
 N = 30;
@@ -154,7 +155,7 @@ exp_M = length(s_expand); % Desalination expanded = 2
 
 %% Get K and S samples and use to prune state space
 
-[K_samples, S_samples] = gen_param_dist('full_range', 10000, 1, N);
+[K_samples, S_samples] = gen_param_dist('full_range', gwParam.sampleSize, 1, N);
 
 % Get min and max hydrograph
 % Get neural net script
@@ -371,6 +372,10 @@ if policyPlotsOn
     end
 end
 
+if plotHeatMaps
+    hm1 = HeatMap(flipud(double(~stateInfeasible)))
+    hm2 = HeatMap(flipud(numRelevantSamples)) 
+end
 
 %% Simulate performance
 % SDP above finds optimal policy for each state and time period. Now, use
