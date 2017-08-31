@@ -197,6 +197,9 @@ if exist(getenv('SLURM_CPUS_PER_TASK'))
     parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
 end
 
+stateInfeasible = true(gw_M, N);
+numRelevantSamples = zeros(gw_M, N);
+
 % Loop over all time periods
 for t = linspace(N,1,N)
     % Calculate nextV    
@@ -210,7 +213,10 @@ for t = linspace(N,1,N)
         s1 = s_gw(index_s1);
        
         % Get transmat vector for gw when pumping for current gw state
-        T_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, s1, s_gw, adjustOutput);  
+        [T_gw, numRel, stateInf] = ...
+            gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, s1, s_gw, adjustOutput);  
+        numRelevantSamples(index_s1,t) = numRel;
+        stateInfeasible(index_s1,t) = stateInf;
         
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
         for index_s2 = 1:exp_M

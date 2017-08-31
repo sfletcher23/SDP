@@ -1,15 +1,17 @@
-function[T_gw, numRelevantSamples] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw, adjustOutput ) 
+function[T_gw, numRelevantSamples, stateInfeasible] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw, adjustOutput ) 
 
 % Calculates drawdown between time t-1 and time t predicted by the neural
 % net indicated for each of the T and S samples indicated. 
 % Uses those drawdown estimates to develop probability distribution for
 % next groundwater state
 
+stateInfeasible = false;
+
 % If at max drawdown, stay at max drawdown
 if s1 == s_gw(end)
     T_gw = zeros(1,length(s_gw));
     T_gw(end) = 1;
-    numRelevantSamples = [];
+    numRelevantSamples = -999;
     return
 end
 
@@ -39,6 +41,7 @@ numRelevantSamples = sum(indexRelevantSamples);
 if numRelevantSamples == 0
     warning(strcat('infeasible groundwater state : t=',num2str(t), ', 200-s1 = ', num2str(200-s1), ...
         ', min previous head =', num2str(min(head_t_previous)), ', max previous head =', num2str(max(head_t_previous)) ));
+    stateInfeasible = true;
     [~, bestIndex] = min(abs(head_t_previous - (200 -s1)));
     indexRelevantSamples = zeros([1 numSamples]);
     indexRelevantSamples(bestIndex) = 1;
