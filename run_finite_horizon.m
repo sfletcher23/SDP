@@ -13,7 +13,7 @@ simPlotsOn = false; % Plot results if true
 saveOn = true; % Save output if true
 plotInitialWaterBalance = false;
 adjustOutput = true;
-plotHeatMaps = false;
+plotHeatMaps = true;
 
 % Time period
 N = 30;

@@ -35,7 +35,7 @@ if t>1
 else
     head_t_previous = repmat(200, [1 numSamples]);
 end
-margin = 2*t; 
+margin = 5; 
 indexRelevantSamples = abs(head_t_previous - (200 -s1)) < margin;
 numRelevantSamples = sum(indexRelevantSamples);
 if numRelevantSamples == 0
