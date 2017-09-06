@@ -66,15 +66,15 @@ end
 %% Simulate sdp hydrographs from multiple using data updating
 
 sampleSize = 10000;
-runs = 20;
+runs = 10;
 N = 30;
-s_gw = 0:200;
-gw_state = zeros(runs,N);
+s_gw = [-99 0:200];
+gw_state = zeros(runs,N+1);
 numSampUsed = zeros(runs,N);
 [K_samples, S_samples] = gen_param_dist('full_range', sampleSize, 1, N);
 for i = 1:runs
     disp(num2str(i))
-    tempGwState = zeros([1 N]);
+    tempGwState = zeros([1 N+1]);
     for t = 1:N
         % Get transmat vector to next GW state 
         gw_state_current = tempGwState(t);
@@ -82,15 +82,15 @@ for i = 1:runs
         numSampUsed(i,t) = numSampUsedNow;
         p = rand();
         index = find(p < cumsum(T_current_gw),1);
-        tempGwState(t) = s_gw(index);
+        tempGwState(t+1) = s_gw(index);
     end
     gw_state(i,:) = tempGwState;
 end
 y_sdp = 200 - gw_state;
 
-figure;
-plot(1:30, y_sdp)
-ylim([0 200])
+% figure;
+% plot(1:31, y_sdp)
+% ylim([0 200])
 
 if saveOn
     datetime=datestr(now);  
