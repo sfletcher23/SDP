@@ -75,14 +75,14 @@ numSampUsed = zeros(runs,N);
 parfor i = 1:runs
     disp(num2str(i))
     tempGwState = zeros([1 N]);
-    for time = 1:N
+    for t = 1:N
         % Get transmat vector to next GW state 
-        gw_state_current = tempGwState(time);
-        [T_current_gw, numSampUsedNow] = gw_transrow_nn(nnNumber, wellIndex, time, K_samples, S_samples, gw_state_current, s_gw, adjustOutput);
-        numSampUsed(i,time) = numSampUsedNow;
+        gw_state_current = tempGwState(t);
+        [T_current_gw, numSampUsedNow] = gw_transrow_nn(nnNumber, wellIndex, t, K_samples, S_samples, gw_state_current, s_gw, adjustOutput);
+        numSampUsed(i,t) = numSampUsedNow;
         p = rand();
         index = find(p < cumsum(T_current_gw),1);
-        tempGwState(time) = s_gw(index);
+        tempGwState(t) = s_gw(index);
     end
     gw_state(i,:) = tempGwState;
 end

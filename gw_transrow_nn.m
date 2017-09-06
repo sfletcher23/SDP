@@ -90,5 +90,10 @@ T_gw = [0 T_gw];
 margin = 1E-4;
 err = abs(sum(T_gw) - 1);
 if err > margin
-    error('invalid probability distribution for T_gw')
+    datetime=datestr(now);  
+    datetime=strrep(datetime,':','_'); %Replace colon with underscore
+    datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
+    datetime=strrep(datetime,' ','_');%Replace space with underscore
+    save(strcat('t_gw_error_', datetime), 'nnNumber' ,'wellIndex', 't', 'K_samples', 'S_samples', 's1', 's_gw', 'adjustOutput');
+    error(strcat('Invalid probability distribution for T_gw'))
 end
