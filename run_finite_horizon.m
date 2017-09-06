@@ -35,7 +35,7 @@ costParam = struct;
 costParam.shortage_cost = 10;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 costParam.expansion_cost.capex.small = 258658804;
-% costParan.marginal_cost = 
+costParan.marginal_cost = 0.45;
 costParam.discount_rate = 0.04;
 
 % Water infrastructure paramters
@@ -236,7 +236,7 @@ for t = linspace(N,1,N)
     
     % Loop over groundwater state: 1 is depleted, M1 is full
     index_s_gw_thisPeriod = index_s_gw_time{t}; 
-    parfor index_s1 = index_s_gw_thisPeriod
+    for index_s1 = index_s_gw_thisPeriod
         s1 = s_gw(index_s1);
        
         % Get transmat vector for gw when pumping for current gw state
@@ -454,7 +454,7 @@ gwSupplyOverTime = zeros(1,N);
 demandOverTime = zeros(1,N);
 
 % Initial state
-s_gw_initial = s_gw(1);
+s_gw_initial = 0;
 s_expand_initial = 0;
 
 state_gw(1) = s_gw_initial;
@@ -485,7 +485,7 @@ for t = 1:N
         [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, t, N);
         if action_gw(t) == 0
             T_current_gw = zeros(1, length(s_gw));
-            T_current_gw(index_state_gw) = 1;
+            T_current_gw(1) = 1;
         else
             T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, state_gw(t), s_gw, adjustOutput );  
         end
@@ -537,7 +537,6 @@ end
 
 end
 
-%%
 if simPlotsOn
 
 % Plot state evolution w/ actions

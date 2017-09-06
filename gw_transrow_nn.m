@@ -19,7 +19,7 @@ if s1 == 200
 end
 
 % If stopped pumping, stay at stopped pumping
-if s1 == -99
+if s1 == -1
     T_gw = zeros(1,length(s_gw));
     T_gw(end) = 1;
     numRelevantSamples = -99;
@@ -82,7 +82,7 @@ rounded_next_s1 = round2x(next_s1, s_gw);
 
 % Calculate transition probability row
 T_gw = histcounts(rounded_next_s1,  [s_gw(2:end) s_gw(end)+1], 'Normalization', 'probability');
-T_gw(end+1) = 0;
+T_gw = [0 T_gw];
 
 % Test valid prob distribution
 margin = 1E-4;
