@@ -72,7 +72,7 @@ s_gw = 0:200;
 gw_state = zeros(runs,N);
 numSampUsed = zeros(runs,N);
 [K_samples, S_samples] = gen_param_dist('full_range', sampleSize, 1, N);
-parfor i = 1:runs
+for i = 1:runs
     disp(num2str(i))
     tempGwState = zeros([1 N]);
     for t = 1:N

@@ -46,15 +46,15 @@ end
 
 margin = 7; 
 indexRelevantSamples = abs(head_t_current - (200 -s1)) < margin;
-
 numRelevantSamples = sum(indexRelevantSamples);
+
 if numRelevantSamples == 0
     warning(strcat('infeasible groundwater state : t=',num2str(t), ', 200-s1 = ', num2str(200-s1), ...
         ', min nn head =', num2str(min(head_t_current)), ', max nn head =', num2str(max(head_t_current)) ));
     stateInfeasible = true;
     % Use closest sample even if outside error marign
     [~, bestIndex] = min(abs(head_t_current - (200 -s1)));
-    indexRelevantSamples = zeros([1 numSamples]);
+    indexRelevantSamples = false([1 numSamples]);
     indexRelevantSamples(bestIndex) = 1;
     indexRelevantSamples = logical(indexRelevantSamples);
     numRelevantSamples = 1;
@@ -66,7 +66,7 @@ end
 
 % In first period, accept all vlaues
 if t == 1 
-    indexRelevantSamples = ones([1 numSamples]);
+    indexRelevantSamples = true([1 numSamples]);
 end
 
 % Update samples from previous period to include only relevant samples
