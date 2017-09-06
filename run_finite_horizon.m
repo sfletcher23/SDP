@@ -148,7 +148,7 @@ end
 % Generate state space for groundwater head and demand range
 [s_gw, gw_M] = gen_water_growth_states(gwParam);
 s_gw(end+1) = -99; % This is absorbing state where can't pump anymore
-gw_M = gw_M + 1;
+
 
 % Actions: Stop pumping groundwater (0), continue pumping (1)
 a_gw_available = [0 1];
@@ -327,7 +327,8 @@ for t = linspace(N,1,N)
                     for i = 2:4
                         expV = sum(expV);
                     end
-
+                    
+                    stateMsg = strcat('t=', num2str(t), ', s1=', num2str(s1), ', a1=', num2str(a1), ', s2=', num2str(s2), ', a2=', num2str(a2))
                    % Check if best decision
                     checkV = cost + expV;
                     if checkV < bestV
@@ -337,7 +338,8 @@ for t = linspace(N,1,N)
                     end
                 end
             end
-
+            
+            
             % Check that bestV is not Inf
             if bestV == Inf
                 error('BestV is Inf, did not pick an action')
