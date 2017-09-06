@@ -9,7 +9,7 @@ nnNumber = 17182;
 netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
 netscript = str2func(netname); 
 adjustOutput = true;
-wellIndex = 68;
+wellIndex = 108;
 
 %% Get modflow, nn, and sdp hydrograph estimates and plot: One well one run
 if false

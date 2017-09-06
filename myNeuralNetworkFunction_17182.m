@@ -48,7 +48,7 @@ a2 = repmat(b2,1,Q) + LW2_1*a1;
 % Output 1
 y1 = mapminmax_reverse(a2,y1_step1);
 
-% Adjusts neural net estimates in order to get more realistic behavior 
+% Adjusts neural net estimates in order to get more realistic behavior: only works for a single time series ie will erase samples if many samples 
 % compatible with SDP
 if adjustOutput
     indexNegatives = y1 < 0;

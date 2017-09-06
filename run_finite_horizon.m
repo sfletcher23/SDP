@@ -6,15 +6,25 @@ tic
 %% Parameters
 
 % Run paramters
-policyPlotsOn = false;
-parforOn = false; % Parallel processing on?
-simulateOn = false;
-simPlotsOn = false; % Plot results if true
-saveOn = true; % Save output if true
-plotInitialWaterBalance = false;
 adjustOutput = true;
-plotHeatMaps = false;
-plotSamples = false;
+saveOn = true; % Save output if true
+policyPlotsOn = true;
+simulateOn = true;
+simPlotsOn = true; % Plot results if true
+plotInitialWaterBalance = true;
+plotHeatMaps = true;
+plotSamples = true;
+
+% turn off plotting if running on cluster
+if exist(getenv('SLURM_CPUS_PER_TASK'))
+    policyPlotsOn = false;
+    simulateOn = false;
+    simPlotsOn = false; % Plot results if true
+    plotInitialWaterBalance = false;
+    plotHeatMaps = false;
+    plotSamples = false;
+end
+
 
 % Time period
 N = 30;
@@ -50,7 +60,7 @@ gwParam.depthLimit = 200;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
-gwParam.wellIndex = 68;
+gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemesy, 93 is royal garage
 
 
 % Information scenarios
@@ -91,33 +101,45 @@ if plotInitialWaterBalance
     gw_Minjur = ones(1,N) * gwParam.pumpingRate;
     gw_other = ones(1,N) * gwParam.otherPumpingRate;
     desal = ones(1,N) * water.desal_capacity_initial;
-    desal_exp = ones(1,N) * water.desal_capacity_expansion.small; 
+    desal_exp_small = ones(1,N) * water.desal_capacity_expansion.small; 
+    desal_exp_large = ones(1,N) * water.desal_capacity_expansion.large; 
     waterDemand_low = demand(water, population_low, 1:N);
     waterDemand_medium = demand(water, population_medium, 1:N);
     waterDemand_high = demand(water, population_high, 1:N);
-    figure;
-    subplot(1,2,1)
-    area(1:N, [gw_Minjur; gw_other; desal; desal_exp]' ./ 1E6);
+    f = figure;
+    ax = subplot(1,2,1);
+    ax.FontSize = 6;
+    a1 = area(1:N, [gw_Minjur; gw_other; desal; desal_exp_small; desal_exp_large]' ./ 1E6);
     hold on;
     plot(1:N, waterDemand_low/1E6)
     plot(1:N, waterDemand_medium/1E6)
     plot(1:N, waterDemand_high/1E6)
-    legend('Minjur GW', 'Other GW', 'Desal', 'Desal Expansion', 'Demand Low', 'Demand Medium', 'Demand High')
+    legend('Minjur GW', 'Other GW', 'Desal Current', 'Desal Exp Small', 'Desal Exp Large', 'Demand Low', 'Demand Medium', 'Demand High')
     legend('Location','northwest')
+    legend('boxoff')
     ylabel('MCM/y')
     xlabel('Year')
     title('Water Balance: With Minjur')
-    subplot(1,2,2)
-    area(1:N, [gw_other; desal; desal_exp]' ./ 1E6);
+    cmap = bone(5);
+    for i = 1:5
+        a1(i).FaceColor = cmap(i,:);
+    end
+    ax = subplot(1,2,2);
+    ax.FontSize = 6;
+    a2 = area(1:N, [gw_other; desal; desal_exp_small; desal_exp_large]' ./ 1E6);
     hold on;
     plot(1:N, waterDemand_low/1E6)
     plot(1:N, waterDemand_medium/1E6)
     plot(1:N, waterDemand_high/1E6)
-    legend('Other GW', 'Desal', 'Desal Expansion', 'Demand Low', 'Demand Medium', 'Demand High')
+    legend('Other GW', 'Desal Current', 'Desal Exp Small', 'Desal Exp Large',  'Demand Low', 'Demand Medium', 'Demand High')
     legend('Location','northwest')
+    legend('boxoff')
     ylabel('MCM/y')
     xlabel('Year')
     title('Water Balance: Without Minjur')
+    for i = 1:4
+        a2(i).FaceColor = cmap(i+1,:);
+    end
     
 end
 
@@ -216,7 +238,7 @@ for t = linspace(N,1,N)
         s1 = s_gw(index_s1);
        
         % Get transmat vector for gw when pumping for current gw state
-        [T_gw, numRel, stateInf, indAbv, indBlw] = ...
+        [T_gw, numRel, stateInf, indAbv, indBlw, indRel] = ...
             gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, s1, s_gw, adjustOutput);  
         numRelevantSamples(index_s1,t) = numRel;
         stateInfeasible(index_s1,t) = stateInf;
@@ -332,52 +354,69 @@ end
 if policyPlotsOn
     gw_step = s_gw(2) - s_gw(1);
     exp_step = s_expand(2) - s_expand(1);
-    color = {'b', 'g', 'y', 'r'};
+    color = {[0 133/255 255/255], [0 0 223/255], [170/255 125/255 255/255], [128/255 0 255/255],[255/255 32/255 0], [159/255 0 0]};
     fig = figure;
-    for t = 1:N
-        subplot(N,1,t)
+    for t = 1:6
+        subplot(6,1,t)
         if t == 1
             patch(1,1,color{1}) % Just to make legend work, will be covered up later
             patch(1,1,color{2})
             patch(1,1,color{3})
             patch(1,1,color{4})
-            leg = legend('No pump, no expand', 'Pump, no expand', 'No pump, expand', 'Pump, expand');
-%                 leg.Location = 'southeastoutside';
+            patch(1,1,color{5})
+            patch(1,1,color{6})
+            leg = legend('No pump, no expand', 'Pump, no expand', 'No pump, small expand', 'Pump, small expand', ...
+                'No pump, large expand', 'Pump, large expand');
+%             legend('on');
         end
         for i = 1:gw_M
             for j = 1:exp_M
                 x = [s_gw(i)-(gw_step/2) s_gw(i)-(gw_step/2) s_gw(i)+(gw_step/2) s_gw(i)+(gw_step/2)];
                 y = [s_expand(j)-(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)-(exp_step/2)];
-                if X1(i,j,1) == 0 && X2(i,j,1) == 0
+                if X1(i,j,t*5) == 0 && X2(i,j,t*5) == 0
                     colorThisState = color{1};
-                elseif X1(i,j,1) == 1 && X2(i,j,1) == 0
+                elseif X1(i,j,t*5) == 1 && X2(i,j,t*5) == 0
                     colorThisState = color{2};
-                elseif X1(i,j,1) == 0 && X2(i,j,1) == 1
+                elseif X1(i,j,t*5) == 0 && X2(i,j,t*5) == 1
                     colorThisState = color{3};
-                elseif X1(i,j,1) == 1 && X2(i,j,1) == 1
+                elseif X1(i,j,t*5) == 1 && X2(i,j,t*5) == 1
                      colorThisState = color{4};
+                elseif X1(i,j,t*5) == 0 && X2(i,j,t*5) == 2
+                    colorThisState = color{5};
+                elseif X1(i,j,t*5) == 1 && X2(i,j,t*5) == 2
+                     colorThisState = color{6};
                 end
                 patch(x,y,colorThisState)
                 hold on  
             end
         end
     
-    ax = gca;
-    ax.XTick = 0:5:s_gw(end);
-    ax.YTick = s_expand;
-    xlim([s_gw(1)-gw_step/2 s_gw(end)+gw_step/2])
-    ylim([s_expand(1)-exp_step/2 s_expand(end)+exp_step/2])
-    xlabel('Groundwater state')
-    ylabel('Expand state')
-    ax.YTickLabel = {'Not expanded', 'Expanded'};
-    title(strcat('Time step: ', num2str(t)))
-    ax.XTickLabelRotation = 90;
+        ax = gca;
+        ax.FontSize = 6;
+        ax.XTick = 0:5:s_gw(end);
+        ax.XTickLabel = [];
+        ax.YTick = s_expand;
+        ax.YTickLabel = [];
+        xlim([s_gw(1)-gw_step/2 s_gw(end)+gw_step/2])
+        ylim([s_expand(1)-exp_step/2 s_expand(end)+exp_step/2])
+        if t == 6
+            ylabel('Added capacity state [MCM/y]')
+            xlabel('Drawdown')
+            ax.YTickLabel = string(round(s_expand/1E6));
+            ax.XTickLabel = 0:5:s_gw(end);
+        end
+        title(strcat('Time step: ', num2str(t)))
+        ax.XTickLabelRotation = 90;
     end
 end
 
-if plotHeatMaps
+if plotHeatMaps 
     hm1 = HeatMap(flipud(double(~stateInfeasible)), 'Title', 'Infeasible States (in black) from nn samples')
-    hm2 = HeatMap(flipud(numRelevantSamples), 'Title', 'NumRelevantSamples: Red is high(good)')
+    addXLabel(hm1, 'time')
+    addYLabel(hm1, 'drawdown')
+    hm2 = HeatMap(flipud(numRelevantSamples), 'Title', 'Number of Relevant Samples: Red is high')
+    addXLabel(hm2, 'time')
+    addYLabel(hm2, 'drawdown')
     temp = permute(isnan(X1(:,1,:)),[1 3 2]);
     hm3 = HeatMap(flipud(double(~temp)), 'Title', 'Infeasible states (in black) from pruned tree')
 end

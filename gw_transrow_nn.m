@@ -1,4 +1,4 @@
-function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw, adjustOutput ) 
+function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw, adjustOutput ) 
 
 % Calculates drawdown between time t-1 and time t predicted by the neural
 % net indicated for each of the T and S samples indicated. 
@@ -8,6 +8,7 @@ function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow] = gw
 stateInfeasible = false;
 indexAbove = [];
 indexBelow = [];
+indexRelevantSamples = [];
 
 % If at max drawdown, stay at max drawdown
 if s1 == s_gw(end)
@@ -21,51 +22,56 @@ end
 netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
 netscript = str2func(netname); 
 
-% Generate inputs to neural net function for t and t-1
+% Generate inputs to neural net function for t and t+1
 % Input order: hk, sy, time  Input size: 3 x numSamples*2
 
-timeStepSize = 365;
 [~, numSamples] = size(K_samples_thisPeriod);
-time = repmat(t*timeStepSize, [1 numSamples]);
 
-% Find only samples close to current state: compare s1 and head at t-1
-if t>1
-    time = repmat((t-1)*timeStepSize, [1 numSamples]);
-    x = [K_samples_thisPeriod; S_samples_thisPeriod; time];
-    head_t_previous = netscript(x, adjustOutput);
-    head_t_previous = head_t_previous(wellIndex,:);
-else 
-    head_t_previous = repmat(200, [1 numSamples]);
+% Find only samples close to current state: compare s1 and head at t
+% time = repmat(1*365:365:t*365, [1 numSamples]);
+% x = [repmat(K_samples_thisPeriod, [1 t]); repmat(S_samples_thisPeriod, [1 t]); time];
+% head_t_current = netscript(x, adjustOutput);
+% head_t_current = head_t_current(wellIndex,:);
+
+head_t_current = zeros(1, length(K_samples_thisPeriod));
+head_t_next = zeros(1, length(K_samples_thisPeriod));
+for i = 1:length(K_samples_thisPeriod)
+    x = [repmat(K_samples_thisPeriod(i),[1,t+1]); repmat(S_samples_thisPeriod(i),[1,t+1]); [365:365:365*(t+1)]];
+    tempHead = netscript(x, adjustOutput);
+    head_t_current(i) = tempHead(wellIndex,end-1);
+    head_t_next(i) = tempHead(wellIndex,end);
 end
+
 margin = 7; 
-indexRelevantSamples = abs(head_t_previous - (200 -s1)) < margin;
+indexRelevantSamples = abs(head_t_current - (200 -s1)) < margin;
 numRelevantSamples = sum(indexRelevantSamples);
 if numRelevantSamples == 0
     warning(strcat('infeasible groundwater state : t=',num2str(t), ', 200-s1 = ', num2str(200-s1), ...
-        ', min previous head =', num2str(min(head_t_previous)), ', max previous head =', num2str(max(head_t_previous)) ));
+        ', min nn head =', num2str(min(head_t_current)), ', max nn head =', num2str(max(head_t_current)) ));
     stateInfeasible = true;
     % Use closest sample even if outside error marign
-    [~, bestIndex] = min(abs(head_t_previous - (200 -s1)));
+    [~, bestIndex] = min(abs(head_t_current - (200 -s1)));
     indexRelevantSamples = zeros([1 numSamples]);
     indexRelevantSamples(bestIndex) = 1;
     indexRelevantSamples = logical(indexRelevantSamples);
     numRelevantSamples = 1;
     % Find above and below samples for analysis
-    [~, indexAbove] = min(head_t_previous - (200 -s1));
-    [~, indexBelow] = min((200 -s1) - head_t_previous);
+    [~, indexAbove] = min(head_t_current - (200 -s1));
+    [~, indexBelow] = min((200 -s1) - head_t_current);
 end
 
 % Update samples from previous period to include only relevant samples
-head_t_previous = head_t_previous(indexRelevantSamples);
+head_t_current = head_t_current(indexRelevantSamples);
+head_t_next = head_t_next(indexRelevantSamples);
 
-% Get head estimates for next period from relevant samples
-time = repmat(t*timeStepSize, [1 numRelevantSamples]);
-x = [K_samples_thisPeriod(indexRelevantSamples); S_samples_thisPeriod(indexRelevantSamples); time];
-head_t = netscript(x, adjustOutput);
-head_t = head_t(wellIndex,:);
+% % Get head estimates for next period from relevant samples
+% time = repmat(t*timeStepSize, [1 numRelevantSamples]);
+% x = [K_samples_thisPeriod(indexRelevantSamples); S_samples_thisPeriod(indexRelevantSamples); time];
+% head_t_next = netscript(x, adjustOutput);
+% head_t_next = head_t_next(wellIndex,:);
     
-% Calculate drawdown between t and t-1
-drawdown = head_t_previous - head_t;
+% Calculate drawdown between t+1 and t
+drawdown = head_t_next - head_t_current;
 
 % Calculate next state
 next_s1 = s1 + drawdown;
