@@ -35,7 +35,7 @@ costParam = struct;
 costParam.shortage_cost = 10;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 costParam.expansion_cost.capex.small = 258658804;
-costParan.marginal_cost = 
+% costParan.marginal_cost = 
 costParam.discount_rate = 0.04;
 
 % Water infrastructure paramters
@@ -57,12 +57,12 @@ popParam.growthScenario = 'medium';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 10000;
+gwParam.sampleSize = 1000;
 gwParam.depthLimit = 200;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
-gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemesy, 93 is royal garage
+gwParam.wellIndex = 93; % 68 is RR1, 108 is Shemesy, 93 is royal garage
 
 
 % Information scenarios
@@ -298,7 +298,7 @@ for t = linspace(N,1,N)
                     % T_gw calculated above. 
                     if a1 == 0
                         T_gw = zeros(1,gw_M);
-                        T_gw(index_s1) = 1;
+                        T_gw(1) = 1;
                     end
 
                     % Get transmat vector for next expansion state
@@ -537,7 +537,7 @@ end
 
 end
 
-
+%%
 if simPlotsOn
 
 % Plot state evolution w/ actions
