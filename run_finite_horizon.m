@@ -298,7 +298,7 @@ for t = linspace(N,1,N)
                     % T_gw calculated above. 
                     if a1 == 0
                         T_gw = zeros(1,gw_M);
-                        T_gw(end) = 1;
+                        T_gw(index_s1) = 1;
                     end
 
                     % Get transmat vector for next expansion state
@@ -330,6 +330,7 @@ for t = linspace(N,1,N)
                     end
                     
                     stateMsg = strcat('t=', num2str(t), ', s1=', num2str(s1), ', a1=', num2str(a1), ', s2=', num2str(s2), ', a2=', num2str(a2))
+                    disp(stateMsg)
                    % Check if best decision
                     checkV = cost + expV;
                     if checkV < bestV
