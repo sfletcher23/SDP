@@ -1,4 +1,4 @@
-function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples_thisPeriod, S_samples_thisPeriod, s1, s_gw, adjustOutput ) 
+function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples, S_samples, s1, s_gw, adjustOutput ) 
 
 % Calculates drawdown between time t-1 and time t predicted by the neural
 % net indicated for each of the T and S samples indicated. 
@@ -25,7 +25,7 @@ netscript = str2func(netname);
 % Generate inputs to neural net function for t and t+1
 % Input order: hk, sy, time  Input size: 3 x numSamples*2
 
-[~, numSamples] = size(K_samples_thisPeriod);
+[~, numSamples] = size(K_samples);
 
 % Find only samples close to current state: compare s1 and head at t
 % time = repmat(1*365:365:t*365, [1 numSamples]);
@@ -33,10 +33,10 @@ netscript = str2func(netname);
 % head_t_current = netscript(x, adjustOutput);
 % head_t_current = head_t_current(wellIndex,:);
 
-head_t_current = zeros(1, length(K_samples_thisPeriod));
-head_t_next = zeros(1, length(K_samples_thisPeriod));
-for i = 1:length(K_samples_thisPeriod)
-    x = [repmat(K_samples_thisPeriod(i),[1,t+1]); repmat(S_samples_thisPeriod(i),[1,t+1]); [365:365:365*(t+1)]];
+head_t_current = zeros(1, length(K_samples));
+head_t_next = zeros(1, length(K_samples));
+for i = 1:length(K_samples)
+    x = [repmat(K_samples(i),[1,t+1]); repmat(S_samples(i),[1,t+1]); [365:365:365*(t+1)]];
     tempHead = netscript(x, adjustOutput);
     head_t_current(i) = tempHead(wellIndex,end-1);
     head_t_next(i) = tempHead(wellIndex,end);
@@ -71,7 +71,7 @@ head_t_next = head_t_next(indexRelevantSamples);
 % head_t_next = head_t_next(wellIndex,:);
     
 % Calculate drawdown between t+1 and t
-drawdown = head_t_next - head_t_current;
+drawdown =  head_t_current - head_t_next;
 
 % Calculate next state
 next_s1 = s1 + drawdown;

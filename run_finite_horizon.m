@@ -13,7 +13,7 @@ simulateOn = true;
 simPlotsOn = true; % Plot results if true
 plotInitialWaterBalance = true;
 plotHeatMaps = true;
-plotSamples = true;
+plotSamples = false;
 
 % turn off plotting if running on cluster
 if exist(getenv('SLURM_CPUS_PER_TASK'))
@@ -354,7 +354,9 @@ end
 if policyPlotsOn
     gw_step = s_gw(2) - s_gw(1);
     exp_step = s_expand(2) - s_expand(1);
-    color = {[0 133/255 255/255], [0 0 223/255], [170/255 125/255 255/255], [128/255 0 255/255],[255/255 32/255 0], [159/255 0 0]};
+    blues = colormap(cbrewer('seq', 'Blues', 6));
+    oranges = colormap(cbrewer('seq', 'Oranges', 6));
+    color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:)};
     fig = figure;
     for t = 1:6
         subplot(6,1,t)
@@ -410,6 +412,7 @@ if policyPlotsOn
     end
 end
 
+%% Plot heat maps
 if plotHeatMaps 
     hm1 = HeatMap(flipud(double(~stateInfeasible)), 'Title', 'Infeasible States (in black) from nn samples')
     addXLabel(hm1, 'time')
@@ -419,37 +422,6 @@ if plotHeatMaps
     addYLabel(hm2, 'drawdown')
     temp = permute(isnan(X1(:,1,:)),[1 3 2]);
     hm3 = HeatMap(flipud(double(~temp)), 'Title', 'Infeasible states (in black) from pruned tree')
-end
-
-if plotSamples
-   hk = zeros(1, sum(sum(stateInfeasible)));
-   sy = zeros(1, sum(sum(stateInfeasible)));
-   counter = 1;
-   for t = 1:N
-       for i = 1:gw_M
-           k_temp = K_samples(indexAbove{i,t});
-           s_temp = S_samples(indexAbove{i,t});
-           if ~isempty(k_temp)
-               hk_above(counter) = k_temp;
-               sy_above(counter) = s_temp;
-               hk_below(counter) = K_samples(indexBelow{i,t});
-               sy_below(counter) = S_samples(indexBelow{i,t});
-               counter = counter + 1;
-           end
-       end
-   end
-figure
-scatter(K_samples, S_samples, 'k')
-hold on
-scatter(hk_above, sy_above, 'r')
-scatter(hk_below, sy_below, 'b')    
-for i = 1:counter-1
-    x = [hk_above(i) hk_below(i)]';
-    y =  [sy_above(i) sy_below(i)]';
-    line(x, y)
-end
-xlabel('hk')
-ylabel('sy')
 end
 
 

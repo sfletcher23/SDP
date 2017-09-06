@@ -4,7 +4,7 @@
 nnNumber = 17182;
 netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
 netscript = str2func(netname); 
-adjustOutput = false;
+adjustOutput = true;
 wellNum = 108;
 infoScenario = 'full_range';
 sampleSize = 10000;
@@ -35,7 +35,7 @@ for i = 1:100
     hk = K_samples(i);
     sy = S_samples(i);
     x = [ones(1,n)*hk; ones(1,n)*sy; time];
-    y = netscript(x, false);
+    y = netscript(x, true);
     y = y(wellNum,:);
     hold on
     plot(time/365, y)
