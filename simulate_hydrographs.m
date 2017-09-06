@@ -1,5 +1,5 @@
 %% Simulate hydrograph
-if true
+if false
 load('sample_nn_inputstargets.mat')
 end
 
@@ -10,6 +10,7 @@ netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
 netscript = str2func(netname); 
 adjustOutput = true;
 wellIndex = 108;
+saveOn = true;
 
 %% Get modflow, nn, and sdp hydrograph estimates and plot: One well one run
 if false
@@ -91,3 +92,10 @@ figure;
 plot(1:30, y_sdp)
 ylim([0 200])
 
+if saveOn
+    datetime=datestr(now);  
+    datetime=strrep(datetime,':','_'); %Replace colon with underscore
+    datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
+    datetime=strrep(datetime,' ','_');%Replace space with underscore
+    save(strcat('hydrograph_sim_', datetime), 'y_sdp')
+end
