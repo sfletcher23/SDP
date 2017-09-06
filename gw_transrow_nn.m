@@ -11,10 +11,18 @@ indexBelow = [];
 indexRelevantSamples = [];
 
 % If at max drawdown, stay at max drawdown
-if s1 == s_gw(end)
+if s1 == 200
+    T_gw = zeros(1,length(s_gw));
+    T_gw(end-1) = 1;
+    numRelevantSamples = -888;
+    return
+end
+
+% If stopped pumping, stay at stopped pumping
+if s1 == -99
     T_gw = zeros(1,length(s_gw));
     T_gw(end) = 1;
-    numRelevantSamples = -999;
+    numRelevantSamples = -99;
     return
 end
 
@@ -78,7 +86,8 @@ next_s1 = s1 + drawdown;
 rounded_next_s1 = round2x(next_s1, s_gw);
 
 % Calculate transition probability row
-T_gw = histcounts(rounded_next_s1,  [s_gw s_gw(end)+1], 'Normalization', 'probability');
+T_gw = histcounts(rounded_next_s1,  [s_gw(1:end-1) s_gw(end-1)+1], 'Normalization', 'probability');
+T_gw(end+1) = 0;
 
 % Test valid prob distribution
 margin = 1E-4;

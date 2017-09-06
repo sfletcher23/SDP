@@ -55,7 +55,7 @@ popParam.growthScenario = 'medium';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 50000;
+gwParam.sampleSize = 10000;
 gwParam.depthLimit = 200;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
@@ -147,11 +147,12 @@ end
 
 % Generate state space for groundwater head and demand range
 [s_gw, gw_M] = gen_water_growth_states(gwParam);
+s_gw(end+1) = -99; % This is absorbing state where can't pump anymore
+gw_M = gw_M + 1;
 
-% Actions: Pump groundwater this period (full demand) or not
-    % 1 is pump, 0 is no pump
+% Actions: Stop pumping groundwater (0), continue pumping (1)
 a_gw_available = [0 1];
-a_gw_depleted = [0];
+a_gw_unavailable = [0];
 
 
 %% Desalination Expansions: State Definitions and Actions
@@ -253,9 +254,11 @@ for t = linspace(N,1,N)
             bestX1= 0;  % Groundwater action and expansion action
             bestX2= 0;
             
-            % Update available actions based on whether gw depleted
+            % Update available actions based on whether gw available
             if s1 == max(s_gw) 
-                a_gw = a_gw_depleted;
+                a_gw = a_gw_unavailable;    % unavailble bc depleted
+            elseif s1 == -99
+                a_gw = a_gw_unavailable;    % unavailble bc turned off
             else
                 a_gw = a_gw_available;
             end
@@ -290,11 +293,11 @@ for t = linspace(N,1,N)
 
                     % Calculate transition matrix
                     
-                    % If no pumping, stay in same state. Otherwise, use
+                    % If stop pumping, move to state -99. Otherwise, use
                     % T_gw calculated above. 
                     if a1 == 0
                         T_gw = zeros(1,gw_M);
-                        T_gw(index_s1) = 1;
+                        T_gw(end) = 1;
                     end
 
                     % Get transmat vector for next expansion state
@@ -476,7 +479,12 @@ for t = 1:N
 
         % Get transmat vector to next GW state 
         [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, t, N);
-        T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, state_gw(t), s_gw, adjustOutput );  
+        if action_gw(t) == 0
+            T_current_gw = zeros(1, length(s_gw));
+            T_current_gw(index_state_gw) = 1;
+        else
+            T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, state_gw(t), s_gw, adjustOutput );  
+        end
         T_gw_time(:,t) = T_current_gw;
  
         % Get transmat vector for next expansion state (deterministic)
