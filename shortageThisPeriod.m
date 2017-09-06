@@ -2,7 +2,7 @@ function [shortage, supply, demand, gw_supply, exp_supply] = shortageThisPeriod(
 % Calculates shortage in current period gives states, actions, and demand
 
 % Groundwater supplied this period
-if a1 == 0 || s1 == max(s_gw) || s1 == -99
+if a1 == 0 || s1 == 200 || s1 == -99
     gw_supply = 0;
 else
     gw_supply = gwParam.pumpingRate;

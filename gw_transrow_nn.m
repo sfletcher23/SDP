@@ -86,7 +86,7 @@ next_s1 = s1 + drawdown;
 rounded_next_s1 = round2x(next_s1, s_gw);
 
 % Calculate transition probability row
-T_gw = histcounts(rounded_next_s1,  [s_gw(1:end-1) s_gw(end-1)+1], 'Normalization', 'probability');
+T_gw = histcounts(rounded_next_s1,  [s_gw(2:end) s_gw(end)+1], 'Normalization', 'probability');
 T_gw(end+1) = 0;
 
 % Test valid prob distribution

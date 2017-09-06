@@ -1,7 +1,7 @@
 
 
 %% Gen samples
-nnNumber = 17182;
+nnNumber = 17458;
 netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
 netscript = str2func(netname); 
 adjustOutput = true;
@@ -35,8 +35,8 @@ for i = 1:100
     hk = K_samples(i);
     sy = S_samples(i);
     x = [ones(1,n)*hk; ones(1,n)*sy; time];
-    y = netscript(x, true);
-    y = y(wellNum,:);
+    y = netscript(x);
+%     y = y(wellNum,:);
     hold on
     plot(time/365, y)
 end

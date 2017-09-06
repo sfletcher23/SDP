@@ -148,7 +148,7 @@ end
 
 % Generate state space for groundwater head and demand range
 [s_gw, gw_M] = gen_water_growth_states(gwParam);
-s_gw(end+1) = -99; % This is absorbing state where can't pump anymore
+s_gw = [-99 s_gw]; % This is absorbing state where can't pump anymore
 gw_M = gw_M + 1;
 
 % Actions: Stop pumping groundwater (0), continue pumping (1)
@@ -255,7 +255,7 @@ for t = linspace(N,1,N)
             bestX2= 0;
             
             % Update available actions based on whether gw available
-            if s1 == max(s_gw) 
+            if s1 == 200
                 a_gw = a_gw_unavailable;    % unavailble bc depleted
             elseif s1 == -99
                 a_gw = a_gw_unavailable;    % unavailble bc turned off
@@ -358,7 +358,7 @@ end
 %% Visualize results: plot optimal policies
 
 if policyPlotsOn
-    gw_step = s_gw(2) - s_gw(1);
+    gw_step = s_gw(3) - s_gw(2);
     exp_step = s_expand(2) - s_expand(1);
     blues = colormap(cbrewer('seq', 'Blues', 6));
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
