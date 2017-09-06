@@ -149,7 +149,7 @@ end
 
 % Generate state space for groundwater head and demand range
 [s_gw, gw_M] = gen_water_growth_states(gwParam);
-s_gw = [-99 s_gw]; % This is absorbing state where can't pump anymore
+s_gw = [-1 s_gw]; % This is absorbing state where can't pump anymore
 gw_M = gw_M + 1;
 
 % Actions: Stop pumping groundwater (0), continue pumping (1)
@@ -258,7 +258,7 @@ for t = linspace(N,1,N)
             % Update available actions based on whether gw available
             if s1 == 200
                 a_gw = a_gw_unavailable;    % unavailble bc depleted
-            elseif s1 == -99
+            elseif s1 == -1
                 a_gw = a_gw_unavailable;    % unavailble bc turned off
             else
                 a_gw = a_gw_available;
@@ -294,7 +294,7 @@ for t = linspace(N,1,N)
 
                     % Calculate transition matrix
                     
-                    % If stop pumping, move to state -99. Otherwise, use
+                    % If stop pumping, move to state -1. Otherwise, use
                     % T_gw calculated above. 
                     if a1 == 0
                         T_gw = zeros(1,gw_M);
