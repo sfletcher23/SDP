@@ -16,7 +16,8 @@ plotHeatMaps = true;
 plotSamples = false;
 
 % turn off plotting if running on cluster
-if exist(getenv('SLURM_CPUS_PER_TASK'))
+if exist(getenv('SLURM_JOB_ID'))
+    disp('job id test working')
     policyPlotsOn = false;
     simulateOn = false;
     simPlotsOn = false; % Plot results if true
