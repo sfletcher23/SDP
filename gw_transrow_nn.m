@@ -75,6 +75,8 @@ head_t_next = head_t_next(indexRelevantSamples);
     
 % Calculate drawdown between t+1 and t
 drawdown =  head_t_current - head_t_next;
+indexNeg = drawdown < 0;
+drawdown(indexNeg) = 0;
 
 % Calculate next state
 next_s1 = s1 + drawdown;
