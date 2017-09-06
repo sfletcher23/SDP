@@ -70,22 +70,20 @@ N = 30;
 s_gw = 0:200;
 gw_state = zeros(runs,N);
 numSampUsed = zeros(runs,N);
-[K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist('full_range', sampleSize, 1, N);
-for i = 1:runs
+[K_samples, S_samples] = gen_param_dist('full_range', sampleSize, 1, N);
+parfor i = 1:runs
     disp(num2str(i))
+    tempGwState = zeros([1 N]);
     for time = 1:N
         % Get transmat vector to next GW state 
-        if time == 1
-            gw_state_previous = 0;
-        else
-            gw_state_previous = gw_state(i,time-1);
-        end
-        [T_current_gw, numSampUsedNow] = gw_transrow_nn(nnNumber, wellIndex, time, K_samples_thisPeriod, S_samples_thisPeriod, gw_state_previous, s_gw, adjustOutput);
+        gw_state_current = tempGwState(time);
+        [T_current_gw, numSampUsedNow] = gw_transrow_nn(nnNumber, wellIndex, time, K_samples, S_samples, gw_state_current, s_gw, adjustOutput);
         numSampUsed(i,time) = numSampUsedNow;
         p = rand();
         index = find(p < cumsum(T_current_gw),1);
-        gw_state(i,time) = s_gw(index);
+        tempGwState(time) = s_gw(index);
     end
+    gw_state(i,:) = tempGwState;
 end
 y_sdp = 200 - gw_state;
 

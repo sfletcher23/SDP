@@ -25,7 +25,7 @@ if s1 == -99
     numRelevantSamples = -99;
     return
 end
-
+ 
 % Get neural net script
 netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
 netscript = str2func(netname); 
@@ -34,12 +34,6 @@ netscript = str2func(netname);
 % Input order: hk, sy, time  Input size: 3 x numSamples*2
 
 [~, numSamples] = size(K_samples);
-
-% Find only samples close to current state: compare s1 and head at t
-% time = repmat(1*365:365:t*365, [1 numSamples]);
-% x = [repmat(K_samples_thisPeriod, [1 t]); repmat(S_samples_thisPeriod, [1 t]); time];
-% head_t_current = netscript(x, adjustOutput);
-% head_t_current = head_t_current(wellIndex,:);
 
 head_t_current = zeros(1, length(K_samples));
 head_t_next = zeros(1, length(K_samples));
@@ -52,6 +46,7 @@ end
 
 margin = 7; 
 indexRelevantSamples = abs(head_t_current - (200 -s1)) < margin;
+
 numRelevantSamples = sum(indexRelevantSamples);
 if numRelevantSamples == 0
     warning(strcat('infeasible groundwater state : t=',num2str(t), ', 200-s1 = ', num2str(200-s1), ...
@@ -68,15 +63,15 @@ if numRelevantSamples == 0
     [~, indexBelow] = min((200 -s1) - head_t_current);
 end
 
+
+% In first period, accept all vlaues
+if t == 1 
+    indexRelevantSamples = ones([1 numSamples]);
+end
+
 % Update samples from previous period to include only relevant samples
 head_t_current = head_t_current(indexRelevantSamples);
 head_t_next = head_t_next(indexRelevantSamples);
-
-% % Get head estimates for next period from relevant samples
-% time = repmat(t*timeStepSize, [1 numRelevantSamples]);
-% x = [K_samples_thisPeriod(indexRelevantSamples); S_samples_thisPeriod(indexRelevantSamples); time];
-% head_t_next = netscript(x, adjustOutput);
-% head_t_next = head_t_next(wellIndex,:);
     
 % Calculate drawdown between t+1 and t
 drawdown =  head_t_current - head_t_next;
