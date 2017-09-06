@@ -201,8 +201,7 @@ s_gw_time = {};
 gw_M_time = [];
 for t = 1:N
     indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t);
-    s_gw_time{t} = s_gw(indexValidState);
-    gw_M_time(t) = length(s_gw_time{t});
+    index_s_gw_time{t} = find(indexValidState);
 end
 
 %% Initialize best value and best action matrices
@@ -235,8 +234,8 @@ for t = linspace(N,1,N)
     % Loop over all states
     
     % Loop over groundwater state: 1 is depleted, M1 is full
-    gw_M_thisPeriod = gw_M_time(t); 
-    parfor index_s1 = 1:gw_M_thisPeriod
+    index_s_gw_thisPeriod = index_s_gw_time{t}; 
+    parfor index_s1 = index_s_gw_thisPeriod
         s1 = s_gw(index_s1);
        
         % Get transmat vector for gw when pumping for current gw state
