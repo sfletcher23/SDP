@@ -1,4 +1,4 @@
-function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples, S_samples, s1, s_gw, adjustOutput ) 
+function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples, drawdown] = gw_transrow_nn(nnNumber,wellIndex, t, K_samples, S_samples, s1, s_gw, adjustOutput ) 
 
 % Calculates drawdown between time t-1 and time t predicted by the neural
 % net indicated for each of the T and S samples indicated. 
@@ -9,6 +9,7 @@ stateInfeasible = false;
 indexAbove = [];
 indexBelow = [];
 indexRelevantSamples = [];
+drawdown = [];
 
 % If at max drawdown, stay at max drawdown
 if s1 == 200
@@ -38,7 +39,7 @@ netscript = str2func(netname);
 head_t_current = zeros(1, length(K_samples));
 head_t_next = zeros(1, length(K_samples));
 for i = 1:length(K_samples)
-    x = [repmat(K_samples(i),[1,t+1]); repmat(S_samples(i),[1,t+1]); [365:365:365*(t+1)]];
+    x = [repmat(K_samples(i),[1,t+1]); repmat(S_samples(i),[1,t+1]); [0:365:365*(t)]];
     tempHead = netscript(x, adjustOutput);
     head_t_current(i) = tempHead(wellIndex,end-1);
     head_t_next(i) = tempHead(wellIndex,end);
@@ -83,7 +84,7 @@ next_s1 = s1 + drawdown;
 rounded_next_s1 = round2x(next_s1, s_gw);
 
 % Calculate transition probability row
-T_gw = histcounts(rounded_next_s1,  [s_gw(2:end) s_gw(end)+1], 'Normalization', 'probability');
+T_gw = histcounts(rounded_next_s1,  [0 s_gw(2:end):s_gw(end)+1], 'Normalization', 'probability');
 T_gw = [0 T_gw];
 
 % Test valid prob distribution

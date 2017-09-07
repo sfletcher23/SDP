@@ -589,7 +589,7 @@ yyaxis left
 plot(1:N, 200 - state_gw')
 hold on
 yyaxis right
-scatter(1:N, action_gw)
+plot(1:N, action_gw)
 xlabel('time')
 legend('Drawdown', 'pumping on?')
 
@@ -598,7 +598,7 @@ yyaxis left
 plot(1:N, state_expand')
 hold on
 yyaxis right
-scatter(1:N, action_expand')
+plot(1:N, action_expand')
 xlabel('time')
 legend('Expansion state', 'Expansion decision')
 
