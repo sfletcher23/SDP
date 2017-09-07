@@ -6,6 +6,7 @@ tic
 %% Parameters
 
 % Run paramters
+runSDP = false;
 adjustOutput = true;
 saveOn = true; % Save output if true
 policyPlotsOn = true;
@@ -153,7 +154,7 @@ s_gw = [-1 s_gw]; % This is absorbing state where can't pump anymore
 gw_M = gw_M + 1;
 
 % Actions: Stop pumping groundwater (0), continue pumping (1)
-a_gw_available = [0 1];
+a_gw_available = [1];
 a_gw_unavailable = [0];
 
 
@@ -356,6 +357,14 @@ for t = linspace(N,1,N)
     end
 end
 
+if saveOn
+    datetime=datestr(now);  
+    datetime=strrep(datetime,':','_'); %Replace colon with underscore
+    datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
+    datetime=strrep(datetime,' ','_');%Replace space with underscore
+    save(datetime);
+end
+
 %% Visualize results: plot optimal policies
 
 if policyPlotsOn
@@ -363,7 +372,7 @@ if policyPlotsOn
     exp_step = s_expand(2) - s_expand(1);
     blues = colormap(cbrewer('seq', 'Blues', 6));
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
-    color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:)};
+    color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
     for t = 1:6
         subplot(6,1,t)
@@ -393,7 +402,9 @@ if policyPlotsOn
                 elseif X1(i,j,t*5) == 0 && X2(i,j,t*5) == 2
                     colorThisState = color{5};
                 elseif X1(i,j,t*5) == 1 && X2(i,j,t*5) == 2
-                     colorThisState = color{6};
+                    colorThisState = color{6};
+                elseif isnan(X1(i,j,t*5)) || isnan(X2(i,j,t*5))
+                    colorThisState = color{7};
                 end
                 patch(x,y,colorThisState)
                 hold on  
@@ -439,19 +450,22 @@ end
 
 if simulateOn
 
+R = 1000;
+
 % Initialize vector tracking state, actions, water balance, costs over time 
-state_gw = zeros(1,N);
-state_expand = zeros(1,N);
-action_gw = zeros(1,N);
-action_expand = zeros(1,N);
-costOverTime = zeros(1,N);
-shortageCostOverTime = zeros(1,N);
-expansionCostOverTime = zeros(1,N);
-pumpingCostOverTime = zeros(1,N);
-shortageOverTime = zeros(1,N);
-supplyOverTime = zeros(1,N);
-gwSupplyOverTime = zeros(1,N);
-demandOverTime = zeros(1,N);
+state_gw = zeros(R,N);
+state_expand = zeros(R,N);
+action_gw = zeros(R,N);
+action_expand = zeros(R,N);
+costOverTime = zeros(R,N);
+shortageCostOverTime = zeros(R,N);
+expansionCostOverTime = zeros(R,N);
+pumpingCostOverTime = zeros(R,N);
+shortageOverTime = zeros(R,N);
+supplyOverTime = zeros(R,N);
+gwSupplyOverTime = zeros(R,N);
+demandOverTime = zeros(R,N);
+T_gw_time = zeros(gw_M,N,R);
 
 % Initial state
 s_gw_initial = 0;
@@ -460,79 +474,108 @@ s_expand_initial = 0;
 state_gw(1) = s_gw_initial;
 state_expand(1) = s_expand_initial;
 
-T_gw_time = zeros(gw_M,N);
 
-for t = 1:N
-    
-    % Caculate state indexes
-    index_state_gw = find(state_gw(t) == s_gw);
-    index_state_expand = find(state_expand(t) == s_expand);
-    
-    % Lookup optimal policy for current state
-    action_gw(t) = X1(index_state_gw, index_state_expand, t);
-    action_expand(t) = X2(index_state_gw, index_state_expand, t);
-    
-    % Calculate demand, shortage, and cost for current t
-    demandOverTime(t) = demand( water, population(t), t);
-    [shortageOverTime(t), supplyOverTime(t), ~, gwSupplyOverTime(t), ~] = shortageThisPeriod(action_gw(t), ...   
-        state_gw(t), state_expand(t), water, demandOverTime(t), s_gw, gwParam);
-    [costOverTime(t), shortageCostOverTime(t), expansionCostOverTime(t), pumpingCostOverTime(t)]  = ...
-        costThisPeriod(action_gw(t), action_expand(t), costParam, shortageOverTime(t),gwSupplyOverTime(t), t, state_gw(t));  
-    
-    % Get transisition mat to next state give current state and actions
 
-        % Get transmat vector to next GW state 
-        [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, t, N);
-        if action_gw(t) == 0
-            T_current_gw = zeros(1, length(s_gw));
-            T_current_gw(1) = 1;
-        else
-            T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, state_gw(t), s_gw, adjustOutput );  
+parfor i = 1:R
+    
+    state_gw_now = zeros(1,N);
+    state_expand_now = zeros(1,N);
+    action_gw_now = zeros(1,N);
+    action_expand_now = zeros(1,N);
+    costOverTime_now = zeros(1,N);
+    shortageCostOverTime_now = zeros(1,N);
+    expansionCostOverTime_now = zeros(1,N);
+    pumpingCostOverTime_now = zeros(1,N);
+    shortageOverTime_now = zeros(1,N);
+    supplyOverTime_now = zeros(1,N);
+    gwSupplyOverTime_now = zeros(1,N);
+    demandOverTime_now = zeros(1,N);
+    T_gw_time_now = zeros(gw_M,N);
+    
+    for t = 1:N
+
+        % Caculate state indexes
+        index_state_gw = find(state_gw_now(t) == s_gw);
+        index_state_expand = find(state_expand_now(t) == s_expand);
+
+        % Lookup optimal policy for current state
+        action_gw_now(t) = X1(index_state_gw, index_state_expand, t);
+        action_expand_now(t) = X2(index_state_gw, index_state_expand, t);
+
+        % Calculate demand, shortage, and cost for current t
+        demandOverTime_now(t) = demand( water, population(t), t);
+        [shortageOverTime_now(t), supplyOverTime_now(t), ~, gwSupplyOverTime_now(t), ~] = shortageThisPeriod(action_gw_now(t), ...   
+            state_gw_now(t), state_expand_now(t), water, demandOverTime_now(t), s_gw, gwParam);
+        [costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t)]  = ...
+            costThisPeriod(action_gw_now(t), action_expand_now(t), costParam, shortageOverTime_now(t),gwSupplyOverTime_now(t), t, state_gw_now(t));  
+
+        % Get transisition mat to next state give current state and actions
+
+            % Get transmat vector to next GW state 
+            [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, t, N);
+            if action_gw_now(t) == 0
+                T_current_gw = zeros(1, length(s_gw));
+                T_current_gw(1) = 1;
+            else
+                T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, state_gw_now(t), s_gw, adjustOutput );  
+            end
+            T_gw_time_now(:,t) = T_current_gw;
+
+            % Get transmat vector for next expansion state (deterministic)
+            T_current_expand = zeros(1,exp_M);
+            if action_expand_now(t) == 0
+                T_current_expand(index_state_expand) = 1; % Stay in current state
+            elseif action_expand_now(t) == 1
+                T_current_expand(index_state_expand + 1) = 1; % Move up one state
+            elseif action_expand_now(t) == 2
+                T_current_expand(index_state_expand + 2) = 1; % Move up two states
+            end
+
+            % Get Transition Matrix from rows
+            TRows_current = cell(2,1);
+            TRows_current{1} = T_current_gw;
+            TRows_current{2} = T_current_expand;
+            [ T_current ] = transrow2mat( TRows_current );
+
+        % Simulate next state
+        if t < N
+            T_current_1D = reshape(T_current,[1 numel(T_current)]);
+            T_current_1D_cumsum = cumsum(T_current_1D);
+            p = rand();
+            index = find(p < T_current_1D_cumsum,1);
+            [ind_s1, ind_s2, ind_s3, ind_s4] = ind2sub(size(T_current),index);
+                % Test sample
+                margin = 1e-10;
+                if (T_current(ind_s1, ind_s2, ind_s3, ind_s4) < margin)
+                    error('Invalid sample from T_current')
+                end
+
+            state_gw_now(t+1) = s_gw(ind_s1); 
+            state_expand_now(t+1) = s_expand(ind_s2);
+                % Test next state
+                test_gw = T_current_gw(ind_s1) >= 0;
+                test_expand = T_current_expand(ind_s2) >= 0;
+                if ~test_gw
+                    error('Invalid gw state tranisition')
+                end
+                if ~test_expand
+                    error('Invalid expand state tranisition')
+                end
         end
-        T_gw_time(:,t) = T_current_gw;
- 
-        % Get transmat vector for next expansion state (deterministic)
-        T_current_expand = zeros(1,exp_M);
-        if action_expand(t) == 0
-            T_current_expand(index_state_expand) = 1; % Stay in current state
-        elseif action_expand(t) == 1
-            T_current_expand(index_state_expand + 1) = 1; % Move up one state
-        elseif action_expand(t) == 2
-            T_current_expand(index_state_expand + 2) = 1; % Move up two states
-        end
-        
-        % Get Transition Matrix from rows
-        TRows_current = cell(2,1);
-        TRows_current{1} = T_current_gw;
-        TRows_current{2} = T_current_expand;
-        [ T_current ] = transrow2mat( TRows_current );
-        
-    % Simulate next state
-    if t < N
-        T_current_1D = reshape(T_current,[1 numel(T_current)]);
-        T_current_1D_cumsum = cumsum(T_current_1D);
-        p = rand();
-        index = find(p < T_current_1D_cumsum,1);
-        [ind_s1, ind_s2, ind_s3, ind_s4] = ind2sub(size(T_current),index);
-            % Test sample
-            margin = 1e-10;
-            if (T_current(ind_s1, ind_s2, ind_s3, ind_s4) < margin)
-                error('Invalid sample from T_current')
-            end
-            
-        state_gw(t+1) = s_gw(ind_s1); 
-        state_expand(t+1) = s_expand(ind_s2);
-            % Test next state
-            test_gw = T_current_gw(ind_s1) >= 0;
-            test_expand = T_current_expand(ind_s2) >= 0;
-            if ~test_gw
-                error('Invalid gw state tranisition')
-            end
-            if ~test_expand
-                error('Invalid expand state tranisition')
-            end
     end
-    
+    state_gw(i,:) = state_gw_now;
+    state_expand(i,:) = state_expand_now;
+    action_gw(i,:) = action_gw_now;
+    action_expand(i,:) = action_expand_now;
+    costOverTime(i,:) = costOverTime_now;
+    shortageCostOverTime(i,:) = shortageCostOverTime_now;
+    expansionCostOverTime(i,:) = expansionCostOverTime_now;
+    pumpingCostOverTime(i,:) =pumpingCostOverTime_now;
+    shortageOverTime(i,:) = shortageOverTime_now;
+    supplyOverTime(i,:) = supplyOverTime_now;
+    gwSupplyOverTime(i,:) = gwSupplyOverTime_now;
+    demandOverTime(i,:) = demandOverTime_now;
+    T_gw_time(:,:,i) = T_gw_time_now; 
 end
 
 end
@@ -583,10 +626,6 @@ end
 %% Save results
 
 if saveOn
-    datetime=datestr(now);  
-    datetime=strrep(datetime,':','_'); %Replace colon with underscore
-    datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
-    datetime=strrep(datetime,' ','_');%Replace space with underscore
     save(datetime);
 end
 
