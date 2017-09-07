@@ -32,7 +32,7 @@ y_nn = y_nn(wellIndex,:);
 y_modflow = y_modflow(wellIndex,:);
 
 % Get estimates using SDP
-s_gw = 0:1:200;
+s_gw = -1:1:200;
 N = 30;
 gw_state = zeros(1,N+1);
 % [K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist('full_range', gwParam, 1, N);
@@ -64,12 +64,12 @@ ylim([0 200])
 
 end
 %% Simulate sdp hydrographs from multiple using data updating
-if true
+if false
 
 sampleSize = 10000;
 runs = 10;
 N = 30;
-s_gw = [-99 0:200];
+s_gw = [-1 0:200];
 gw_state = zeros(runs,N+1);
 numSampUsed = zeros(runs,N);
 drawdown = cell(runs,N);
