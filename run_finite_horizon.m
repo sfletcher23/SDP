@@ -174,13 +174,11 @@ if mod(water.desal_capacity_expansion.large , water.desal_capacity_expansion.sma
 end
 
 % Get max capacity, state space between 0 and max cap in steps of small capacity
-maxExpCap = water.desal_capacity_expansion.small * maxNumSmallExp + ...
-    water.desal_capacity_expansion.large * maxNumLargeExp;
+% maxExpCap = water.desal_capacity_expansion.small * maxNumSmallExp + ...
+%     water.desal_capacity_expansion.large * maxNumLargeExp;
+maxExpCap = water.desal_capacity_expansion.large;
 s_expand = 0:water.desal_capacity_expansion.small:maxExpCap;
 exp_M = length(s_expand); % Desalination expanded = 2
-
-% Prune early time steps - can't start with extra capacity
-
 
 
 %% Get K and S samples and use to prune state space
