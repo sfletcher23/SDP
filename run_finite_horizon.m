@@ -63,7 +63,7 @@ popParam.growthScenario = 'low';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 1000;
+gwParam.sampleSize = 10000;
 gwParam.depthLimit = 200;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
@@ -208,7 +208,7 @@ maxDrawdownHydrograph = y(gwParam.wellIndex,:);
 s_gw_time = {};
 gw_M_time = [];
 for t = 1:N
-    indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t);
+    indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t) + 2;
     index_s_gw_time{t} = find(indexValidState);
 end
 
@@ -349,7 +349,7 @@ for t = linspace(N,1,N)
             end
             
             if saveOn
-                save(strcat(datetime, num2str(jobid)));
+                save(strcat(datetime,'_', num2str(jobid)));
             end
 
             % Check that bestV is not Inf
@@ -366,7 +366,22 @@ for t = linspace(N,1,N)
     end
 end
 
-%% 
+%% Solve for optimal policies when all decisions made in 1st stage
+if solveFixed
+    
+% Groundwater states x desal states x time
+V_fixed = NaN(gw_M, exp_M, N+1);
+X1_fixed = NaN(gw_M, exp_M, N+1);
+X2_fixed = NaN(gw_M, exp_M, N+1);
+
+% Terminal period
+X1_fixed(:,:,N+1) = zeros(gw_M, exp_M, 1);
+X2_fixed(:,:,N+1) = zeros(gw_M, exp_M, 1);
+V_fixed(:,:,N+1) = zeros(gw_M, exp_M, 1);
+
+   for  
+    
+end
 
 %% Visualize results: plot optimal policies
 
