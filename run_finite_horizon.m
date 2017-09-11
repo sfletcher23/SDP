@@ -367,7 +367,7 @@ for t = linspace(N,1,N)
 end
 
 %% Solve for optimal policies when all decisions made in 1st stage
-if solveFixed
+if false
     
 % Groundwater states x desal states x time
 V_fixed = NaN(gw_M, exp_M, N+1);
@@ -379,7 +379,7 @@ X1_fixed(:,:,N+1) = zeros(gw_M, exp_M, 1);
 X2_fixed(:,:,N+1) = zeros(gw_M, exp_M, 1);
 V_fixed(:,:,N+1) = zeros(gw_M, exp_M, 1);
 
-   for  
+   
     
 end
 
