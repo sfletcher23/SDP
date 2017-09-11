@@ -366,6 +366,7 @@ for t = linspace(N,1,N)
     end
 end
 
+%% 
 
 %% Visualize results: plot optimal policies
 

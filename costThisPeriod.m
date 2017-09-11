@@ -13,7 +13,8 @@ aquiferDepth = 1200;
 
 pump_cost_perunit=density * 9.81 * (((f*(s1+aquiferDepth)^2*v^2)/(2*9.81*D))+(s1+aquiferDepth)) * conversion_factor ...
     * (100/percent_eff) * cost_per_kwh;
- 
+
+discountFactor = 1/((1+costParam.discount_rate)^t);
 
 % Expansion costs
 switch a2
@@ -26,7 +27,6 @@ switch a2
 end
         
 % Costs include shortage costs, expansion costs, and pumping costs
-discountFactor = 1/((1+costParam.discount_rate)^t);
 shortageCost = shortage * costParam.shortage_cost * discountFactor;
 pumpingCost =  pump_cost_perunit * a1 * gw_supply * discountFactor;
 cost = shortageCost + expansionCost + pumpingCost;
