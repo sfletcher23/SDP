@@ -20,9 +20,9 @@ switch a2
     case 0
         expansionCost = 0;
     case 1
-        expansionCost = costParam.expansion_cost.capex.small;
+        expansionCost = costParam.expansion_cost.capex.small * discountFactor;
     case 2
-        expansionCost = costParam.expansion_cost.capex.large;
+        expansionCost = costParam.expansion_cost.capex.large * discountFactor;
 end
         
 % Costs include shortage costs, expansion costs, and pumping costs

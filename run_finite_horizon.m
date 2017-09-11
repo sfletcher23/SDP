@@ -16,12 +16,15 @@ plotInitialWaterBalance = true;
 plotHeatMaps = true;
 plotSamples = false;
 
+datetime=datestr(now);
+datetime=strrep(datetime,':','_'); %Replace colon with underscore
+datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
+datetime=strrep(datetime,' ','_');%Replace space with underscore
 jobid = [];
 % turn off plotting if running on cluster
 if ~isempty(getenv('SLURM_JOB_ID'))
     disp('job id test working')
     policyPlotsOn = false;
-    simulateOn = false;
     simPlotsOn = false; % Plot results if true
     plotInitialWaterBalance = false;
     plotHeatMaps = false;
@@ -345,7 +348,10 @@ for t = linspace(N,1,N)
                 end
             end
             
-            
+            if saveOn
+                save(strcat(datetime, num2str(jobid)));
+            end
+
             % Check that bestV is not Inf
             if bestV == Inf
                 error('BestV is Inf, did not pick an action')
@@ -360,13 +366,6 @@ for t = linspace(N,1,N)
     end
 end
 
-if saveOn
-    datetime=datestr(now);  
-    datetime=strrep(datetime,':','_'); %Replace colon with underscore
-    datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
-    datetime=strrep(datetime,' ','_');%Replace space with underscore
-    save(strcat(datetime, num2str(jobid)));
-end
 
 %% Visualize results: plot optimal policies
 
@@ -377,9 +376,9 @@ if policyPlotsOn
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
-    times = [1 2 3 4 5 6];
+    times = [ 24 25 26 27 28 29];
     for t = 1:length(times)
-        subplot(6,1,t)
+        subplot(length(times),1,t)
         if t == 1
             patch(1,1,color{1}) % Just to make legend work, will be covered up later
             patch(1,1,color{2})
@@ -429,7 +428,7 @@ if policyPlotsOn
             ax.YTickLabel = string(round(s_expand/1E6));
             ax.XTickLabel = 0:5:s_gw(end);
         end
-        title(strcat('Time step: ', num2str(t)))
+        title(strcat('Time step: ', num2str(times(t))))
         ax.XTickLabelRotation = 90;
     end
 end
@@ -454,7 +453,7 @@ end
 
 if simulateOn
 
-R = 1000;
+R = 1;
 
 % Initialize vector tracking state, actions, water balance, costs over time 
 state_gw = zeros(R,N);
@@ -613,7 +612,7 @@ plot(1:N,costOverTime);
 h = gca;
 h.YLim(1) = 0;
 hold on
-area(1:N, [shortageCostOverTime; expansionCostOverTime; pumpingCostOverTime]');
+bar(1:N, [shortageCostOverTime; expansionCostOverTime; pumpingCostOverTime]', 'stacked');
 legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost')
 
 subplot(2,2,4)
