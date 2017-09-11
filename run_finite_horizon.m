@@ -35,25 +35,25 @@ N = 30;
 costParam = struct;
 costParam.shortage_cost = 10;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
-costParam.expansion_cost.capex.small = 258658804;
+costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
 costParan.marginal_cost = 0.45;
 costParam.discount_rate = 0.04;
 
 % Water infrastructure paramters
 water = struct;
 water.desal_capacity_initial = 1.3E6 * 365; % m^3/y
-water.desal_capacity_expansion.large = 0.5E6 * 365;
-water.desal_capacity_expansion.small = 0.25E6 * 365;
+water.desal_capacity_expansion.large = 0.51E6 * 365;
+water.desal_capacity_expansion.small = 0.51E6/3 * 365;
 water.demandFraction = 1;
 water.demandPerCapita = 300:-2:300-2*(N-1);
 
 % Population parameters
 popParam = struct;
 popParam.pop_initial = 6;   % in millions 
-popParam.growth.medium = 0.03;
-popParam.growth.high = 0.04;
-popParam.growth.low = 0.02;
-popParam.growthScenario = 'medium';
+popParam.growth.medium = 0.02;
+popParam.growth.high = 0.025;
+popParam.growth.low = 0.015;
+popParam.growthScenario = 'low';
 
 % GW Parameters
 gwParam = struct;
@@ -112,12 +112,12 @@ if plotInitialWaterBalance
     f = figure;
     ax = subplot(1,2,1);
     ax.FontSize = 6;
-    a1 = area(1:N, [gw_Minjur; gw_other; desal; desal_exp_small; desal_exp_large]' ./ 1E6);
+    a1 = area(1:N, [gw_Minjur; gw_other; desal; desal_exp_large; desal_exp_small]' ./ 1E6);
     hold on;
     plot(1:N, waterDemand_low/1E6)
     plot(1:N, waterDemand_medium/1E6)
     plot(1:N, waterDemand_high/1E6)
-    legend('Minjur GW', 'Other GW', 'Desal Current', 'Desal Exp Small', 'Desal Exp Large', 'Demand Low', 'Demand Medium', 'Demand High')
+    legend('Minjur GW', 'Other GW', 'Desal Current', 'Desal Exp Large', 'Desal Exp Small',  'Demand Low', 'Demand Medium', 'Demand High')
     legend('Location','northwest')
     legend('boxoff')
     ylabel('MCM/y')
@@ -129,12 +129,12 @@ if plotInitialWaterBalance
     end
     ax = subplot(1,2,2);
     ax.FontSize = 6;
-    a2 = area(1:N, [gw_other; desal; desal_exp_small; desal_exp_large]' ./ 1E6);
+    a2 = area(1:N, [gw_other; desal; desal_exp_large; desal_exp_small]' ./ 1E6);
     hold on;
     plot(1:N, waterDemand_low/1E6)
     plot(1:N, waterDemand_medium/1E6)
     plot(1:N, waterDemand_high/1E6)
-    legend('Other GW', 'Desal Current', 'Desal Exp Small', 'Desal Exp Large',  'Demand Low', 'Demand Medium', 'Demand High')
+    legend('Other GW', 'Desal Current',  'Desal Exp Large', 'Desal Exp Small', 'Demand Low', 'Demand Medium', 'Demand High')
     legend('Location','northwest')
     legend('boxoff')
     ylabel('MCM/y')
@@ -178,6 +178,9 @@ maxExpCap = water.desal_capacity_expansion.small * maxNumSmallExp + ...
     water.desal_capacity_expansion.large * maxNumLargeExp;
 s_expand = 0:water.desal_capacity_expansion.small:maxExpCap;
 exp_M = length(s_expand); % Desalination expanded = 2
+
+% Prune early time steps - can't start with extra capacity
+
 
 
 %% Get K and S samples and use to prune state space
@@ -374,7 +377,8 @@ if policyPlotsOn
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
-    for t = 1:6
+    times = [1 2 3 4 5 6];
+    for t = 1:length(times)
         subplot(6,1,t)
         if t == 1
             patch(1,1,color{1}) % Just to make legend work, will be covered up later
@@ -391,19 +395,19 @@ if policyPlotsOn
             for j = 1:exp_M
                 x = [s_gw(i)-(gw_step/2) s_gw(i)-(gw_step/2) s_gw(i)+(gw_step/2) s_gw(i)+(gw_step/2)];
                 y = [s_expand(j)-(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)-(exp_step/2)];
-                if X1(i,j,t*5) == 0 && X2(i,j,t*5) == 0
+                if X1(i,j,times(t)) == 0 && X2(i,j,times(t)) == 0
                     colorThisState = color{1};
-                elseif X1(i,j,t*5) == 1 && X2(i,j,t*5) == 0
+                elseif X1(i,j,times(t)) == 1 && X2(i,j,times(t)) == 0
                     colorThisState = color{2};
-                elseif X1(i,j,t*5) == 0 && X2(i,j,t*5) == 1
+                elseif X1(i,j,times(t)) == 0 && X2(i,j,times(t)) == 1
                     colorThisState = color{3};
-                elseif X1(i,j,t*5) == 1 && X2(i,j,t*5) == 1
+                elseif X1(i,j,times(t)) == 1 && X2(i,j,times(t)) == 1
                      colorThisState = color{4};
-                elseif X1(i,j,t*5) == 0 && X2(i,j,t*5) == 2
+                elseif X1(i,j,times(t)) == 0 && X2(i,j,times(t)) == 2
                     colorThisState = color{5};
-                elseif X1(i,j,t*5) == 1 && X2(i,j,t*5) == 2
+                elseif X1(i,j,times(t)) == 1 && X2(i,j,times(t)) == 2
                     colorThisState = color{6};
-                elseif isnan(X1(i,j,t*5)) || isnan(X2(i,j,t*5))
+                elseif isnan(X1(i,j,times(t))) || isnan(X2(i,j,times(t)))
                     colorThisState = color{7};
                 end
                 patch(x,y,colorThisState)
@@ -579,7 +583,7 @@ parfor i = 1:R
 end
 
 end
-
+%%
 if simPlotsOn
 
 % Plot state evolution w/ actions

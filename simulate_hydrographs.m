@@ -64,10 +64,10 @@ ylim([0 200])
 
 end
 %% Simulate sdp hydrographs from multiple using data updating
-if false
+if true
 
 sampleSize = 10000;
-runs = 10;
+runs = 20;
 N = 30;
 s_gw = [-1 0:200];
 gw_state = zeros(runs,N+1);
