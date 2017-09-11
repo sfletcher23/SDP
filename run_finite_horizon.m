@@ -63,7 +63,7 @@ popParam.growthScenario = 'low';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 10000;
+gwParam.sampleSize = 1000;
 gwParam.depthLimit = 200;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
@@ -396,7 +396,7 @@ if policyPlotsOn
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
-    times = [ 24 25 26 27 28 29];
+    times = [ 2 7 12 17 22 27];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1

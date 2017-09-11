@@ -13,7 +13,7 @@ aquiferDepth = 1200;
 
 pump_cost_perunit=density * 9.81 * (((f*(s1+aquiferDepth)^2*v^2)/(2*9.81*D))+(s1+aquiferDepth)) * conversion_factor ...
     * (100/percent_eff) * cost_per_kwh;
-pump_cost_perunit = 0;
+% pump_cost_perunit = 0;
 
 discountFactor = 1/((1+costParam.discount_rate)^t);
 
