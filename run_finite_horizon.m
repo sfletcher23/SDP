@@ -16,8 +16,9 @@ plotInitialWaterBalance = true;
 plotHeatMaps = true;
 plotSamples = false;
 
+jobid = [];
 % turn off plotting if running on cluster
-if exist(getenv('SLURM_JOB_ID'))
+if ~isempty(getenv('SLURM_JOB_ID'))
     disp('job id test working')
     policyPlotsOn = false;
     simulateOn = false;
@@ -25,6 +26,7 @@ if exist(getenv('SLURM_JOB_ID'))
     plotInitialWaterBalance = false;
     plotHeatMaps = false;
     plotSamples = false;
+    jobid = getenv('SLURM_JOB_ID');
 end
 
 
@@ -221,7 +223,7 @@ V(:,:,N+1) = zeros(gw_M, exp_M, 1);
 %% Backwards Recursion
 
 % If running on cluster, get number of workers 
-if exist(getenv('SLURM_CPUS_PER_TASK'))
+if ~isempty(getenv('SLURM_CPUS_PER_TASK'))
     parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
 end
 
@@ -363,7 +365,7 @@ if saveOn
     datetime=strrep(datetime,':','_'); %Replace colon with underscore
     datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
     datetime=strrep(datetime,' ','_');%Replace space with underscore
-    save(datetime);
+    save(strcat(datetime, num2str(jobid)));
 end
 
 %% Visualize results: plot optimal policies
