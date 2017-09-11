@@ -72,7 +72,7 @@ gwParam.wellIndex = 93; % 68 is RR1, 108 is Shemesy, 93 is royal garage
 
 
 % Information scenarios
-infoScenario = 'high_narrow';
+infoScenario = 'full_range';
 
 
 
@@ -159,7 +159,7 @@ s_gw = [-1 s_gw]; % This is absorbing state where can't pump anymore
 gw_M = gw_M + 1;
 
 % Actions: Stop pumping groundwater (0), continue pumping (1)
-a_gw_available = [1];
+a_gw_available = [0 1];
 a_gw_unavailable = [0];
 
 
@@ -369,17 +369,21 @@ end
 %% Solve for optimal policies when all decisions made in 1st stage
 if false
     
-% Groundwater states x desal states x time
-V_fixed = NaN(gw_M, exp_M, N+1);
-X1_fixed = NaN(gw_M, exp_M, N+1);
-X2_fixed = NaN(gw_M, exp_M, N+1);
-
-% Terminal period
-X1_fixed(:,:,N+1) = zeros(gw_M, exp_M, 1);
-X2_fixed(:,:,N+1) = zeros(gw_M, exp_M, 1);
-V_fixed(:,:,N+1) = zeros(gw_M, exp_M, 1);
-
-   
+    % Get water demand
+    waterDemand = waterDemand_low;
+    
+    % Get hydrograph for each sample;
+    netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
+    netscript = str2func(netname);
+    headSample = zeros(length(K_samples), N);
+    for i = 1:length(K_samples)
+        x = [repmat(K_samples(i),[1,N]); repmat(S_samples(i),[1,N]); [365:365:365*(N)]];
+        tempHead = netscript(x, adjustOutput);
+        headSample(i,:) = tempHead(gwParam.wellIndex,:);
+    end
+    
+    % Get gw supply and pumping cost for each sample
+    gwSupplySample = zeros(length(K_samples), N);
     
 end
 
