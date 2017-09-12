@@ -42,7 +42,7 @@ costParam.shortage_cost = 10;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
 costParan.marginal_cost = 0.45;
-costParam.discount_rate = 0.04;
+costParam.discount_rate = 0.00;
 
 % Water infrastructure paramters
 water = struct;
