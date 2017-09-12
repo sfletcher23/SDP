@@ -42,7 +42,7 @@ costParam.shortage_cost = 1;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
 costParam.marginal_cost = 0.40;
-costParam.discount_rate = 0.04;
+costParam.discount_rate = 0.00;
 
 % Water infrastructure paramters
 water = struct;
@@ -64,7 +64,7 @@ popParam.growthScenario = 'low';
 gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 1000;
-gwParam.depthLimit = 100;
+gwParam.depthLimit = 200;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;

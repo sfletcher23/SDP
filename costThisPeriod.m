@@ -18,6 +18,13 @@ if gwParam.exaggeratePumpCost
     aquiferDepth = 2;
 end
 
+depthPenalty = 0;
+if gwParam.depthLimit < 200
+    if s1 > gwParam.depthLimit
+        depthPenalty = Inf;
+    end
+end
+
 pump_cost_perunit=density * 9.81 * (((f*(s1+aquiferDepth)^2*v^2)/(2*9.81*D))+(s1+aquiferDepth)) * conversion_factor ...
     * (100/percent_eff) * cost_per_kwh;
 
@@ -37,7 +44,7 @@ end
 shortageCost = shortage * costParam.shortage_cost * discountFactor;
 pumpingCost =  pump_cost_perunit * a1 * gw_supply * discountFactor;
 marginalDesalCost = exp_supply * costParam.marginal_cost;
-cost = shortageCost + expansionCost + pumpingCost + marginalDesalCost;
+cost = shortageCost + expansionCost + pumpingCost + marginalDesalCost + depthPenalty;
 
 
 end
