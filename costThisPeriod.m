@@ -21,7 +21,7 @@ end
 depthPenalty = 0;
 if gwParam.enforceLimit
     if s1 > 100
-        depthPenalty = Inf;
+        depthPenalty = 99999999999999;
     end
 end
 
