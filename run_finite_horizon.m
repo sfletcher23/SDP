@@ -68,8 +68,8 @@ gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
-gwParam.wellIndex = 93; % 68 is RR1, 108 is Shemesy, 93 is royal garage
-gwParam.exaggeratePumpCost = true;
+gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemesy, 93 is royal garage
+gwParam.exaggeratePumpCost = false;
 
 
 % Information scenarios
