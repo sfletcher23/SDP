@@ -1,4 +1,4 @@
-function [shortage, supply, demand, gw_supply, exp_supply] = shortageThisPeriod(a1, s1, s2, water, demand, s_gw, gwParam)
+function [shortage, capacity, demand, gw_supply, exp_supply] = shortageThisPeriod(a1, s1, s2, water, demand, s_gw, gwParam)
 % Calculates shortage in current period gives states, actions, and demand
 
 % Groundwater supplied this period
@@ -10,16 +10,18 @@ end
 	
 
 % Exp desal supply
-exp_supply = s2; % assume use 100% of desal capacity
+exp_capacity = s2; % assume use 100% of desal capacity
 
-% Total water supplied is sum of groundwater and desalinated water
-supply = gw_supply + water.desal_capacity_initial + exp_supply; 
+% Total water capacity is sum of groundwater and desalinated water
+capacity = gw_supply + water.desal_capacity_initial + exp_capacity; 
  
 % Calculate shortage
-shortage = max(0, demand - supply);
+shortage = max(0, demand - capacity);
 
+% Calculate water supplied by desal exp
+exp_supply = max(0, demand - gw_supply - water.desal_capacity_initial);
 
 end
 
-% update this for gw supply to reflect withdawal demand insted of a1
+
  

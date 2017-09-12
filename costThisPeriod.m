@@ -1,4 +1,4 @@
-function [ cost, shortageCost, expansionCost, pumpingCost ] = costThisPeriod( a1, a2, costParam, shortage, gw_supply, t, s1)
+function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost ] = costThisPeriod( a1, a2, costParam, shortage, gw_supply, t, s1, exp_supply)
 % Calculate the cost in the current period given acitons and shortage
 
 % pumping cost in $/m^3
@@ -30,7 +30,8 @@ end
 % Costs include shortage costs, expansion costs, and pumping costs
 shortageCost = shortage * costParam.shortage_cost * discountFactor;
 pumpingCost =  pump_cost_perunit * a1 * gw_supply * discountFactor;
-cost = shortageCost + expansionCost + pumpingCost;
+marginalDesalCost = exp_supply * costParam.marginal_cost;
+cost = shortageCost + expansionCost + pumpingCost + marginalDesalCost;
 
 
 end

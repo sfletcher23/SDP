@@ -41,7 +41,7 @@ costParam = struct;
 costParam.shortage_cost = 10;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
-costParan.marginal_cost = 0.45;
+costParam.marginal_cost = 0.48;
 costParam.discount_rate = 0.00;
 
 % Water infrastructure paramters
@@ -297,7 +297,7 @@ for t = linspace(N,1,N)
 
                     % Calculate cost and shortages this period
                     [shortage, ~, ~, gw_supply, exp_supply] =  shortageThisPeriod(a1, s1, s2, water, demandThisPeriod, s_gw, gwParam);
-                    cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t, s1);
+                    cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t, s1, exp_supply);
 
                     % Calculate transition matrix
                     
@@ -488,6 +488,7 @@ shortageOverTime = zeros(R,N);
 supplyOverTime = zeros(R,N);
 gwSupplyOverTime = zeros(R,N);
 demandOverTime = zeros(R,N);
+expSupplyOverTime = zeros(R,N);
 T_gw_time = zeros(gw_M,N,R);
 
 % Initial state
@@ -513,6 +514,7 @@ parfor i = 1:R
     supplyOverTime_now = zeros(1,N);
     gwSupplyOverTime_now = zeros(1,N);
     demandOverTime_now = zeros(1,N);
+    expSupplyOverTime_now = zeros(1,N);
     T_gw_time_now = zeros(gw_M,N);
     
     for t = 1:N
@@ -527,10 +529,10 @@ parfor i = 1:R
 
         % Calculate demand, shortage, and cost for current t
         demandOverTime_now(t) = demand( water, population(t), t);
-        [shortageOverTime_now(t), supplyOverTime_now(t), ~, gwSupplyOverTime_now(t), ~] = shortageThisPeriod(action_gw_now(t), ...   
+        [shortageOverTime_now(t), supplyOverTime_now(t), ~, gwSupplyOverTime_now(t), expSupplyOverTime_now(t)] = shortageThisPeriod(action_gw_now(t), ...   
             state_gw_now(t), state_expand_now(t), water, demandOverTime_now(t), s_gw, gwParam);
         [costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t)]  = ...
-            costThisPeriod(action_gw_now(t), action_expand_now(t), costParam, shortageOverTime_now(t),gwSupplyOverTime_now(t), t, state_gw_now(t));  
+            costThisPeriod(action_gw_now(t), action_expand_now(t), costParam, shortageOverTime_now(t),gwSupplyOverTime_now(t), t, state_gw_now(t), expSupplyOverTime_now(t));  
 
         % Get transisition mat to next state give current state and actions
 
@@ -598,6 +600,7 @@ parfor i = 1:R
     supplyOverTime(i,:) = supplyOverTime_now;
     gwSupplyOverTime(i,:) = gwSupplyOverTime_now;
     demandOverTime(i,:) = demandOverTime_now;
+    expSupplyOverTime(i,:) = expSupplyOverTime_now;
     T_gw_time(:,:,i) = T_gw_time_now; 
 end
 
