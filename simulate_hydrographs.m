@@ -32,7 +32,7 @@ y_nn = y_nn(wellIndex,:);
 y_modflow = y_modflow(wellIndex,:);
 
 % Get estimates using SDP
-s_gw = -1:1:200;
+s_gw = -1:1:gwParam.depthLimit;
 N = 30;
 gw_state = zeros(1,N+1);
 % [K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist('full_range', gwParam, 1, N);
@@ -69,7 +69,7 @@ if true
 sampleSize = 10000;
 runs = 20;
 N = 30;
-s_gw = [-1 0:200];
+s_gw = [-1 0:gwParam.depthLimit];
 gw_state = zeros(runs,N+1);
 numSampUsed = zeros(runs,N);
 drawdown = cell(runs,N);

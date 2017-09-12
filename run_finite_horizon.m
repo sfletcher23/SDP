@@ -42,7 +42,7 @@ costParam.shortage_cost = 1;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
 costParam.marginal_cost = 0.40;
-costParam.discount_rate = 0.00;
+costParam.discount_rate = 0.04;
 
 % Water infrastructure paramters
 water = struct;
@@ -64,11 +64,12 @@ popParam.growthScenario = 'low';
 gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 1000;
-gwParam.depthLimit = 200;
+gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
 gwParam.wellIndex = 93; % 68 is RR1, 108 is Shemesy, 93 is royal garage
+gwParam.exaggeratePumpCost = true;
 
 
 % Information scenarios
@@ -161,7 +162,7 @@ gw_M = gw_M + 1;
 % Actions: Stop pumping groundwater (0), continue pumping (1)
 a_gw_available = [0 1];
 a_gw_unavailable = [0];
-
+  
 
 %% Desalination Expansions: State Definitions and Actions
 
@@ -208,7 +209,7 @@ maxDrawdownHydrograph = y(gwParam.wellIndex,:);
 s_gw_time = {};
 gw_M_time = [];
 for t = 1:N
-    indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t) + 2;
+    indexValidState = s_gw <= gwParam.depthLimit - maxDrawdownHydrograph(t) + 2;
     index_s_gw_time{t} = find(indexValidState);
 end
 
@@ -248,7 +249,7 @@ for t = linspace(N,1,N)
        
         % Get transmat vector for gw when pumping for current gw state
         [T_gw, numRel, stateInf, indAbv, indBlw, indRel] = ...
-            gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, s1, s_gw, adjustOutput);  
+            gw_transrow_nn(gwParam, t, K_samples, S_samples, s1, s_gw, adjustOutput);  
         numRelevantSamples(index_s1,t) = numRel;
         stateInfeasible(index_s1,t) = stateInf;
         indexAbove{index_s1, t} = indAbv;
@@ -263,7 +264,7 @@ for t = linspace(N,1,N)
             bestX2= 0;
             
             % Update available actions based on whether gw available
-            if s1 == 200
+            if s1 == gwParam.depthLimit
                 a_gw = a_gw_unavailable;    % unavailble bc depleted
             elseif s1 == -1
                 a_gw = a_gw_unavailable;    % unavailble bc turned off
@@ -297,7 +298,7 @@ for t = linspace(N,1,N)
 
                     % Calculate cost and shortages this period
                     [shortage, ~, ~, gw_supply, exp_supply, ~] =  shortageThisPeriod(a1, s1, s2, water, demandThisPeriod, s_gw, gwParam);
-                    cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t, s1, exp_supply);
+                    cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t, s1, exp_supply, gwParam);
 
                     % Calculate transition matrix
                     
@@ -396,7 +397,7 @@ if policyPlotsOn
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
-    times = [ 16 17 18 19 20 21];
+    times = [2 7 12 17 22 27];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1
@@ -537,7 +538,7 @@ for i = 1:R
         [shortageOverTime_now(t), capacityOverTime_now(t), ~, minjurSupplyOverTime_now(t), expSupplyOverTime_now(t), othergwSupplyOverTime_now] = shortageThisPeriod(action_gw_now(t), ...   
             state_gw_now(t), state_expand_now(t), water, demandOverTime_now(t), s_gw, gwParam);
         [costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t), margDesalCostOverTime_now(t)]  = ...
-            costThisPeriod(action_gw_now(t), action_expand_now(t), costParam, shortageOverTime_now(t),minjurSupplyOverTime_now(t), t, state_gw_now(t), expSupplyOverTime_now(t));  
+            costThisPeriod(action_gw_now(t), action_expand_now(t), costParam, shortageOverTime_now(t),minjurSupplyOverTime_now(t), t, state_gw_now(t), expSupplyOverTime_now(t), gwParam);  
 
         % Get transisition mat to next state give current state and actions
 
@@ -547,7 +548,7 @@ for i = 1:R
                 T_current_gw = zeros(1, length(s_gw));
                 T_current_gw(1) = 1;
             else
-                T_current_gw = gw_transrow_nn(gwParam.nnNumber, gwParam.wellIndex, t, K_samples, S_samples, state_gw_now(t), s_gw, adjustOutput );  
+                T_current_gw = gw_transrow_nn(gwParam, t, K_samples, S_samples, state_gw_now(t), s_gw, adjustOutput );  
             end
             T_gw_time_now(:,t) = T_current_gw;
 
@@ -618,7 +619,7 @@ if simPlotsOn
 % Plot state evolution w/ actions
 figure;
 yyaxis left
-plot(1:N, 200 - state_gw)
+plot(1:N, gwParam.depthLimit - state_gw)
 hold on
 yyaxis right
 plot(1:N, action_gw)
@@ -661,7 +662,7 @@ end
 %% Save results
 
 if saveOn
-    save(datetime);
+    save(strcat(datetime,'_', num2str(jobid)));
 end
 
 
