@@ -4,12 +4,15 @@ function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost ] =
 % pumping cost in $/m^3
 density=1000; %in kg/m^3
 cost_per_kwh=.10;
+cost_per_kwh=.01;
 conversion_factor=2.777778e-7;
 percent_eff=80;
 f=0.013;
 D=0.508;
 v=0.24669;
+v= 70;
 aquiferDepth = 1200;
+aquiferDepth = 2;
 
 pump_cost_perunit=density * 9.81 * (((f*(s1+aquiferDepth)^2*v^2)/(2*9.81*D))+(s1+aquiferDepth)) * conversion_factor ...
     * (100/percent_eff) * cost_per_kwh;

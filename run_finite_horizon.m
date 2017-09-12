@@ -41,8 +41,8 @@ costParam = struct;
 costParam.shortage_cost = 1;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
-costParam.marginal_cost = 0.48;
-costParam.discount_rate = 0.04;
+costParam.marginal_cost = 0.40;
+costParam.discount_rate = 0.00;
 
 % Water infrastructure paramters
 water = struct;
@@ -396,7 +396,7 @@ if policyPlotsOn
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
-    times = [ 1 2 3 4 5 6];
+    times = [ 16 17 18 19 20 21];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1
@@ -530,6 +530,7 @@ for i = 1:R
         % Lookup optimal policy for current state
         action_gw_now(t) = X1(index_state_gw, index_state_expand, t);
         action_expand_now(t) = X2(index_state_gw, index_state_expand, t);
+%         action_gw_now(t) = 1;
 
         % Calculate demand, shortage, and cost for current t
         demandOverTime_now(t) = demand( water, population(t), t);

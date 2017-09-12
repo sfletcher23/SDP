@@ -20,7 +20,7 @@ capacity = minjur_supply + water.desal_capacity_initial + exp_capacity + othergw
 shortage = max(0, demand - capacity);
 
 % Calculate water supplied by desal exp
-exp_supply = max(0, demand - minjur_supply - water.desal_capacity_initial);
+exp_supply = max(0, demand - minjur_supply - water.desal_capacity_initial - othergw_supply);
 exp_supply = min(exp_supply, exp_capacity);
 
 end
