@@ -70,6 +70,7 @@ gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From 
 gwParam.nnNumber = 17182;
 gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemesy, 93 is royal garage
 gwParam.exaggeratePumpCost = false;
+gwParam.enforceLimit = true;
 
 
 % Information scenarios

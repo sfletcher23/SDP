@@ -19,8 +19,8 @@ if gwParam.exaggeratePumpCost
 end
 
 depthPenalty = 0;
-if gwParam.depthLimit < 200
-    if s1 > gwParam.depthLimit
+if gwParam.enforceLimit
+    if s1 > 100
         depthPenalty = Inf;
     end
 end
