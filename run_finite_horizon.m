@@ -396,7 +396,7 @@ if policyPlotsOn
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
-    times = [ 2 7 12 17 22 27];
+    times = [ 1 2 3 4 5 6];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1
@@ -502,7 +502,7 @@ state_expand(1) = s_expand_initial;
 
 
 
-parfor i = 1:R
+for i = 1:R
     
     state_gw_now = zeros(1,N);
     state_expand_now = zeros(1,N);
@@ -616,8 +616,7 @@ if simPlotsOn
 
 % Plot state evolution w/ actions
 figure;
-ax1 = subplot(2,2,1);
-yyaxis(ax1, 'left')
+yyaxis left
 plot(1:N, 200 - state_gw)
 hold on
 yyaxis right
@@ -625,7 +624,7 @@ plot(1:N, action_gw)
 xlabel('time')
 legend('Drawdown', 'pumping on?')
 
-subplot(2,2,2)
+figure;
 yyaxis left
 plot(1:N, state_expand')
 hold on
@@ -636,7 +635,8 @@ legend('Expansion state', 'Expansion decision')
 
 
 % Plot system performance
-subplot(2,2,3)
+figure
+subplot(1,2,1)
 plot(1:N,costOverTime);
 h = gca;
 h.YLim(1) = 0;
@@ -644,7 +644,7 @@ hold on
 bar(1:N, [shortageCostOverTime; expansionCostOverTime; pumpingCostOverTime; margDesalCostOverTime]', 'stacked');
 legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost', 'Desal costs')
 
-subplot(2,2,4)
+subplot(1,2,2)
 plot(1:N,shortageOverTime/1E6)
 hold on
 plot(1:N,demandOverTime/1E6)
