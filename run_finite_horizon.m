@@ -38,11 +38,11 @@ N = 30;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 10;    % $/m^2
+costParam.shortage_cost = 1;    % $/m^2
 costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
 costParam.marginal_cost = 0.48;
-costParam.discount_rate = 0.00;
+costParam.discount_rate = 0.04;
 
 % Water infrastructure paramters
 water = struct;
@@ -296,7 +296,7 @@ for t = linspace(N,1,N)
                     demandThisPeriod = demand(water, population(t), t);
 
                     % Calculate cost and shortages this period
-                    [shortage, ~, ~, gw_supply, exp_supply] =  shortageThisPeriod(a1, s1, s2, water, demandThisPeriod, s_gw, gwParam);
+                    [shortage, ~, ~, gw_supply, exp_supply, ~] =  shortageThisPeriod(a1, s1, s2, water, demandThisPeriod, s_gw, gwParam);
                     cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t, s1, exp_supply);
 
                     % Calculate transition matrix
@@ -485,10 +485,12 @@ shortageCostOverTime = zeros(R,N);
 expansionCostOverTime = zeros(R,N);
 pumpingCostOverTime = zeros(R,N);
 shortageOverTime = zeros(R,N);
-supplyOverTime = zeros(R,N);
-gwSupplyOverTime = zeros(R,N);
+capacityOverTime = zeros(R,N);
+minjurSupplyOverTime = zeros(R,N);
+othergwSupplyOverTime = zeros(R,N);
 demandOverTime = zeros(R,N);
 expSupplyOverTime = zeros(R,N);
+margDesalCostOverTime = zeros(R,N);
 T_gw_time = zeros(gw_M,N,R);
 
 % Initial state
@@ -511,10 +513,12 @@ parfor i = 1:R
     expansionCostOverTime_now = zeros(1,N);
     pumpingCostOverTime_now = zeros(1,N);
     shortageOverTime_now = zeros(1,N);
-    supplyOverTime_now = zeros(1,N);
-    gwSupplyOverTime_now = zeros(1,N);
+    capacityOverTime_now = zeros(1,N);
+    minjurSupplyOverTime_now = zeros(1,N);
+    othergwSupplyOverTime_now = zeros(1,N);
     demandOverTime_now = zeros(1,N);
     expSupplyOverTime_now = zeros(1,N);
+    margDesalCostOverTime_now = zeros(1,N);
     T_gw_time_now = zeros(gw_M,N);
     
     for t = 1:N
@@ -529,10 +533,10 @@ parfor i = 1:R
 
         % Calculate demand, shortage, and cost for current t
         demandOverTime_now(t) = demand( water, population(t), t);
-        [shortageOverTime_now(t), supplyOverTime_now(t), ~, gwSupplyOverTime_now(t), expSupplyOverTime_now(t)] = shortageThisPeriod(action_gw_now(t), ...   
+        [shortageOverTime_now(t), capacityOverTime_now(t), ~, minjurSupplyOverTime_now(t), expSupplyOverTime_now(t), othergwSupplyOverTime_now] = shortageThisPeriod(action_gw_now(t), ...   
             state_gw_now(t), state_expand_now(t), water, demandOverTime_now(t), s_gw, gwParam);
-        [costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t)]  = ...
-            costThisPeriod(action_gw_now(t), action_expand_now(t), costParam, shortageOverTime_now(t),gwSupplyOverTime_now(t), t, state_gw_now(t), expSupplyOverTime_now(t));  
+        [costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t), margDesalCostOverTime_now(t)]  = ...
+            costThisPeriod(action_gw_now(t), action_expand_now(t), costParam, shortageOverTime_now(t),minjurSupplyOverTime_now(t), t, state_gw_now(t), expSupplyOverTime_now(t));  
 
         % Get transisition mat to next state give current state and actions
 
@@ -597,10 +601,12 @@ parfor i = 1:R
     expansionCostOverTime(i,:) = expansionCostOverTime_now;
     pumpingCostOverTime(i,:) =pumpingCostOverTime_now;
     shortageOverTime(i,:) = shortageOverTime_now;
-    supplyOverTime(i,:) = supplyOverTime_now;
-    gwSupplyOverTime(i,:) = gwSupplyOverTime_now;
+    capacityOverTime(i,:) = capacityOverTime_now;
+    minjurSupplyOverTime(i,:) = minjurSupplyOverTime_now;
+    othergwSupplyOverTime(i,:) = othergwSupplyOverTime_now;
     demandOverTime(i,:) = demandOverTime_now;
     expSupplyOverTime(i,:) = expSupplyOverTime_now;
+    margDesalCostOverTime(i,:) = margDesalCostOverTime_now;
     T_gw_time(:,:,i) = T_gw_time_now; 
 end
 
@@ -610,9 +616,9 @@ if simPlotsOn
 
 % Plot state evolution w/ actions
 figure;
-subplot(2,2,1)
-yyaxis left
-plot(1:N, 200 - state_gw')
+ax1 = subplot(2,2,1);
+yyaxis(ax1, 'left')
+plot(1:N, 200 - state_gw)
 hold on
 yyaxis right
 plot(1:N, action_gw)
@@ -635,16 +641,18 @@ plot(1:N,costOverTime);
 h = gca;
 h.YLim(1) = 0;
 hold on
-bar(1:N, [shortageCostOverTime; expansionCostOverTime; pumpingCostOverTime]', 'stacked');
-legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost')
+bar(1:N, [shortageCostOverTime; expansionCostOverTime; pumpingCostOverTime; margDesalCostOverTime]', 'stacked');
+legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost', 'Desal costs')
 
 subplot(2,2,4)
-plot(1:N,shortageOverTime)
+plot(1:N,shortageOverTime/1E6)
 hold on
-plot(1:N,demandOverTime)
-plot(1:N,supplyOverTime)
-plot(1:N, gwSupplyOverTime)
-legend('shortage', 'demand', 'supply', 'gw pumped')
+plot(1:N,demandOverTime/1E6)
+plot(1:N,capacityOverTime/1E6)
+bar(1:N, [minjurSupplyOverTime/1E6; othergwSupplyOverTime/1E6;  water.desal_capacity_initial*ones(1,N)/1E6;  expSupplyOverTime/1E6]', 'stacked');
+legend('shortage', 'demand', 'capacity', 'minjur supply', 'other gw supply', 'existing desal supply', 'exp supply')
+legend('Location', 'southwest')
+ylabel('MCM/y');
 
 end
 
