@@ -14,13 +14,15 @@ end
 exp_capacity = s2; % assume use 100% of desal capacity
 
 % Total water capacity is sum of groundwater and desalinated water
-capacity = minjur_supply + water.desal_capacity_initial + exp_capacity + othergw_supply  ; 
+% capacity = minjur_supply + water.desal_capacity_initial + exp_capacity + othergw_supply;
+capacity = minjur_supply + exp_capacity ; 
  
 % Calculate shortage
 shortage = max(0, demand - capacity);
 
 % Calculate water supplied by desal exp
-exp_supply = max(0, demand - minjur_supply - water.desal_capacity_initial - othergw_supply);
+% exp_supply = max(0, demand - minjur_supply - water.desal_capacity_initial - othergw_supply);
+exp_supply = max(0, demand - minjur_supply);
 exp_supply = min(exp_supply, exp_capacity);
 
 end

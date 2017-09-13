@@ -121,10 +121,10 @@ if plotInitialWaterBalance
     desal = ones(1,N) * water.desal_capacity_initial;
     desal_exp_small = ones(1,N) * water.desal_capacity_expansion.small; 
     desal_exp_large = ones(1,N) * water.desal_capacity_expansion.large; 
-    waterDemand_low = demand(water, population_low, 1:N);
-    waterDemand_medium = demand(water, population_medium, 1:N);
-    waterDemand_high = demand(water, population_high, 1:N);
-    waterDemand_none = demand(water, population_none, 1:N);
+    waterDemand_low = demand(water, population_low, 1:N, gwParam);
+    waterDemand_medium = demand(water, population_medium, 1:N, gwParam);
+    waterDemand_high = demand(water, population_high, 1:N, gwParam);
+    waterDemand_none = demand(water, population_none, 1:N, gwParam);
     f = figure;
     ax = subplot(1,2,1);
     ax.FontSize = 6;
@@ -309,7 +309,8 @@ for t = linspace(N,1,N)
                     a2 = a_expand(index_a2);
 
                     % Calculate demand
-                    demandThisPeriod = demand(water, population(t), t);
+%                     demandThisPeriod = demand(water, population(t), t, gwParam);
+                    demandThisPeriod = gwParam.pumpingRate;
 
                     % Calculate cost and shortages this period
                     [shortage, ~, ~, gw_supply, exp_supply, ~] =  shortageThisPeriod(a1, s1, s2, water, demandThisPeriod, s_gw, gwParam);
@@ -555,7 +556,7 @@ for i = 1:R
         action_expand_now(t) = 0;           
 
         % Calculate demand, shortage, and cost for current t
-        demandOverTime_now(t) = demand( water, population(t), t);
+        demandOverTime_now(t) = demand( water, population(t), t, gwParam);
         [shortageOverTime_now(t), capacityOverTime_now(t), ~, minjurSupplyOverTime_now(t), expSupplyOverTime_now(t), othergwSupplyOverTime_now] = shortageThisPeriod(action_gw_now(t), ...   
             state_gw_now(t), state_expand_now(t), water, demandOverTime_now(t), s_gw, gwParam);
         [costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t), margDesalCostOverTime_now(t)]  = ...
@@ -669,15 +670,26 @@ legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost', 'Desal c
 title(strcat('Total cost [M$]: ', num2str(sum(costOverTime)/1E6, '%.3E')))
 ylabel('M$')
 
+% subplot(1,2,2)
+% plot(1:N,shortageOverTime/1E6)
+% hold on
+% plot(1:N,demandOverTime/1E6)
+% plot(1:N,capacityOverTime/1E6)
+% bar(1:N, [minjurSupplyOverTime/1E6; othergwSupplyOverTime/1E6;  water.desal_capacity_initial*ones(1,N)/1E6;  expSupplyOverTime/1E6]', 'stacked');
+% legend('shortage', 'demand', 'capacity', 'minjur supply', 'other gw supply', 'existing desal supply', 'exp supply')
+% legend('Location', 'southwest')
+% ylabel('MCM/y');
+
 subplot(1,2,2)
 plot(1:N,shortageOverTime/1E6)
 hold on
 plot(1:N,demandOverTime/1E6)
 plot(1:N,capacityOverTime/1E6)
-bar(1:N, [minjurSupplyOverTime/1E6; othergwSupplyOverTime/1E6;  water.desal_capacity_initial*ones(1,N)/1E6;  expSupplyOverTime/1E6]', 'stacked');
-legend('shortage', 'demand', 'capacity', 'minjur supply', 'other gw supply', 'existing desal supply', 'exp supply')
+bar(1:N, [minjurSupplyOverTime/1E6; expSupplyOverTime/1E6]', 'stacked');
+legend('shortage', 'demand', 'capacity', 'minjur supply', 'exp supply')
 legend('Location', 'southwest')
 ylabel('MCM/y');
+
 
 end
 
