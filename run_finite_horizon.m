@@ -51,14 +51,17 @@ water.desal_capacity_expansion.large = 0.51E6 * 365;
 water.desal_capacity_expansion.small = 0.51E6/3 * 365;
 water.demandFraction = 1;
 water.demandPerCapita = 300:-2:300-2*(N-1);
+water.demandPerCapita = 300*ones(1,N); 
 
 % Population parameters
 popParam = struct;
 popParam.pop_initial = 6;   % in millions 
+popParam.pop_initial = 6.2;
 popParam.growth.medium = 0.02;
 popParam.growth.high = 0.025;
 popParam.growth.low = 0.015;
-popParam.growthScenario = 'low';
+popParam.growth.none = 0.0;
+popParam.growthScenario = 'none';
 
 % GW Parameters
 gwParam = struct;
@@ -97,9 +100,11 @@ if plotInitialWaterBalance
     population_low = zeros(1,N);
     population_medium = zeros(1,N);
     population_high = zeros(1,N);
+    population_none = zeros(1,N);
     population_low(1) = popParam.pop_initial;
     population_medium(1) = popParam.pop_initial;
     population_high(1) = popParam.pop_initial;
+    population_none(1) = popParam.pop_initial;
     for t = 2:N
         growthRate = popParam.growth.low;
         population_low(t) = population_low(t-1) * (1 + growthRate);
@@ -107,6 +112,8 @@ if plotInitialWaterBalance
         population_medium(t) = population_medium(t-1) * (1 + growthRate);
         growthRate = popParam.growth.high;
         population_high(t) = population_high(t-1) * (1 + growthRate);
+        growthRate = popParam.growth.none;
+        population_none(t) = population_none(t-1) * (1 + growthRate);
     end
     
     gw_Minjur = ones(1,N) * gwParam.pumpingRate;
@@ -117,6 +124,7 @@ if plotInitialWaterBalance
     waterDemand_low = demand(water, population_low, 1:N);
     waterDemand_medium = demand(water, population_medium, 1:N);
     waterDemand_high = demand(water, population_high, 1:N);
+    waterDemand_none = demand(water, population_none, 1:N);
     f = figure;
     ax = subplot(1,2,1);
     ax.FontSize = 6;
@@ -125,7 +133,8 @@ if plotInitialWaterBalance
     plot(1:N, waterDemand_low/1E6)
     plot(1:N, waterDemand_medium/1E6)
     plot(1:N, waterDemand_high/1E6)
-    legend('Minjur GW', 'Other GW', 'Desal Current', 'Desal Exp Large', 'Desal Exp Small',  'Demand Low', 'Demand Medium', 'Demand High')
+    plot(1:N, waterDemand_none/1E6)
+    legend('Minjur GW', 'Other GW', 'Desal Current', 'Desal Exp Large', 'Desal Exp Small',  'Demand Low', 'Demand Medium', 'Demand High', 'Demand None')
     legend('Location','northwest')
     legend('boxoff')
     ylabel('MCM/y')
@@ -142,7 +151,8 @@ if plotInitialWaterBalance
     plot(1:N, waterDemand_low/1E6)
     plot(1:N, waterDemand_medium/1E6)
     plot(1:N, waterDemand_high/1E6)
-    legend('Other GW', 'Desal Current',  'Desal Exp Large', 'Desal Exp Small', 'Demand Low', 'Demand Medium', 'Demand High')
+    plot(1:N, waterDemand_none/1E6)
+    legend('Other GW', 'Desal Current',  'Desal Exp Large', 'Desal Exp Small', 'Demand Low', 'Demand Medium', 'Demand High', 'Demand None')
     legend('Location','northwest')
     legend('boxoff')
     ylabel('MCM/y')
