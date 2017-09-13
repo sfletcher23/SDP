@@ -318,7 +318,7 @@ for t = linspace(N,1,N)
                     elseif a2 == 1
                         T_expand(index_s2 + 1) = 1; % Move up one state
                     elseif a2 == 2
-                        T_expand(index_s2 + 2) = 1; % Move up two states
+                        T_expand(index_s2 + 3) = 1; % Move up three states
                     end
                     
                     % Calculate full transition matrix
@@ -528,11 +528,15 @@ for i = 1:R
         % Caculate state indexes
         index_state_gw = find(state_gw_now(t) == s_gw);
         index_state_expand = find(state_expand_now(t) == s_expand);
-
+        
         % Lookup optimal policy for current state
         action_gw_now(t) = X1(index_state_gw, index_state_expand, t);
         action_expand_now(t) = X2(index_state_gw, index_state_expand, t);
-%         action_gw_now(t) = 1;
+        action_gw_now(t) = 1;
+%         if t == 1
+%             action_expand_now(t) = 2;
+%         end
+        action_expand_now(t) = 0;           
 
         % Calculate demand, shortage, and cost for current t
         demandOverTime_now(t) = demand( water, population(t), t);
@@ -560,7 +564,7 @@ for i = 1:R
             elseif action_expand_now(t) == 1
                 T_current_expand(index_state_expand + 1) = 1; % Move up one state
             elseif action_expand_now(t) == 2
-                T_current_expand(index_state_expand + 2) = 1; % Move up two states
+                T_current_expand(index_state_expand + 3) = 1; % Move up three states
             end
 
             % Get Transition Matrix from rows
@@ -627,25 +631,27 @@ plot(1:N, action_gw)
 xlabel('time')
 legend('Drawdown', 'pumping on?')
 
-figure;
-yyaxis left
-plot(1:N, state_expand')
-hold on
-yyaxis right
-plot(1:N, action_expand')
-xlabel('time')
-legend('Expansion state', 'Expansion decision')
+% figure;
+% yyaxis left
+% plot(1:N, state_expand')
+% hold on
+% yyaxis right
+% plot(1:N, action_expand')
+% xlabel('time')
+% legend('Expansion state', 'Expansion decision')
 
 
 % Plot system performance
 figure
 subplot(1,2,1)
-plot(1:N,costOverTime);
+plot(1:N,costOverTime/1E6);
 h = gca;
 h.YLim(1) = 0;
 hold on
-bar(1:N, [shortageCostOverTime; expansionCostOverTime; pumpingCostOverTime; margDesalCostOverTime]', 'stacked');
+bar(1:N, [shortageCostOverTime./1E6; expansionCostOverTime./1E6; pumpingCostOverTime./1E6; margDesalCostOverTime./1E6]', 'stacked');
 legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost', 'Desal costs')
+title(strcat('Total cost [M$]: ', num2str(sum(costOverTime)/1E6, '%.3E')))
+ylabel('M$')
 
 subplot(1,2,2)
 plot(1:N,shortageOverTime/1E6)
