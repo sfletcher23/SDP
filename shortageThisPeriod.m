@@ -3,7 +3,7 @@ function [shortage, capacity, demand, minjur_supply, exp_supply, othergw_supply]
 
 % Groundwater supplied this period
 othergw_supply = gwParam.otherPumpingRate;
-if a1 == 0 || s1 == gwParam.depthLimit || s1 == -1
+if a1 == 0 || s1 == 200 || s1 == -1
     minjur_supply = 0;
 else
     minjur_supply = gwParam.pumpingRate;

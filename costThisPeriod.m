@@ -18,12 +18,16 @@ if gwParam.exaggeratePumpCost
     aquiferDepth = 2;
 end
 
-depthPenalty = 0;
-if gwParam.enforceLimit
-    if s1 > 100
-        depthPenalty = 99999999999999;
-    end
+if gwParam.pumpingSubsidy
+    cost_per_kwh = .02;
 end
+
+% depthPenalty = 0;
+% if gwParam.enforceLimit
+%     if s1 > 100
+%         depthPenalty = 99999999999999;
+%     end
+% end
 
 pump_cost_perunit=density * 9.81 * (((f*(s1+aquiferDepth)^2*v^2)/(2*9.81*D))+(s1+aquiferDepth)) * conversion_factor ...
     * (100/percent_eff) * cost_per_kwh;

@@ -15,17 +15,25 @@ indexRelevantSamples = [];
 drawdown = [];
 
 % If at max drawdown, stay at max drawdown
-if s1 == gwParam.depthLimit
+if s1 == 200
     T_gw = zeros(1,length(s_gw));
     T_gw(end-1) = 1;
     numRelevantSamples = -888;
     return
 end
 
+% If there is a nonzero depth limit, transition to -1
+if gwParam.depthLimit
+    T_gw = zeros(1,length(s_gw));
+    T_gw(1) = 1;
+    numRelevantSamples = -7;
+    return
+end
+
 % If stopped pumping, stay at stopped pumping
 if s1 == -1
     T_gw = zeros(1,length(s_gw));
-    T_gw(end) = 1;
+    T_gw(1) = 1;
     numRelevantSamples = -99;
     return
 end
@@ -49,7 +57,7 @@ for i = 1:length(K_samples)
 end
 
 margin = 7; 
-indexRelevantSamples = abs(head_t_current - (gwParam.depthLimit -s1)) < margin;
+indexRelevantSamples = abs(head_t_current - (200 -s1)) < margin;
 numRelevantSamples = sum(indexRelevantSamples);
 
 if numRelevantSamples == 0

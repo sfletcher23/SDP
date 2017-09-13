@@ -70,7 +70,8 @@ gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From 
 gwParam.nnNumber = 17182;
 gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemesy, 93 is royal garage
 gwParam.exaggeratePumpCost = false;
-gwParam.enforceLimit = true;
+gwParam.enforceLimit = false;
+gwParam.pumpingSubsidy = true;
 
 
 % Information scenarios
@@ -210,7 +211,7 @@ maxDrawdownHydrograph = y(gwParam.wellIndex,:);
 s_gw_time = {};
 gw_M_time = [];
 for t = 1:N
-    indexValidState = s_gw <= gwParam.depthLimit - maxDrawdownHydrograph(t) + 2;
+    indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t) + 2;
     index_s_gw_time{t} = find(indexValidState);
 end
 
@@ -265,7 +266,7 @@ for t = linspace(N,1,N)
             bestX2= 0;
             
             % Update available actions based on whether gw available
-            if s1 == gwParam.depthLimit
+            if s1 == 200
                 a_gw = a_gw_unavailable;    % unavailble bc depleted
             elseif s1 == -1
                 a_gw = a_gw_unavailable;    % unavailble bc turned off
@@ -624,7 +625,7 @@ if simPlotsOn
 % Plot state evolution w/ actions
 figure;
 yyaxis left
-plot(1:N, gwParam.depthLimit - state_gw)
+plot(1:N, 200 - state_gw)
 hold on
 yyaxis right
 plot(1:N, action_gw)
