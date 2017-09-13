@@ -285,12 +285,15 @@ for t = linspace(N,1,N)
             end
 
             % Update available actions based on whether expansion available
-            if s2 == s_expand(end)
-                a_expand = 0;
-            elseif s2 == s_expand(end-1)      % Future: Generalize this depending on size ratio
-                a_expand = [0 1];
-            else
-                a_expand = [0 1 2];
+            switch s2
+                case s_expand(1)
+                    a_expand = [0 1 2];
+                case s_expand(2)
+                    a_expand = [0 1];
+                case s_expand(3)
+                    a_expand = [0 1];
+                case s_expand(4)
+                    a_expand = [0];
             end
 
             num_a_gw = length(a_gw);
