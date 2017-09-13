@@ -24,10 +24,12 @@ end
 
 % If there is a nonzero depth limit, transition to -1
 if gwParam.depthLimit
-    T_gw = zeros(1,length(s_gw));
-    T_gw(1) = 1;
-    numRelevantSamples = -7;
-    return
+    if s1 == gwParam.depthLimit
+        T_gw = zeros(1,length(s_gw));
+        T_gw(1) = 1;
+        numRelevantSamples = -7;
+        return
+    end
 end
 
 % If stopped pumping, stay at stopped pumping
