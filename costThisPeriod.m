@@ -22,12 +22,6 @@ if gwParam.pumpingSubsidy
     cost_per_kwh = .02;
 end
 
-% depthPenalty = 0;
-% if gwParam.enforceLimit
-%     if s1 > 100
-%         depthPenalty = 99999999999999;
-%     end
-% end
 
 pump_cost_perunit=density * 9.81 * (((f*(s1+aquiferDepth)^2*v^2)/(2*9.81*D))+(s1+aquiferDepth)) * conversion_factor ...
     * (100/percent_eff) * cost_per_kwh;
@@ -48,7 +42,7 @@ end
 shortageCost = shortage * costParam.shortage_cost * discountFactor;
 pumpingCost =  pump_cost_perunit * a1 * gw_supply * discountFactor;
 marginalDesalCost = exp_supply * costParam.marginal_cost;
-cost = shortageCost + expansionCost + pumpingCost + marginalDesalCost + depthPenalty;
+cost = shortageCost + expansionCost + pumpingCost + marginalDesalCost;
 
 
 end
