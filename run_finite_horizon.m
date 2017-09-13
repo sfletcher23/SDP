@@ -67,7 +67,7 @@ popParam.growthScenario = 'none';
 gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 1000;
-gwParam.depthLimit = 200;
+gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
@@ -412,7 +412,7 @@ if policyPlotsOn
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
-    times = [2 7 12 17 22 27];
+    times = [1 2 7 12 17 22 27];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1
@@ -546,7 +546,9 @@ for i = 1:R
         % Lookup optimal policy for current state
         action_gw_now(t) = X1(index_state_gw, index_state_expand, t);
         action_expand_now(t) = X2(index_state_gw, index_state_expand, t);
-        action_gw_now(t) = 1;
+        if state_gw_now(t) < gwParam.depthLimit
+            action_gw_now(t) = 1;
+        end
 %         if t == 1
 %             action_expand_now(t) = 2;
 %         end
