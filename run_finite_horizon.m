@@ -259,7 +259,7 @@ for t = linspace(N,1,N)
     
     % Loop over groundwater state: 1 is depleted, M1 is full
     index_s_gw_thisPeriod = index_s_gw_time{t}; 
-    for index_s1 = index_s_gw_thisPeriod
+    parfor index_s1 = index_s_gw_thisPeriod
         s1 = s_gw(index_s1);
        
         % Get transmat vector for gw when pumping for current gw state
@@ -367,9 +367,9 @@ for t = linspace(N,1,N)
                 end
             end
             
-            if saveOn
-                save(strcat(datetime,'_', num2str(jobid)));
-            end
+%             if saveOn
+%                 save(strcat(datetime,'_', num2str(jobid)));
+%             end
 
             % Check that bestV is not Inf
             if bestV == Inf
@@ -511,6 +511,7 @@ demandOverTime = zeros(R,N);
 expSupplyOverTime = zeros(R,N);
 margDesalCostOverTime = zeros(R,N);
 T_gw_time = zeros(gw_M,N,R);
+sampleIndexOverTime = zeros(gwParam.sampleSize,N,R);
 
 % Initial state
 s_gw_initial = 0;
@@ -519,7 +520,7 @@ s_expand_initial = 0;
 state_gw(1) = s_gw_initial;
 state_expand(1) = s_expand_initial;
 
-
+[K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, 1, N);
 
 for i = 1:R
     
@@ -539,6 +540,7 @@ for i = 1:R
     expSupplyOverTime_now = zeros(1,N);
     margDesalCostOverTime_now = zeros(1,N);
     T_gw_time_now = zeros(gw_M,N);
+    sampleIndexOverTime_now = zeros(gwParam.sampleSize,N);
     
     for t = 1:N
 
@@ -566,14 +568,19 @@ for i = 1:R
         % Get transisition mat to next state give current state and actions
 
             % Get transmat vector to next GW state 
-            [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, t, N);
             if action_gw_now(t) == 0
                 T_current_gw = zeros(1, length(s_gw));
                 T_current_gw(1) = 1;
+                index = ones(gwParam.sampleSize,1)*-99;
             else
-                T_current_gw = gw_transrow_nn(gwParam, t, K_samples, S_samples, state_gw_now(t), s_gw, adjustOutput );  
+                [T_current_gw, ~, ~, ~, ~, index, ~]...
+                    = gw_transrow_nn(gwParam, t, K_samples, S_samples, state_gw_now(t), s_gw, adjustOutput ); 
+                if isempty(index)
+                    index = ones(gwParam.sampleSize,1)*-99;
+                end
             end
             T_gw_time_now(:,t) = T_current_gw;
+            sampleIndexOverTime_now(:,t) = index;
 
             % Get transmat vector for next expansion state (deterministic)
             T_current_expand = zeros(1,exp_M);
@@ -632,7 +639,8 @@ for i = 1:R
     demandOverTime(i,:) = demandOverTime_now;
     expSupplyOverTime(i,:) = expSupplyOverTime_now;
     margDesalCostOverTime(i,:) = margDesalCostOverTime_now;
-    T_gw_time(:,:,i) = T_gw_time_now; 
+    T_gw_time(:,:,i) = T_gw_time_now;
+    sampleIndexOverTime(:,:,i) = sampleIndexOverTime_now;
 end
 
 end
@@ -694,6 +702,44 @@ ylabel('MCM/y');
 
 end
 
+%% Show updated predictions over time
+figure;
+for k = 1:R
+    numSamplesOverTime = sum(sampleIndexOverTime(:,:,k),1);
+    hydrographs = cell(1,30);
+    plotTimes = [1, 5, 10, 15, 20, 25];
+    count = 1;
+    for time = 1:30
+        numSamples = numSamplesOverTime(time);
+        indexSamples = find(sampleIndexOverTime(:,time,k));
+        hydrographs{time} = zeros(numSamples,30);
+        for i = 1:numSamples
+            x = [repmat(K_samples(indexSamples(i)),[1,N]); repmat(S_samples(indexSamples(i)),[1,N]); [1:365:365*(N)]];
+            tempHead = netscript(x, adjustOutput);
+            hydrographs{time}(i,:) = tempHead(gwParam.wellIndex,:);
+        end
+        if ismember(time, plotTimes) && false
+        subplot(2,3,count)
+        y = [ones(numSamples,1)*200 hydrographs{time}];
+        plot(0:30,y)
+        count = count + 1;
+        ylim([0 200])
+        title(strcat('Time ', num2str(time)))
+        end  
+    end
+    hold on
+    if R >1
+        subplot(R/2,2,k)
+    end
+    grp = [];
+    y = [];
+    for t=1:30
+        y = [y hydrographs{t}(:,end)'];
+        grp = [grp ones(1,numSamplesOverTime(t))*t]; 
+    end
+    boxplot(y,grp)
+    
+end
 
 %% Save results
 
