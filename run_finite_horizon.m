@@ -39,19 +39,10 @@ N = 30;
 % Cost paramters
 costParam = struct;
 costParam.shortage_cost = 1;    % $/m^2
-costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
-costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
-costParam.marginal_cost = 0.40;
+% costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
+% costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
+costParam.marginal_cost = 0.45;
 costParam.discount_rate = 0.00;
-
-% Water infrastructure paramters
-water = struct;
-water.desal_capacity_initial = 1.3E6 * 365; % m^3/y
-water.desal_capacity_expansion.large = 0.51E6 * 365;
-water.desal_capacity_expansion.small = 0.51E6/3 * 365;
-water.demandFraction = 1;
-water.demandPerCapita = 300:-2:300-2*(N-1);
-water.demandPerCapita = 300*ones(1,N); 
 
 % Population parameters
 popParam = struct;
@@ -67,14 +58,25 @@ popParam.growthScenario = 'none';
 gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 1000;
-gwParam.depthLimit = 100;
+gwParam.depthLimit = 0;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
 gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemesy, 93 is royal garage
 gwParam.exaggeratePumpCost = false;
 gwParam.enforceLimit = false;
-gwParam.pumpingSubsidy = true;
+gwParam.pumpingSubsidy = false;
+
+% Water infrastructure paramters
+water = struct;
+water.desal_capacity_initial = 1.3E6 * 365; % m^3/y
+water.desal_capacity_expansion.large = 0.51E6 * 365;
+water.desal_capacity_expansion.large = gwParam.pumpingRate * 2
+water.desal_capacity_expansion.small = 0.51E6/3 * 365;
+water.desal_capacity_expansion.small = gwParam.pumpingRate;
+water.demandFraction = 1;
+water.demandPerCapita = 300:-2:300-2*(N-1);
+water.demandPerCapita = 300*ones(1,N); 
 
 
 % Information scenarios
@@ -313,8 +315,7 @@ for t = linspace(N,1,N)
                     demandThisPeriod = gwParam.pumpingRate;
 
                     % Calculate cost and shortages this period
-                    [shortage, ~, ~, gw_supply, exp_supply, ~] =  shortageThisPeriod(a1, s1, s2, water, demandThisPeriod, s_gw, gwParam);
-                    cost = costThisPeriod(a1, a2, costParam, shortage, gw_supply, t, s1, exp_supply, gwParam);
+                    [ cost, ~,~, ~,~, ~, ~, ~, ~, ~ ] = supplyAndCost( a1, a2, s1, s2, costParam, water, gwParam, t, demandThisPeriod);
 
                     % Calculate transition matrix
                     
@@ -547,21 +548,20 @@ for i = 1:R
         % Lookup optimal policy for current state
         action_gw_now(t) = X1(index_state_gw, index_state_expand, t);
         action_expand_now(t) = X2(index_state_gw, index_state_expand, t);
-        if state_gw_now(t) < gwParam.depthLimit
-            action_gw_now(t) = 1;
-        end
+%         if state_gw_now(t) < gwParam.depthLimit
+%             action_gw_now(t) = 1;
+%         end
 %         if t == 1
 %             action_expand_now(t) = 2;
 %         end
-        action_expand_now(t) = 0;           
+%          action_expand_now(t) = 0;           
 
         % Calculate demand, shortage, and cost for current t
         demandOverTime_now(t) = demand( water, population(t), t, gwParam);
-        [shortageOverTime_now(t), capacityOverTime_now(t), ~, minjurSupplyOverTime_now(t), expSupplyOverTime_now(t), othergwSupplyOverTime_now] = shortageThisPeriod(action_gw_now(t), ...   
-            state_gw_now(t), state_expand_now(t), water, demandOverTime_now(t), s_gw, gwParam);
-        [costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t), margDesalCostOverTime_now(t)]  = ...
-            costThisPeriod(action_gw_now(t), action_expand_now(t), costParam, shortageOverTime_now(t),minjurSupplyOverTime_now(t), t, state_gw_now(t), expSupplyOverTime_now(t), gwParam);  
-
+        [ costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t), margDesalCostOverTime_now(t), ...
+            shortageOverTime_now(t), capacityOverTime_now(t),minjurSupplyOverTime_now(t), expSupplyOverTime_now(t), othergwSupplyOverTime_now ] ...
+            = supplyAndCost( action_gw_now(t),  action_expand_now(t), state_gw_now(t), state_expand_now(t), costParam, water, gwParam, t,  demandOverTime_now(t));
+        
         % Get transisition mat to next state give current state and actions
 
             % Get transmat vector to next GW state 
