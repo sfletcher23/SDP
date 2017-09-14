@@ -2,8 +2,8 @@
 
 tic
 
-%test comment
-%% Parameters
+%% Plot parameters
+
 
 % Run paramters
 runSDP = false;
@@ -16,6 +16,7 @@ plotInitialWaterBalance = true;
 plotHeatMaps = true;
 plotSamples = false;
 
+%% Parameters
 datetime=datestr(now);
 datetime=strrep(datetime,':','_'); %Replace colon with underscore
 datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
@@ -663,7 +664,7 @@ figure
 subplot(1,2,1)
 plot(1:N,costOverTime/1E6);
 h = gca;
-h.YLim(1) = 0;
+% h.YLim(1) = 0;
 hold on
 bar(1:N, [shortageCostOverTime./1E6; expansionCostOverTime./1E6; pumpingCostOverTime./1E6; margDesalCostOverTime./1E6]', 'stacked');
 legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost', 'Desal costs')

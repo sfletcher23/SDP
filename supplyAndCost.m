@@ -52,10 +52,10 @@ function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, sh
         case 0
             expansionCost = 0;
         case 1
-            capex = (-0.0014 * water.desal_capacity_expansion.small/365 + 1362.5) * water.desal_capacity_expansion.small/365;
+            capex = (-189.1 * log(water.desal_capacity_expansion.small/365) + 3385) * water.desal_capacity_expansion.small/365;
             expansionCost = capex * discountFactor;
         case 2
-            capex = (-0.0014 * water.desal_capacity_expansion.large/365 + 1362.5) * water.desal_capacity_expansion.large/365;
+            capex = (-189.1 * log(water.desal_capacity_expansion.large/365) + 3385) * water.desal_capacity_expansion.large/365;
             expansionCost = capex * discountFactor;
     end
 
