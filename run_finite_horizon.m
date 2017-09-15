@@ -39,10 +39,10 @@ N = 30;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 1;    % $/m^2
+costParam.shortage_cost = 10;    % $/m^2
 % costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 % costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
-costParam.marginal_cost = 0.45;
+costParam.marginal_cost = 2;
 costParam.discount_rate = 0.00;
 
 % Population parameters
@@ -59,7 +59,7 @@ popParam.growthScenario = 'none';
 gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 1000;
-gwParam.depthLimit = 0;
+gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
@@ -415,7 +415,7 @@ if policyPlotsOn
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
-    times = [1 2 3 4 5];
+    times = [27 28 29 30 ];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1
@@ -470,6 +470,10 @@ if policyPlotsOn
         title(strcat('Time step: ', num2str(times(t))))
         ax.XTickLabelRotation = 90;
     end
+end
+
+if saveOn
+    save(strcat(datetime,'_', num2str(jobid)));
 end
 
 %% Plot heat maps
@@ -554,11 +558,11 @@ for i = 1:R
 %         if state_gw_now(t) < gwParam.depthLimit
 %             action_gw_now(t) = 1;
 %         end
-        if t < 5
-            action_expand_now(t) = 0;
-        elseif t == 5
-            action_expand_now(t) = 1;
-        end
+%         if t < 5
+%             action_expand_now(t) = 0;
+%         elseif t == 5
+%             action_expand_now(t) = 1;
+%         end
 %          action_expand_now(t) = 0;           
 
         % Calculate demand, shortage, and cost for current t
@@ -580,7 +584,7 @@ for i = 1:R
                 if isempty(index)
                     index = ones(gwParam.sampleSize,1)*-99;
                 end
-                T_current_gw = T_gw_save(:,t)';  % Option for fixing gw transition
+               % T_current_gw = T_gw_save(:,t)';  % Option for fixing gw transition
             end
             T_gw_time_now(:,t) = T_current_gw;
             sampleIndexOverTime_now(:,t) = index;
@@ -646,7 +650,7 @@ for i = 1:R
     sampleIndexOverTime(:,:,i) = sampleIndexOverTime_now;
 end
 
-T_gw_save = T_gw_time_now;
+%T_gw_save = T_gw_time_now;
 
 end
 %%
