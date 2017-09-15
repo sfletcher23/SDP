@@ -415,7 +415,7 @@ if policyPlotsOn
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
-    times = [1 2 7 12 17 22 27];
+    times = [1 2 3 4 5];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1
@@ -554,9 +554,11 @@ for i = 1:R
 %         if state_gw_now(t) < gwParam.depthLimit
 %             action_gw_now(t) = 1;
 %         end
-%         if t == 1
-%             action_expand_now(t) = 2;
-%         end
+        if t < 5
+            action_expand_now(t) = 0;
+        elseif t == 5
+            action_expand_now(t) = 1;
+        end
 %          action_expand_now(t) = 0;           
 
         % Calculate demand, shortage, and cost for current t
@@ -578,6 +580,7 @@ for i = 1:R
                 if isempty(index)
                     index = ones(gwParam.sampleSize,1)*-99;
                 end
+                T_current_gw = T_gw_save(:,t)';  % Option for fixing gw transition
             end
             T_gw_time_now(:,t) = T_current_gw;
             sampleIndexOverTime_now(:,t) = index;
@@ -643,6 +646,8 @@ for i = 1:R
     sampleIndexOverTime(:,:,i) = sampleIndexOverTime_now;
 end
 
+T_gw_save = T_gw_time_now;
+
 end
 %%
 if simPlotsOn
@@ -672,7 +677,7 @@ figure
 subplot(1,2,1)
 plot(1:N,costOverTime/1E6);
 h = gca;
-% h.YLim(1) = 0;
+ylim([0 700])
 hold on
 bar(1:N, [shortageCostOverTime./1E6; expansionCostOverTime./1E6; pumpingCostOverTime./1E6; margDesalCostOverTime./1E6]', 'stacked');
 legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost', 'Desal costs')
@@ -738,7 +743,9 @@ for k = 1:R
         grp = [grp ones(1,numSamplesOverTime(t))*t]; 
     end
     boxplot(y,grp)
-    
+    hold on
+    plot(xlim,[gwParam.depthLimit gwParam.depthLimit], 'k')
+    ylim([0 200])
 end
 
 %% Save results
