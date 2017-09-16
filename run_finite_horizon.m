@@ -8,13 +8,16 @@ tic
 % Run paramters
 runSDP = false;
 adjustOutput = true;
-saveOn = true; % Save output if true
-policyPlotsOn = true;
+saveOn = false; % Save output if true
+policyPlotsOn = false;
 simulateOn = true;
 simPlotsOn = true; % Plot results if true
-plotInitialWaterBalance = true;
-plotHeatMaps = true;
+plotInitialWaterBalance = false;
+plotHeatMaps = false;
 plotSamples = false;
+calculateTgw = true;
+simpleVersion = false;
+infoOverTime = false;
 
 %% Parameters
 datetime=datestr(now);
@@ -221,11 +224,183 @@ minDrawdownHydrograph = y(gwParam.wellIndex,:);
 x = [ones(1,N) * minK; ones(1,N) * minS; time]; 
 y = netscript(x, adjustOutput);
 maxDrawdownHydrograph = y(gwParam.wellIndex,:);
-s_gw_time = {};
-gw_M_time = [];
 for t = 1:N
     indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t) + 2;
     index_s_gw_time{t} = find(indexValidState);
+end
+
+%% Calculate Groudnwater transition matrix when pumping
+
+if calculateTgw
+
+    % Get transmat vector for gw when pumping for current gw state
+
+    stateInfeasible = true(gw_M, N);
+    numRelevantSamples = zeros(gw_M, N);
+    indexAbove = cell(gw_M, N);
+    indexBelow = cell(gw_M, N);
+
+    T_gw_all = zeros(gw_M, gw_M, N);
+
+    for t =1:N
+        for index_s1 = 1:gw_M
+            s1 = s_gw(index_s1);
+            [T_gw, numRel, stateInf, indAbv, indBlw, indRel] = ...
+                gw_transrow_nn(gwParam, t, K_samples, S_samples, s1, s_gw, adjustOutput);
+            T_gw_all(:,index_s1,t) = T_gw';
+            numRelevantSamples(index_s1,t) = numRel;
+            stateInfeasible(index_s1,t) = stateInf;
+            indexAbove{index_s1, t} = indAbv;
+            indexBelow{index_s1, t} = indBlw;
+        end
+    end
+    
+    % Calculate expected total drawdown for each state
+    cumTgw = zeros(gw_M, N);
+    for t = linspace(N,1,N)
+        for index_s1 = index_s_gw_thisPeriod
+            s1 = s_gw(index_s1);
+            if t == N 
+                cumTgw(index_s1,t) = T_gw_all(1,index_s1,t);
+            else
+                cumTgw(index_s1,t) = sum(T_gw_all(:,index_s1,t) .* cumTgw(:,t+1));
+            end
+        end
+    end
+    
+    save('T_gw', 'T_gw_all', 'cumTgw', 'K_samples', 'S_samples')
+    
+else
+    load('T_gw')
+end
+
+
+%% Construct simple model version for testing
+
+if simpleVersion
+    
+s_gw = [-1 0:3]; % This is absorbing state where can't pump anymore
+gw_M = length(s_gw);  
+N = 4;    
+T_gw_all = zeros(gw_M, gw_M, N);
+T_gw_all(1,1,:) = 1;
+T_gw_all(:,:,1) =  [1    0     0     1/3    1/2;
+                    0   1/3    0     0    0;
+                    0   1/3    1/3   0    0;
+                    0   1/3    1/3   1/3  0;
+                    0    0     1/3   1/3  1/2];
+T_gw_all(:,:,2) =  [1    0     0     3/5  4/5;
+                    0   2/3    0     0    0;
+                    0   1/3    1/5   0    0;
+                    0    0     3/5   1/5  0;
+                    0    0     1/5   1/5  1/5];
+T_gw_all(:,:,3) =  [1    0     0     1/5  6/7;
+                    0   3/4    0     0    0;
+                    0   1/4    2/5   0    0;
+                    0    0     2/5   1/5  0;
+                    0    0     1/5   3/5  1/7];
+T_gw_all(:,:,4) =  [1    0     0     1/7  2/3;
+                    0    1     0     0    0;
+                    0    0    4/5    0    0;
+                    0    0    1/5    1/7  0;
+                    0    0     0     5/7  1/3];
+                
+                
+% s_gw = [-1 0 1]; % This is absorbing state where can't pump anymore
+% gw_M = length(s_gw);  
+% N = 5;    
+% T_gw_all = zeros(gw_M, gw_M, N);
+% T_gw_all(:,:,1) = [1 0 0;
+%                    0 1/2 0
+%                    0 1/2 1];
+% T_gw_all(:,:,2) = [1 .2 .8;
+%                    0 .8 .2
+%                    0 0 0];
+% T_gw_all(:,:,3) = [1 .1 .9;
+%                    0 .9 .1
+%                    0 0 0];
+% T_gw_all(:,:,4) = [1 .1 .9;
+%                    0 .9 .1
+%                    0 0 0];
+% T_gw_all(:,:,5) = [1 .1 .9;
+%                    0 .9 .1
+%                    0 0 0];
+              
+
+% Check valid p
+for t = 1:N
+    totprob = sum(T_gw_all(:,:,t),1);
+    indexWrong = find(totprob ~= 1);
+    sumIndexWrong = sum(indexWrong);
+    if indexWrong > 0
+        error(strcat('invalid T period ', num2str(t)))
+    end
+end
+
+for t = 1:N
+    index_s_gw_time{t} = 1:gw_M;
+end
+
+% Calculate expected total drawdown for each state
+cumTgw = zeros(gw_M, N);
+for t = linspace(N,1,N)
+    for index_s1 = index_s_gw_thisPeriod
+        s1 = s_gw(index_s1);
+        if t == N 
+            cumTgw(index_s1,t) = T_gw_all(1,index_s1,t);
+        else
+            cumTgw(index_s1,t) = sum(T_gw_all(:,index_s1,t) .* cumTgw(:,t+1));
+        end
+    end
+end
+
+
+
+% Cost paramters
+costParam = struct;
+costParam.shortage_cost = 40;    % $/m^2
+% costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
+% costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
+costParam.marginal_cost = 2;
+costParam.discount_rate = 0.00;
+
+% Population parameters
+popParam = struct;
+popParam.pop_initial = 6;   % in millions 
+popParam.pop_initial = 6.2;
+popParam.growth.medium = 0.02;
+popParam.growth.high = 0.025;
+popParam.growth.low = 0.015;
+popParam.growth.none = 0.0;
+popParam.growthScenario = 'none';
+
+% GW Parameters
+gwParam = struct;
+gwParam.initialDrawdown = 0;
+gwParam.sampleSize = 1000;
+gwParam.depthLimit = 0;
+gwParam.pumpingRate = 640000 * 365;  % m^3/y
+gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
+gwParam.nnNumber = 17182;
+gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemesy, 93 is royal garage
+gwParam.exaggeratePumpCost = false;
+gwParam.enforceLimit = false;
+gwParam.pumpingSubsidy = false;
+
+% Water infrastructure paramters
+water = struct;
+water.desal_capacity_initial = 1.3E6 * 365; % m^3/y
+water.desal_capacity_expansion.large = 0.51E6 * 365;
+water.desal_capacity_expansion.large = gwParam.pumpingRate * 3;
+water.desal_capacity_expansion.small = 0.51E6/3 * 365;
+water.desal_capacity_expansion.small = gwParam.pumpingRate;
+water.demandFraction = 1;
+water.demandPerCapita = 300:-2:300-2*(N-1);
+water.demandPerCapita = 300*ones(1,N); 
+
+
+
+
 end
 
 %% Initialize best value and best action matrices
@@ -246,10 +421,6 @@ if ~isempty(getenv('SLURM_CPUS_PER_TASK'))
     parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
 end
 
-stateInfeasible = true(gw_M, N);
-numRelevantSamples = zeros(gw_M, N);
-indexAbove = cell(gw_M, N);
-indexBelow = cell(gw_M, N);
 % Loop over all time periods
 for t = linspace(N,1,N)
     % Calculate nextV    
@@ -262,14 +433,6 @@ for t = linspace(N,1,N)
     parfor index_s1 = index_s_gw_thisPeriod
         s1 = s_gw(index_s1);
        
-        % Get transmat vector for gw when pumping for current gw state
-        [T_gw, numRel, stateInf, indAbv, indBlw, indRel] = ...
-            gw_transrow_nn(gwParam, t, K_samples, S_samples, s1, s_gw, adjustOutput);  
-        numRelevantSamples(index_s1,t) = numRel;
-        stateInfeasible(index_s1,t) = stateInf;
-        indexAbove{index_s1, t} = indAbv;
-        indexBelow{index_s1, t} = indBlw;
-        
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
         for index_s2 = 1:exp_M
             s2 = s_expand(index_s2);
@@ -322,9 +485,13 @@ for t = linspace(N,1,N)
                     
                     % If stop pumping, move to state -1. Otherwise, use
                     % T_gw calculated above. 
-                    if a1 == 0
-                        T_gw = zeros(1,gw_M);
-                        T_gw(1) = 1;
+                    
+                    switch a1
+                        case 0
+                            T_gw = zeros(1,gw_M);
+                            T_gw(1) = 1;
+                        case 1
+                            T_gw = T_gw_all(:,index_s1,t)';
                     end
 
                     % Get transmat vector for next expansion state
@@ -385,6 +552,9 @@ for t = linspace(N,1,N)
     end
 end
 
+if saveOn
+    save(strcat(datetime,'_', num2str(jobid)));
+end
 %% Solve for optimal policies when all decisions made in 1st stage
 if false
     
@@ -415,7 +585,8 @@ if policyPlotsOn
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
-    times = [27 28 29 30 ];
+    times = [22 23 24 25 26 27 28 29 30];
+    times = [1 4 8 12 16 20 24];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1
@@ -472,9 +643,7 @@ if policyPlotsOn
     end
 end
 
-if saveOn
-    save(strcat(datetime,'_', num2str(jobid)));
-end
+
 
 %% Plot heat maps
 if plotHeatMaps 
@@ -516,6 +685,7 @@ expSupplyOverTime = zeros(R,N);
 margDesalCostOverTime = zeros(R,N);
 T_gw_time = zeros(gw_M,N,R);
 sampleIndexOverTime = zeros(gwParam.sampleSize,N,R);
+failureProbOverTime = zeros(R,N);
 
 % Initial state
 s_gw_initial = 0;
@@ -545,12 +715,16 @@ for i = 1:R
     margDesalCostOverTime_now = zeros(1,N);
     T_gw_time_now = zeros(gw_M,N);
     sampleIndexOverTime_now = zeros(gwParam.sampleSize,N);
+    failureProbOverTime_now = zeros(1,N);
     
     for t = 1:N
 
         % Caculate state indexes
         index_state_gw = find(state_gw_now(t) == s_gw);
         index_state_expand = find(state_expand_now(t) == s_expand);
+        
+        % Lookup failure prob if keep pumpin
+        failureProbOverTime_now(t) = cumTgw(index_state_gw ,t);
         
         % Lookup optimal policy for current state
         action_gw_now(t) = X1(index_state_gw, index_state_expand, t);
@@ -563,8 +737,10 @@ for i = 1:R
 %         elseif t == 5
 %             action_expand_now(t) = 1;
 %         end
-%          action_expand_now(t) = 0;           
-
+%          action_expand_now(t) = 0;    
+%            if t ==1 
+%                 action_expand_now(t) = 1;
+%            end
         % Calculate demand, shortage, and cost for current t
         demandOverTime_now(t) = demand( water, population(t), t, gwParam);
         [ costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t), margDesalCostOverTime_now(t), ...
@@ -579,14 +755,9 @@ for i = 1:R
                 T_current_gw(1) = 1;
                 index = ones(gwParam.sampleSize,1)*-99;
             else
-                [T_current_gw, ~, ~, ~, ~, index, ~]...
-                    = gw_transrow_nn(gwParam, t, K_samples, S_samples, state_gw_now(t), s_gw, adjustOutput ); 
-                if isempty(index)
-                    index = ones(gwParam.sampleSize,1)*-99;
-                end
-               % T_current_gw = T_gw_save(:,t)';  % Option for fixing gw transition
+                T_current_gw = T_gw_all(:,index_state_gw,t)';
             end
-            T_gw_time_now(:,t) = T_current_gw;
+%             T_gw_time_now(:,t) = T_current_gw;
             sampleIndexOverTime_now(:,t) = index;
 
             % Get transmat vector for next expansion state (deterministic)
@@ -648,23 +819,29 @@ for i = 1:R
     margDesalCostOverTime(i,:) = margDesalCostOverTime_now;
     T_gw_time(:,:,i) = T_gw_time_now;
     sampleIndexOverTime(:,:,i) = sampleIndexOverTime_now;
+    failureProbOverTime(i,:) = failureProbOverTime_now;
 end
 
-%T_gw_save = T_gw_time_now;
+T_gw_save = T_gw_time_now;
 
 end
-%%
+
 if simPlotsOn
 
+initialHeight = 200;
+if simpleVersion
+    initialHeight = 3;
+end
+    
 % Plot state evolution w/ actions
-figure;
-yyaxis left
-plot(1:N, 200 - state_gw)
-hold on
-yyaxis right
-plot(1:N, action_gw)
-xlabel('time')
-legend('Drawdown', 'pumping on?')
+% figure;
+% yyaxis left
+% plot(1:N, state_gw)
+% hold on
+% yyaxis right
+% plot(1:N, action_gw)
+% xlabel('time')
+% legend('Drawdown', 'pumping on?')
 
 % figure;
 % yyaxis left
@@ -678,10 +855,14 @@ legend('Drawdown', 'pumping on?')
 
 % Plot system performance
 figure
-subplot(1,2,1)
+subplot(1,3,1)
+plot(1:N, failureProbOverTime)
+
+
+subplot(1,3,2)
 plot(1:N,costOverTime/1E6);
 h = gca;
-ylim([0 700])
+% ylim([0 700])
 hold on
 bar(1:N, [shortageCostOverTime./1E6; expansionCostOverTime./1E6; pumpingCostOverTime./1E6; margDesalCostOverTime./1E6]', 'stacked');
 legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost', 'Desal costs')
@@ -698,7 +879,7 @@ ylabel('M$')
 % legend('Location', 'southwest')
 % ylabel('MCM/y');
 
-subplot(1,2,2)
+subplot(1,3,3)
 plot(1:N,shortageOverTime/1E6)
 hold on
 plot(1:N,demandOverTime/1E6)
@@ -712,44 +893,48 @@ ylabel('MCM/y');
 end
 
 %% Show updated predictions over time
-figure;
-for k = 1:R
-    numSamplesOverTime = sum(sampleIndexOverTime(:,:,k),1);
-    hydrographs = cell(1,30);
-    plotTimes = [1, 5, 10, 15, 20, 25];
-    count = 1;
-    for time = 1:30
-        numSamples = numSamplesOverTime(time);
-        indexSamples = find(sampleIndexOverTime(:,time,k));
-        hydrographs{time} = zeros(numSamples,30);
-        for i = 1:numSamples
-            x = [repmat(K_samples(indexSamples(i)),[1,N]); repmat(S_samples(indexSamples(i)),[1,N]); [1:365:365*(N)]];
-            tempHead = netscript(x, adjustOutput);
-            hydrographs{time}(i,:) = tempHead(gwParam.wellIndex,:);
+if infoOverTime
+    
+    figure;
+    for k = 1:R
+        numSamplesOverTime = sum(sampleIndexOverTime(:,:,k),1);
+        hydrographs = cell(1,30);
+        plotTimes = [1, 5, 10, 15, 20, 25];
+        count = 1;
+        for time = 1:30
+            numSamples = numSamplesOverTime(time);
+            indexSamples = find(sampleIndexOverTime(:,time,k));
+            hydrographs{time} = zeros(numSamples,30);
+            for i = 1:numSamples
+                x = [repmat(K_samples(indexSamples(i)),[1,N]); repmat(S_samples(indexSamples(i)),[1,N]); [1:365:365*(N)]];
+                tempHead = netscript(x, adjustOutput);
+                hydrographs{time}(i,:) = tempHead(gwParam.wellIndex,:);
+            end
+            if ismember(time, plotTimes) && false
+            subplot(2,3,count)
+            y = [ones(numSamples,1)*200 hydrographs{time}];
+            plot(0:30,y)
+            count = count + 1;
+            ylim([0 200])
+            title(strcat('Time ', num2str(time)))
+            end  
         end
-        if ismember(time, plotTimes) && false
-        subplot(2,3,count)
-        y = [ones(numSamples,1)*200 hydrographs{time}];
-        plot(0:30,y)
-        count = count + 1;
+        hold on
+        if R >1
+            subplot(R/2,2,k)
+        end
+        grp = [];
+        y = [];
+        for t=1:30
+            y = [y hydrographs{t}(:,end)'];
+            grp = [grp ones(1,numSamplesOverTime(t))*t]; 
+        end
+        boxplot(y,grp)
+        hold on
+        plot(xlim,[gwParam.depthLimit gwParam.depthLimit], 'k')
         ylim([0 200])
-        title(strcat('Time ', num2str(time)))
-        end  
     end
-    hold on
-    if R >1
-        subplot(R/2,2,k)
-    end
-    grp = [];
-    y = [];
-    for t=1:30
-        y = [y hydrographs{t}(:,end)'];
-        grp = [grp ones(1,numSamplesOverTime(t))*t]; 
-    end
-    boxplot(y,grp)
-    hold on
-    plot(xlim,[gwParam.depthLimit gwParam.depthLimit], 'k')
-    ylim([0 200])
+
 end
 
 %% Save results

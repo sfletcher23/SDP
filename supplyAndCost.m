@@ -54,11 +54,11 @@ function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, sh
         case 1
             capex = (-189.1 * log(water.desal_capacity_expansion.small/365) + 3385) * water.desal_capacity_expansion.small/365;
             expansionCost = capex * discountFactor;
-            expansionCost = expansionCost * 10; % Just to test
+            expansionCost = expansionCost * 20; % Just to test
         case 2
             capex = (-189.1 * log(water.desal_capacity_expansion.large/365) + 3385) * water.desal_capacity_expansion.large/365;
             expansionCost = capex * discountFactor;
-            expansionCost = expansionCost * 10; % Just to test
+            expansionCost = expansionCost * 20; % Just to test
     end
 
 % Third: Calculate supply

@@ -15,12 +15,12 @@ indexRelevantSamples = [];
 drawdown = [];
 
 % If at max drawdown, stay at max drawdown
-if s1 == 200
-    T_gw = zeros(1,length(s_gw));
-    T_gw(end-1) = 1;
-    numRelevantSamples = -888;
-    return
-end
+% if s1 == 200
+%     T_gw = zeros(1,length(s_gw));
+%     T_gw(end) = 1;
+%     numRelevantSamples = -888;
+%     return
+% end
 
 % If there is a nonzero depth limit, transition to -1
 if gwParam.depthLimit
