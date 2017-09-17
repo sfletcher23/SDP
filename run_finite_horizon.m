@@ -15,7 +15,7 @@ simPlotsOn = true; % Plot results if true
 plotInitialWaterBalance = false;
 plotHeatMaps = false;
 plotSamples = false;
-calculateTgw = true;
+calculateTgw = false;
 simpleVersion = false;
 infoOverTime = false;
 
@@ -586,7 +586,7 @@ if policyPlotsOn
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
     times = [22 23 24 25 26 27 28 29 30];
-    times = [1 4 8 12 16 20 24];
+    times = [10 11 12 13 14 15 16];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1
@@ -758,7 +758,7 @@ for i = 1:R
                 T_current_gw = T_gw_all(:,index_state_gw,t)';
             end
 %             T_gw_time_now(:,t) = T_current_gw;
-            sampleIndexOverTime_now(:,t) = index;
+%             sampleIndexOverTime_now(:,t) = index;
 
             % Get transmat vector for next expansion state (deterministic)
             T_current_expand = zeros(1,exp_M);
