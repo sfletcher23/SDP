@@ -15,7 +15,7 @@ simPlotsOn = true; % Plot results if true
 plotInitialWaterBalance = false;
 plotHeatMaps = false;
 plotSamples = false;
-calculateTgw = false;
+calculateTgw = true;
 simpleVersion = false;
 infoOverTime = false;
 
@@ -61,7 +61,7 @@ popParam.growthScenario = 'none';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 1000;
+gwParam.sampleSize = 50000;
 gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
@@ -207,31 +207,31 @@ exp_M = length(s_expand); % Desalination expanded = 2
 
 %% Get K and S samples and use to prune state space
 
-[K_samples, S_samples] = gen_param_dist('full_range', gwParam.sampleSize, 1, N);
-
-% Get min and max hydrograph
-% Get neural net script
-netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
-netscript = str2func(netname);
-maxK = max(K_samples);
-minK = min(K_samples);
-maxS = max(S_samples);
-minS = min(S_samples);
-time = 1*365:365:N*365;
-x = [ones(1,N) * maxK; ones(1,N) * maxS; time]; 
-y = netscript(x, adjustOutput);
-minDrawdownHydrograph = y(gwParam.wellIndex,:);
-x = [ones(1,N) * minK; ones(1,N) * minS; time]; 
-y = netscript(x, adjustOutput);
-maxDrawdownHydrograph = y(gwParam.wellIndex,:);
-for t = 1:N
-    indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t) + 2;
-    index_s_gw_time{t} = find(indexValidState);
-end
-
-%% Calculate Groudnwater transition matrix when pumping
-
 if calculateTgw
+
+    [K_samples, S_samples] = gen_param_dist('full_range', gwParam.sampleSize, 1, N);
+
+    % Get min and max hydrograph
+    % Get neural net script
+    netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
+    netscript = str2func(netname);
+    maxK = max(K_samples);
+    minK = min(K_samples);
+    maxS = max(S_samples);
+    minS = min(S_samples);
+    time = 1*365:365:N*365;
+    x = [ones(1,N) * maxK; ones(1,N) * maxS; time]; 
+    y = netscript(x, adjustOutput);
+    minDrawdownHydrograph = y(gwParam.wellIndex,:);
+    x = [ones(1,N) * minK; ones(1,N) * minS; time]; 
+    y = netscript(x, adjustOutput);
+    maxDrawdownHydrograph = y(gwParam.wellIndex,:);
+    for t = 1:N
+        indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t) + 2;
+        index_s_gw_time{t} = find(indexValidState);
+    end
+
+% Calculate Groudnwater transition matrix when pumping
 
     % Get transmat vector for gw when pumping for current gw state
 
@@ -268,7 +268,7 @@ if calculateTgw
         end
     end
     
-    save('T_gw', 'T_gw_all', 'cumTgw', 'K_samples', 'S_samples')
+    save(strcat('T_gw_',datetime), 'T_gw_all', 'cumTgw', 'K_samples', 'S_samples')
     
 else
     load('T_gw')
