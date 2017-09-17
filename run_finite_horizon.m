@@ -9,7 +9,7 @@ tic
 runSDP = false;
 adjustOutput = true;
 saveOn = false; % Save output if true
-policyPlotsOn = false;
+policyPlotsOn = true;
 simulateOn = true;
 simPlotsOn = true; % Plot results if true
 plotInitialWaterBalance = false;
@@ -18,6 +18,7 @@ plotSamples = false;
 calculateTgw = true;
 simpleVersion = false;
 infoOverTime = false;
+flexOn = true;
 
 %% Parameters
 datetime=datestr(now);
@@ -42,10 +43,10 @@ N = 30;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 10;    % $/m^2
+costParam.shortage_cost = 1;    % $/m^2
 % costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 % costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
-costParam.marginal_cost = 2;
+costParam.marginal_cost = .48;
 costParam.discount_rate = 0.00;
 
 % Population parameters
@@ -61,7 +62,7 @@ popParam.growthScenario = 'none';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 50000;
+gwParam.sampleSize = 1000;
 gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
@@ -69,7 +70,7 @@ gwParam.nnNumber = 17182;
 gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemesy, 93 is royal garage
 gwParam.exaggeratePumpCost = false;
 gwParam.enforceLimit = false;
-gwParam.pumpingSubsidy = false;
+gwParam.pumpingSubsidy = true;
 
 % Water infrastructure paramters
 water = struct;
@@ -81,6 +82,13 @@ water.desal_capacity_expansion.small = gwParam.pumpingRate;
 water.demandFraction = 1;
 water.demandPerCapita = 300:-2:300-2*(N-1);
 water.demandPerCapita = 300*ones(1,N); 
+if flexOn
+    water.desal_capacity_expansion.small = gwParam.pumpingRate/3;
+    water.desal_capacity_expansion.large = gwParam.pumpingRate;
+else
+    water.desal_capacity_expansion.small = gwParam.pumpingRate;
+    water.desal_capacity_expansion.large = gwParam.pumpingRate * 3;
+end
 
 
 % Information scenarios
@@ -243,11 +251,11 @@ if calculateTgw
     T_gw_all = zeros(gw_M, gw_M, N);
 
     for t =1:N
-        for index_s1 = 1:gw_M
+        parfor index_s1 = 1:gw_M
             s1 = s_gw(index_s1);
-            [T_gw, numRel, stateInf, indAbv, indBlw, indRel] = ...
+            [T_gw_temp, numRel, stateInf, indAbv, indBlw, indRel] = ...
                 gw_transrow_nn(gwParam, t, K_samples, S_samples, s1, s_gw, adjustOutput);
-            T_gw_all(:,index_s1,t) = T_gw';
+            T_gw_all(:,index_s1,t) = T_gw_temp';
             numRelevantSamples(index_s1,t) = numRel;
             stateInfeasible(index_s1,t) = stateInf;
             indexAbove{index_s1, t} = indAbv;
@@ -268,12 +276,25 @@ if calculateTgw
         end
     end
     
-    save(strcat('T_gw_',datetime), 'T_gw_all', 'cumTgw', 'K_samples', 'S_samples')
+    
+    save(strcat('T_gw_',datetime), 'T_gw_all', 'cumTgw', 'K_samples', 'S_samples', 'index_s_gw_time')
     
 else
     load('T_gw')
 end
 
+% Calculate expected total drawdown for each state
+cumTgw = zeros(gw_M, N);
+for t = linspace(N,1,N)
+    for index_s1 = 1:gw_M
+        s1 = s_gw(index_s1);
+        if t == N 
+            cumTgw(index_s1,t) = T_gw_all(1,index_s1,t);
+        else
+            cumTgw(index_s1,t) = sum(T_gw_all(:,index_s1,t) .* cumTgw(:,t+1));
+        end
+    end
+end
 
 %% Construct simple model version for testing
 
@@ -586,7 +607,8 @@ if policyPlotsOn
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
     fig = figure;
     times = [22 23 24 25 26 27 28 29 30];
-    times = [10 11 12 13 14 15 16];
+     times = [10 11 12 13 14 15 16];
+%     times = [1 2 3 4 5 6 7];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1
@@ -665,7 +687,7 @@ end
 
 if simulateOn
 
-R = 1;
+R = 10;
 
 % Initialize vector tracking state, actions, water balance, costs over time 
 state_gw = zeros(R,N);
@@ -828,67 +850,100 @@ end
 
 if simPlotsOn
 
-initialHeight = 200;
-if simpleVersion
-    initialHeight = 3;
-end
+if R == 1
+
+    % Plot state evolution w/ actions
+    figure;
+    yyaxis left
+    plot(1:N, state_gw)
+    hold on
+    yyaxis right
+    plot(1:N, action_gw)
+    xlabel('time')
+    legend('Drawdown', 'pumping on?')
+
+    % figure;
+    % yyaxis left
+    % plot(1:N, state_expand')
+    % hold on
+    % yyaxis right
+    % plot(1:N, action_expand')
+    % xlabel('time')
+    % legend('Expansion state', 'Expansion decision')
+
+
+    % Plot system performance
+    figure
+    subplot(1,3,1)
+    plot(1:N, failureProbOverTime)
+
+
+    subplot(1,3,2)
+    plot(1:N,costOverTime/1E6);
+    h = gca;
+    % ylim([0 700])
+    hold on
+    bar(1:N, [shortageCostOverTime./1E6; expansionCostOverTime./1E6; pumpingCostOverTime./1E6; margDesalCostOverTime./1E6]', 'stacked');
+    legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost', 'Desal costs')
+    title(strcat('Total cost [M$]: ', num2str(sum(costOverTime)/1E6, '%.3E')))
+    ylabel('M$')
+
+    % subplot(1,2,2)
+    % plot(1:N,shortageOverTime/1E6)
+    % hold on
+    % plot(1:N,demandOverTime/1E6)
+    % plot(1:N,capacityOverTime/1E6)
+    % bar(1:N, [minjurSupplyOverTime/1E6; othergwSupplyOverTime/1E6;  water.desal_capacity_initial*ones(1,N)/1E6;  expSupplyOverTime/1E6]', 'stacked');
+    % legend('shortage', 'demand', 'capacity', 'minjur supply', 'other gw supply', 'existing desal supply', 'exp supply')
+    % legend('Location', 'southwest')
+    % ylabel('MCM/y');
+
+    subplot(1,3,3)
+    plot(1:N,shortageOverTime/1E6)
+    hold on
+    plot(1:N,demandOverTime/1E6)
+    plot(1:N,capacityOverTime/1E6)
+    bar(1:N, [minjurSupplyOverTime/1E6; expSupplyOverTime/1E6]', 'stacked');
+    legend('shortage', 'demand', 'capacity', 'minjur supply', 'exp supply')
+    legend('Location', 'southwest')
+    ylabel('MCM/y');
     
-% Plot state evolution w/ actions
-% figure;
-% yyaxis left
-% plot(1:N, state_gw)
-% hold on
-% yyaxis right
-% plot(1:N, action_gw)
-% xlabel('time')
-% legend('Drawdown', 'pumping on?')
-
-% figure;
-% yyaxis left
-% plot(1:N, state_expand')
-% hold on
-% yyaxis right
-% plot(1:N, action_expand')
-% xlabel('time')
-% legend('Expansion state', 'Expansion decision')
-
-
-% Plot system performance
-figure
-subplot(1,3,1)
-plot(1:N, failureProbOverTime)
-
-
-subplot(1,3,2)
-plot(1:N,costOverTime/1E6);
-h = gca;
-% ylim([0 700])
-hold on
-bar(1:N, [shortageCostOverTime./1E6; expansionCostOverTime./1E6; pumpingCostOverTime./1E6; margDesalCostOverTime./1E6]', 'stacked');
-legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost', 'Desal costs')
-title(strcat('Total cost [M$]: ', num2str(sum(costOverTime)/1E6, '%.3E')))
-ylabel('M$')
-
-% subplot(1,2,2)
-% plot(1:N,shortageOverTime/1E6)
-% hold on
-% plot(1:N,demandOverTime/1E6)
-% plot(1:N,capacityOverTime/1E6)
-% bar(1:N, [minjurSupplyOverTime/1E6; othergwSupplyOverTime/1E6;  water.desal_capacity_initial*ones(1,N)/1E6;  expSupplyOverTime/1E6]', 'stacked');
-% legend('shortage', 'demand', 'capacity', 'minjur supply', 'other gw supply', 'existing desal supply', 'exp supply')
-% legend('Location', 'southwest')
-% ylabel('MCM/y');
-
-subplot(1,3,3)
-plot(1:N,shortageOverTime/1E6)
-hold on
-plot(1:N,demandOverTime/1E6)
-plot(1:N,capacityOverTime/1E6)
-bar(1:N, [minjurSupplyOverTime/1E6; expSupplyOverTime/1E6]', 'stacked');
-legend('shortage', 'demand', 'capacity', 'minjur supply', 'exp supply')
-legend('Location', 'southwest')
-ylabel('MCM/y');
-
+else
+    % Plot hydrographs
+    figure;
+    indexLimit = find(state_gw == -1 | state_gw >= 100);
+    hydrograph = 200 - state_gw;
+    hydrograph(indexLimit) = gwParam.depthLimit;
+    plot(1:N, hydrograph)
+    xlabel('Time [years]')
+    ylabel('Drawdown [m]')
+    title('Simulated Drawdown')
+    
+    % Plot expansion time distribution
+    [r,c] = find(expansionCostOverTime);
+    % for every row, take the minimum column index and put NaN if none is found
+    expTime = accumarray(r,c,[size(expansionCostOverTime,1),1],@min,32);
+    figure
+    h = histogram(expTime,[0:32]);
+    ax = gca;
+    ax.XTick = [0.5:1:31.5];
+    ax.XTickLabel = num2cell(0:31,1);
+    ax.XTickLabel{end} = 'Never';
+    xlabel('Expansion Year')
+    ylabel('Frequency')
+    title(strcat('Histogram of expansion time in ', num2str(R), ' simulations'))
+    
+    % Plot total shortage vs total cost
+    totalCost = sum(costOverTime,2);
+    totalShortage = sum(shortageOverTime,2);
+    figure
+    scatter(totalShortage,totalCost)
+    
+    
+    % Bagplot!! Eventually, have different bags for learning vs no learning
+    % and flexible vs no flexible
+    
+end
 
 end
 

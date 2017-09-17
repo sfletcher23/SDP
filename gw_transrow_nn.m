@@ -100,6 +100,14 @@ rounded_next_s1 = round2x(next_s1, s_gw);
 T_gw = histcounts(rounded_next_s1,  [s_gw(1:end):s_gw(end)] + 0.1, 'Normalization', 'probability');
 T_gw = [0 T_gw];
 
+% Find states above depth limit with positive prob and switch to absorbing state
+if gwParam.depthLimit
+    indexAboveLimit = find(s_gw >= gwParam.depthLimit & T_gw > 0);
+    sumAboveLimit = sum(T_gw(indexAboveLimit));
+    T_gw(1) = sumAboveLimit;
+    T_gw(indexAboveLimit) = 0;
+end
+
 % Test valid prob distribution
 margin = 1E-4;
 err = abs(sum(T_gw) - 1);
