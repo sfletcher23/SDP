@@ -1,5 +1,5 @@
 function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply, othergw_supply ] ...
-    = supplyAndCost( a1, a2, s1, s2, costParam, water, gwParam, t, demand)
+    = supplyAndCost( a1, a2, s1, s2, costParam, water, gwParam, t, demand, capacityDelay, exp_vectors)
 
 
 % Calculate the capacity, supply, and cost in the current period given
@@ -17,6 +17,10 @@ function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, sh
 
     % Exp desal capacity
     exp_capacity = s2; % assume use 100% of desal capacity
+    if capacityDelay
+        s2index = linIndex2VecIndex(s2, exp_vectors);
+        exp_capacity = exp_vectors{1}(s2index(1));
+    end
 
     % Total water capacity is sum of groundwater and desalinated water
     % capacity = minjur_supply + water.desal_capacity_initial + exp_capacity + othergw_supply;

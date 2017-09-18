@@ -8,18 +8,18 @@ tic
 % Run paramters
 runSDP = false;
 adjustOutput = true;
-saveOn = false; % Save output if true
+saveOn = true; % Save output if true
 policyPlotsOn = true;
 simulateOn = true;
 simPlotsOn = true; % Plot results if true
 plotInitialWaterBalance = false;
 plotHeatMaps = false;
 plotSamples = false;
-calculateTgw = true;
+calculateTgw = false;
 simpleVersion = false;
 infoOverTime = false;
 flexOn = true;
-capacityDelay = true;
+capacityDelay = false;
 
 
 
@@ -222,6 +222,7 @@ if capacityDelay
    % Index for feasible expansion state combinations - max total 3v across substates
     s_expand = [1:7 9 10 13 17];
     exp_M = length(s_expand);
+    exp_vectors = {s_exp_on' s_exp_delay1' s_exp_delay2};
 end
 
 
@@ -618,6 +619,10 @@ if saveOn
     save(strcat(datetime,'_', num2str(jobid)));
 end
 %% Solve for optimal policies when all decisions made in 1st stage
+
+% Note: this implementation assumes always pump when you can. Valid for
+% normal pumping costs but not exaggerated pumping costs.
+
 if true
     
     % Get water demand
@@ -632,27 +637,58 @@ if true
         headSample(i,:) = tempHead(gwParam.wellIndex,:);
     end
     headSampleRounded = round2x(headSample, s_gw);
-    parfor i = 1:gwParam.sampleSize
-        costOverTime = zeros(1,N);
-        expansionCostOverTime = zeros(1,N);
-        pumpingCostOverTime = zeros(1,N);
-        shortageOverTime = zeros(1,N);
-        capacityOverTime
-        
-        for t = 1:N
-            [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply, othergw_supply ] ...
-             = supplyAndCost( a1, a2, s1, s2, costParam, water, gwParam, t, demand);
-            
-            
+    gwSupplySample = ones(length(K_samples), N) * gwParam.pumpingRate;
+    indexPumpingOff = headSample <= gwParam.depthLimit;
+    
+    meanCostOverTime = zeros(3,N);
+    meanShortageOverTime = zeros(3,N);
+    meanTotalCost = zeros(3,1);
+    meanTotalShortage = zeros(3,1);
+    for index_a2 = 1:3
+        a2 = a_expand_available(index_a2);
+        costOverTime = zeros(gwParam.sampleSize,N);
+        expansionCostOverTime = zeros(gwParam.sampleSize,N);
+        pumpingCostOverTime = zeros(gwParam.sampleSize,N);
+        shortageOverTime = zeros(gwParam.sampleSize,N);
+        capacityOverTime = zeros(gwParam.sampleSize,N);
+        marginalDesalCostOverTime = zeros(gwParam.sampleSize,N);
+        totalCost = zeros(gwParam.sampleSize,1);
+        totalShortage = zeros(gwParam.sampleSize,1);
+        parfor i = 1:gwParam.sampleSize
+            costOverTime_sample = zeros(1,N);
+            expansionCostOverTime_sample = zeros(1,N);
+            pumpingCostOverTime_sample = zeros(1,N);
+            shortageOverTime_sample = zeros(1,N);
+            capacityOverTime_sample = zeros(1,N);
+            marginalDesalCostOverTime_sample = zeros(1,N);
+            for t = 1:N
+                s1 = headSampleRounded(i,t);
+                a1 = indexPumpingOff(i,t);
+                [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply, othergw_supply ] ...
+                 = supplyAndCost( a1, a2, s1, s2, costParam, water, gwParam, t, demand);
+                costOverTime_sample(t) = cost;
+                expansionCostOverTime_sample(t) = expansionCost;
+                pumpingCostOverTime_sample(t) = pumpingCost;
+                shortageOverTime_sample(t) = shortage;
+                capacityOverTime_sample(t) = capacity;
+                marginalDesalCostOverTime_sample(t) = marginalDesalCost;
+            end
+            costOverTime(i,:) =  costOverTime_sample;
+            expansionCostOverTime(i,:) = expansionCostOverTime_sample;
+            pumpingCostOverTime(i,:) =  pumpingCostOverTime_sample;
+            shortageOverTime(i,:) = shortageOverTime_sample;
+            capacityOverTime(i,:) = capacityOverTime_sample;
+            marginalDesalCostOverTime(i,:) = marginalDesalCostOverTime_sample;
+            totalCost(i)=sum(costOverTime_sample);
+            totalShortage(i)=sum(costOverTime_sample);
         end
+        meanCostOverTime(a2,:) = mean(costOverTime,2);
+        meanShortageOverTime(a2,:) = mean(shortageOverTime,2);
+        meanTotalCost = mean(totalCost);
+        meanTotalShortage = mean(totalShortage);
     end
     
-%     % Get gw supply and pumping cost for each sample
-%     gwSupplySample = ones(length(K_samples), N) * gwParam.pumpingRate;
-%     indexPumpingOff = headSample <= gwParam.depthLimit;
-%     gwSupplySample(indexPumpingOff) = 0;
-    
-    %     for s1
+
     
 end
 
@@ -777,7 +813,7 @@ state_expand(1) = s_expand_initial;
 
 [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, 1, N);
 
-for i = 1:R
+parfor i = 1:R
     
     state_gw_now = zeros(1,N);
     state_expand_now = zeros(1,N);
@@ -903,7 +939,7 @@ for i = 1:R
     failureProbOverTime(i,:) = failureProbOverTime_now;
 end
 
-T_gw_save = T_gw_time_now;
+% T_gw_save = T_gw_time_now;
 
 end
 
