@@ -10,7 +10,7 @@ runSDP = false;
 adjustOutput = true;
 saveOn = true; % Save output if true
 policyPlotsOn = true;
-simulateOn = true;
+simulateOn = false;
 simPlotsOn = true; % Plot results if true
 plotInitialWaterBalance = false;
 plotHeatMaps = false;
@@ -518,7 +518,7 @@ for t = linspace(N,1,N)
                     demandThisPeriod = gwParam.pumpingRate;
 
                     % Calculate cost and shortages this period
-                    [ cost, ~,~, ~,~, ~, ~, ~, ~, ~ ] = supplyAndCost( a1, a2, s1, s2, costParam, water, gwParam, t, demandThisPeriod);
+                    [ cost, ~,~, ~,~, ~, ~, ~, ~, ~ ] = supplyAndCost( a1, a2, s1, s2, costParam, water, gwParam, t, demandThisPeriod, capacityDelay, exp_vectors);
 
                     % Calculate transition matrix
                     
@@ -623,7 +623,7 @@ end
 % Note: this implementation assumes always pump when you can. Valid for
 % normal pumping costs but not exaggerated pumping costs.
 
-if true
+if false
     
     % Get water demand
     waterDemand = waterDemand_none;
