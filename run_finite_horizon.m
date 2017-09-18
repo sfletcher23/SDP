@@ -21,6 +21,8 @@ infoOverTime = false;
 flexOn = true;
 capacityDelay = true;
 
+
+
 %% Parameters
 datetime=datestr(now);
 datetime=strrep(datetime,':','_'); %Replace colon with underscore
@@ -110,7 +112,6 @@ end
 fraction = water.demandFraction;
 
 %Plot initial supply - demand balance
-if plotInitialWaterBalance
     
     population_low = zeros(1,N);
     population_medium = zeros(1,N);
@@ -140,6 +141,8 @@ if plotInitialWaterBalance
     waterDemand_medium = demand(water, population_medium, 1:N, gwParam);
     waterDemand_high = demand(water, population_high, 1:N, gwParam);
     waterDemand_none = demand(water, population_none, 1:N, gwParam);
+    
+if plotInitialWaterBalance
     f = figure;
     ax = subplot(1,2,1);
     ax.FontSize = 6;
@@ -224,6 +227,11 @@ end
 
 %% Get K and S samples and use to prune state space
 
+% If running on cluster, get number of workers 
+if ~isempty(getenv('SLURM_CPUS_PER_TASK'))
+    parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
+end
+
 if calculateTgw
 
     [K_samples, S_samples] = gen_param_dist('full_range', gwParam.sampleSize, 1, N);
@@ -261,9 +269,9 @@ if calculateTgw
 
     for t =1:N
         parfor index_s1 = 1:gw_M
-            s1 = s_gw(index_s1);
+            s1_now = s_gw(index_s1);
             [T_gw_temp, numRel, stateInf, indAbv, indBlw, indRel] = ...
-                gw_transrow_nn(gwParam, t, K_samples, S_samples, s1, s_gw, adjustOutput);
+                gw_transrow_nn(gwParam, t, K_samples, S_samples, s1_now, s_gw, adjustOutput);
             T_gw_all(:,index_s1,t) = T_gw_temp';
             numRelevantSamples(index_s1,t) = numRel;
             stateInfeasible(index_s1,t) = stateInf;
@@ -431,11 +439,6 @@ X2(:,:,N+1) = zeros(gw_M, exp_M, 1);
 V(:,:,N+1) = zeros(gw_M, exp_M, 1);
 
 %% Backwards Recursion
-
-% If running on cluster, get number of workers 
-if ~isempty(getenv('SLURM_CPUS_PER_TASK'))
-    parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
-end
 
 % Loop over all time periods
 for t = linspace(N,1,N)
@@ -615,23 +618,41 @@ if saveOn
     save(strcat(datetime,'_', num2str(jobid)));
 end
 %% Solve for optimal policies when all decisions made in 1st stage
-if false
+if true
     
     % Get water demand
-    waterDemand = waterDemand_low;
-    
+    waterDemand = waterDemand_none;
     % Get hydrograph for each sample;
     netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
     netscript = str2func(netname);
     headSample = zeros(length(K_samples), N);
     for i = 1:length(K_samples)
         x = [repmat(K_samples(i),[1,N]); repmat(S_samples(i),[1,N]); [365:365:365*(N)]];
-        tempHead = netscript(x, adjustOutput);
+        tempHead = netscript(x, adjustOutput); 
         headSample(i,:) = tempHead(gwParam.wellIndex,:);
     end
+    headSampleRounded = round2x(headSample, s_gw);
+    parfor i = 1:gwParam.sampleSize
+        costOverTime = zeros(1,N);
+        expansionCostOverTime = zeros(1,N);
+        pumpingCostOverTime = zeros(1,N);
+        shortageOverTime = zeros(1,N);
+        capacityOverTime
+        
+        for t = 1:N
+            [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply, othergw_supply ] ...
+             = supplyAndCost( a1, a2, s1, s2, costParam, water, gwParam, t, demand);
+            
+            
+        end
+    end
     
-    % Get gw supply and pumping cost for each sample
-    gwSupplySample = zeros(length(K_samples), N);
+%     % Get gw supply and pumping cost for each sample
+%     gwSupplySample = ones(length(K_samples), N) * gwParam.pumpingRate;
+%     indexPumpingOff = headSample <= gwParam.depthLimit;
+%     gwSupplySample(indexPumpingOff) = 0;
+    
+    %     for s1
     
 end
 
