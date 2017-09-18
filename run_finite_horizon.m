@@ -270,23 +270,9 @@ if calculateTgw
             indexAbove{index_s1, t} = indAbv;
             indexBelow{index_s1, t} = indBlw;
         end
-    end
+    end    
     
-    % Calculate expected total drawdown for each state
-    cumTgw = zeros(gw_M, N);
-    for t = linspace(N,1,N)
-        for index_s1 = index_s_gw_thisPeriod
-            s1 = s_gw(index_s1);
-            if t == N 
-                cumTgw(index_s1,t) = T_gw_all(1,index_s1,t);
-            else
-                cumTgw(index_s1,t) = sum(T_gw_all(:,index_s1,t) .* cumTgw(:,t+1));
-            end
-        end
-    end
-    
-    
-    save(strcat('T_gw_',datetime), 'T_gw_all', 'cumTgw', 'K_samples', 'S_samples', 'index_s_gw_time')
+    save(strcat('T_gw_',datetime), 'T_gw_all', 'K_samples', 'S_samples', 'index_s_gw_time')
     
 else
     load('T_gw')
@@ -460,7 +446,7 @@ for t = linspace(N,1,N)
     
     % Loop over groundwater state: 1 is depleted, M1 is full
     index_s_gw_thisPeriod = index_s_gw_time{t}; 
-    par for index_s1 = index_s_gw_thisPeriod
+    parfor index_s1 = index_s_gw_thisPeriod
         s1 = s_gw(index_s1);
        
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
