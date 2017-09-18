@@ -20,6 +20,7 @@ simpleVersion = false;
 infoOverTime = false;
 flexOn = true;
 capacityDelay = false;
+solveNoLearning = false;
 
 
 
@@ -215,6 +216,7 @@ s_expand = 0:water.desal_capacity_expansion.small:maxExpCap;
 exp_M = length(s_expand); % Desalination expanded = 2
 
 % Add capacity delay to state space
+exp_vectors = [];
 if capacityDelay
    s_exp_on = s_expand;
    s_exp_delay1 = s_expand;
@@ -623,7 +625,9 @@ end
 % Note: this implementation assumes always pump when you can. Valid for
 % normal pumping costs but not exaggerated pumping costs.
 
-if false
+gwParam.depthLimit = 100;
+
+if solveNoLearning
     
     % Get water demand
     waterDemand = waterDemand_none;
@@ -662,10 +666,24 @@ if false
             capacityOverTime_sample = zeros(1,N);
             marginalDesalCostOverTime_sample = zeros(1,N);
             for t = 1:N
-                s1 = headSampleRounded(i,t);
-                a1 = indexPumpingOff(i,t);
+                s1 = 200 - headSampleRounded(i,t);
+                a1 = ~indexPumpingOff(i,t);
+                if t ==1
+                    s2_now = 0;
+                    a2_now = a2;
+                else
+                    a2_now = 0;
+                    switch a2
+                        case 0
+                            s2_now = 0;
+                        case 1
+                            s2_now = water.desal_capacity_expansion.small;
+                        case 2
+                            s2_now = water.desal_capacity_expansion.large;
+                    end
+                end
                 [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply, othergw_supply ] ...
-                 = supplyAndCost( a1, a2, s1, s2, costParam, water, gwParam, t, demand);
+                 = supplyAndCost( a1, a2_now, s1, s2_now, costParam, water, gwParam, t, gwParam.pumpingRate, false, []);
                 costOverTime_sample(t) = cost;
                 expansionCostOverTime_sample(t) = expansionCost;
                 pumpingCostOverTime_sample(t) = pumpingCost;
@@ -682,13 +700,14 @@ if false
             totalCost(i)=sum(costOverTime_sample);
             totalShortage(i)=sum(costOverTime_sample);
         end
-        meanCostOverTime(a2,:) = mean(costOverTime,2);
-        meanShortageOverTime(a2,:) = mean(shortageOverTime,2);
-        meanTotalCost = mean(totalCost);
-        meanTotalShortage = mean(totalShortage);
+        meanCostOverTime(index_a2,:) = mean(costOverTime,1);
+        meanShortageOverTime(index_a2,:) = mean(shortageOverTime,1);
+        meanTotalCost(index_a2) = mean(totalCost);
+        meanTotalShortage(index_a2) = mean(totalShortage);
     end
-    
-
+[lowestCost, lowestCostActionIndex] = min(meanTotalCost)
+figure; plot(1:N, meanCostOverTime)
+figure; plot(1:N,  meanShortageOverTime)
     
 end
 
