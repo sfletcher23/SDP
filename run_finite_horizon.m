@@ -19,6 +19,7 @@ calculateTgw = true;
 simpleVersion = false;
 infoOverTime = false;
 flexOn = true;
+capacityDelay = true;
 
 %% Parameters
 datetime=datestr(now);
@@ -206,11 +207,19 @@ if mod(water.desal_capacity_expansion.large , water.desal_capacity_expansion.sma
 end
 
 % Get max capacity, state space between 0 and max cap in steps of small capacity
-% maxExpCap = water.desal_capacity_expansion.small * maxNumSmallExp + ...
-%     water.desal_capacity_expansion.large * maxNumLargeExp;
 maxExpCap = water.desal_capacity_expansion.large;
 s_expand = 0:water.desal_capacity_expansion.small:maxExpCap;
 exp_M = length(s_expand); % Desalination expanded = 2
+
+% Add capacity delay to state space
+if capacityDelay
+   s_exp_on = s_expand;
+   s_exp_delay1 = s_expand;
+   s_exp_delay2 = [s_expand(1) s_expand(2)];
+   % Index for feasible expansion state combinations - max total 3v across substates
+    s_expand = [1:7 9 10 13 17];
+    exp_M = length(s_expand);
+end
 
 
 %% Get K and S samples and use to prune state space
@@ -451,12 +460,16 @@ for t = linspace(N,1,N)
     
     % Loop over groundwater state: 1 is depleted, M1 is full
     index_s_gw_thisPeriod = index_s_gw_time{t}; 
-    parfor index_s1 = index_s_gw_thisPeriod
+    par for index_s1 = index_s_gw_thisPeriod
         s1 = s_gw(index_s1);
        
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
         for index_s2 = 1:exp_M
             s2 = s_expand(index_s2);
+            
+            if capacityDelay
+                subindex_s2 = linIndex2VecIndex(s2, {s_exp_on', s_exp_delay1', s_exp_delay2'});
+            end
 
             bestV = Inf;
             bestX1= 0;  % Groundwater action and expansion action
@@ -472,15 +485,30 @@ for t = linspace(N,1,N)
             end
 
             % Update available actions based on whether expansion available
-            switch s2
-                case s_expand(1)
+            if capacityDelay
+                if subindex_s2(1) == 4 || subindex_s2(2) == 4 || subindex_s2(3) == 2 ... % Max capacity in any of subcategories
+                        || (subindex_s2(1) + subindex_s2(2)) >= 5  % Max capacity in online + delay 1
+                    a_expand = [0]; % If max capacity online or waiting to come online, can't expand
+                elseif (subindex_s2(1) + subindex_s2(2)) == 4 ...   % 2 small units online or in delay 1
+                        || (subindex_s2(1) + subindex_s2(2)) == 3    % 1 small units online or in delay 1
+                    a_expand = [0 1];
+                elseif (subindex_s2(1) + subindex_s2(2) + subindex_s2(3)) == 3
                     a_expand = [0 1 2];
-                case s_expand(2)
-                    a_expand = [0 1];
-                case s_expand(3)
-                    a_expand = [0 1];
-                case s_expand(4)
-                    a_expand = [0];
+                else
+                    error('Some combination was not included!')
+                end
+                
+            else
+                switch s2
+                    case s_expand(1)
+                        a_expand = [0 1 2];
+                    case s_expand(2)
+                        a_expand = [0 1];
+                    case s_expand(3)
+                        a_expand = [0 1];
+                    case s_expand(4)
+                        a_expand = [0];
+                end
             end
 
             num_a_gw = length(a_gw);
@@ -518,12 +546,36 @@ for t = linspace(N,1,N)
                     % Get transmat vector for next expansion state
                     % (deterministic)                  
                     T_expand = zeros(1,exp_M);
-                    if a2 == 0
-                        T_expand(index_s2) = 1; % Stay in current state
-                    elseif a2 == 1
-                        T_expand(index_s2 + 1) = 1; % Move up one state
-                    elseif a2 == 2
-                        T_expand(index_s2 + 3) = 1; % Move up three states
+                    
+                    if capacityDelay
+                        T_exp_online_ind = subindex_s2(1);
+                        T_exp_delay1_ind = subindex_s2(2);
+                        T_exp_delay2_ind = subindex_s2(3);
+                        % Move delayed capacity to online
+                        if subindex_s2(3) == 2  % Move big plant from delay2 to delay 1
+                            T_exp_delay1_ind = 4;
+                            T_exp_delay2_ind = 1;
+                        elseif subindex_s2(2) > 1
+                            T_exp_online_ind = T_exp_online_ind + (subindex_s2(2) - 1);
+                            T_exp_delay1_ind = 1;
+                        end
+                        % Add new capacity to delay
+                        if a2 == 1
+                            T_exp_delay1_ind = 2;
+                        elseif a2 == 2
+                            T_exp_delay2_ind = 2;
+                        end
+                        temp_index = vectorIndex([T_exp_online_ind T_exp_delay1_ind T_exp_delay2_ind], {s_exp_on', s_exp_delay1', s_exp_delay2'});
+                        exp_index = find(s_expand == temp_index);
+                        T_expand(exp_index) = 1;
+                    else
+                        if a2 == 0
+                            T_expand(index_s2) = 1; % Stay in current state
+                        elseif a2 == 1
+                            T_expand(index_s2 + 1) = 1; % Move up one state
+                        elseif a2 == 2
+                            T_expand(index_s2 + 3) = 1; % Move up three states
+                        end
                     end
                     
                     % Calculate full transition matrix
