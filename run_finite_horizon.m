@@ -6,15 +6,6 @@ tic
 
 
 % Run paramters
-<<<<<<< HEAD
-plotsOn = false; % Plot results if true
-policyPlotsOn = false;
-parforOn = false; % Parallel processing on?
-simulateOn = false;
-simPlotsOn = false; % Plot results if true
-saveOn = false; % Save output if true
-plotInitialWaterBalance = true;
-=======
 runSDP = false;
 adjustOutput = true;
 saveOn = true; % Save output if true
@@ -49,8 +40,6 @@ if ~isempty(getenv('SLURM_JOB_ID'))
     plotSamples = false;
     jobid = getenv('SLURM_JOB_ID');
 end
-
->>>>>>> working
 
 % Time period
 N = 30;
