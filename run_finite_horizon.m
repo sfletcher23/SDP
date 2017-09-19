@@ -9,17 +9,17 @@ tic
 runSDP = false;
 adjustOutput = true;
 saveOn = true; % Save output if true
-policyPlotsOn = true;
-simulateOn = false;
+policyPlotsOn = false;
+simulateOn = true;
 simPlotsOn = true; % Plot results if true
 plotInitialWaterBalance = false;
 plotHeatMaps = false;
 plotSamples = false;
-calculateTgw = false;
+calculateTgw =false;
 simpleVersion = false;
 infoOverTime = false;
 flexOn = true;
-capacityDelay = false;
+capacityDelay = true;
 solveNoLearning = false;
 
 
@@ -430,7 +430,12 @@ water.demandPerCapita = 300*ones(1,N);
 
 end
 
-%% Initialize best value and best action matrices
+
+%% Backwards Recursion
+
+if runSDP
+
+% Initialize best value and best action matrices
 % Groundwater states x desal states x time
 V = NaN(gw_M, exp_M, N+1);
 X1 = NaN(gw_M, exp_M, N+1);
@@ -440,8 +445,6 @@ X2 = NaN(gw_M, exp_M, N+1);
 X1(:,:,N+1) = zeros(gw_M, exp_M, 1);
 X2(:,:,N+1) = zeros(gw_M, exp_M, 1);
 V(:,:,N+1) = zeros(gw_M, exp_M, 1);
-
-%% Backwards Recursion
 
 % Loop over all time periods
 for t = linspace(N,1,N)
@@ -620,6 +623,8 @@ end
 if saveOn
     save(strcat(datetime,'_', num2str(jobid)));
 end
+
+end
 %% Solve for optimal policies when all decisions made in 1st stage
 
 % Note: this implementation assumes always pump when you can. Valid for
@@ -719,10 +724,11 @@ if policyPlotsOn
     blues = colormap(cbrewer('seq', 'Blues', 6));
     oranges = colormap(cbrewer('seq', 'Oranges', 6));
     color = {blues(2,:), oranges(2,:), blues(4,:), oranges(4,:), blues(6,:), oranges(6,:), [0 0 0]};
-    fig = figure;
+%     fig = figure;
     times = [22 23 24 25 26 27 28 29 30];
      times = [10 11 12 13 14 15 16];
 %     times = [1 2 3 4 5 6 7];
+    times = [2 7 12 17 22 27];
     for t = 1:length(times)
         subplot(length(times),1,t)
         if t == 1
@@ -739,7 +745,12 @@ if policyPlotsOn
         for i = 1:gw_M
             for j = 1:exp_M
                 x = [s_gw(i)-(gw_step/2) s_gw(i)-(gw_step/2) s_gw(i)+(gw_step/2) s_gw(i)+(gw_step/2)];
-                y = [s_expand(j)-(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)-(exp_step/2)];
+                if capacityDelay
+                    s = 1:exp_M;
+                    y = [s(j)-(exp_step/2) s(j)+(exp_step/2) s(j)+(exp_step/2) s(j)-(exp_step/2)];
+                else
+                    y = [s_expand(j)-(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)+(exp_step/2) s_expand(j)-(exp_step/2)];
+                end
                 if X1(i,j,times(t)) == 0 && X2(i,j,times(t)) == 0
                     colorThisState = color{1};
                 elseif X1(i,j,times(t)) == 1 && X2(i,j,times(t)) == 0
@@ -764,14 +775,24 @@ if policyPlotsOn
         ax.FontSize = 6;
         ax.XTick = 0:5:s_gw(end);
         ax.XTickLabel = [];
-        ax.YTick = s_expand;
         ax.YTickLabel = [];
         xlim([s_gw(1)-gw_step/2 s_gw(end)+gw_step/2])
-        ylim([s_expand(1)-exp_step/2 s_expand(end)+exp_step/2])
-        if t == 6
+        if capacityDelay
+            ylim([0.5 10.5])
+            ax.YTick = 1:exp_M;
+        else
+            ylim([s_expand(1)-exp_step/2 s_expand(end)+exp_step/2])
+            ax.YTick = s_expand;
+        end
+        if t == length(times)
             ylabel('Added capacity state [MCM/y]')
             xlabel('Drawdown')
-            ax.YTickLabel = string(round(s_expand/1E6));
+            if capacityDelay
+                ax.YTickLabel = {'0, 0, 0', 'v, 0, 0', '2v, 0, 0', '3v, 0, 0', '0, v, 0', 'v, v, 0', '2v, v, 0', ...
+                    '0, 2v, 0', 'v, 2v, 0', '0, 3v, 0', '0, 0, 3v'};
+            else
+                ax.YTickLabel = string(round(s_expand/1E6));
+            end
             ax.XTickLabel = 0:5:s_gw(end);
         end
         title(strcat('Time step: ', num2str(times(t))))
@@ -801,7 +822,10 @@ end
 
 if simulateOn
 
-R = 10;
+poolobj = gcp;
+addAttachedFiles(poolobj,{'supplyAndCost.m'})
+    
+R = 5000;
 
 % Initialize vector tracking state, actions, water balance, costs over time 
 state_gw = zeros(R,N);
@@ -825,17 +849,22 @@ failureProbOverTime = zeros(R,N);
 
 % Initial state
 s_gw_initial = 0;
-s_expand_initial = 0;
+if capacityDelay 
+    s_expand_initial = 1;
+else
+    s_expand_initial = 0;
+end
 
 state_gw(1) = s_gw_initial;
 state_expand(1) = s_expand_initial;
 
-[K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, 1, N);
+% [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam.sampleSize, 1, N);
 
-parfor i = 1:R
+for i = 1:R
     
     state_gw_now = zeros(1,N);
     state_expand_now = zeros(1,N);
+    state_expand_now(1) = s_expand_initial;
     action_gw_now = zeros(1,N);
     action_expand_now = zeros(1,N);
     costOverTime_now = zeros(1,N);
@@ -877,12 +906,14 @@ parfor i = 1:R
 %            if t ==1 
 %                 action_expand_now(t) = 1;
 %            end
+
+
         % Calculate demand, shortage, and cost for current t
         demandOverTime_now(t) = demand( water, population(t), t, gwParam);
         [ costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t), margDesalCostOverTime_now(t), ...
             shortageOverTime_now(t), capacityOverTime_now(t),minjurSupplyOverTime_now(t), expSupplyOverTime_now(t), othergwSupplyOverTime_now ] ...
-            = supplyAndCost( action_gw_now(t),  action_expand_now(t), state_gw_now(t), state_expand_now(t), costParam, water, gwParam, t,  demandOverTime_now(t));
-        
+            = supplyAndCost( action_gw_now(t),  action_expand_now(t), state_gw_now(t), state_expand_now(t), costParam, water, gwParam, t,  demandOverTime_now(t), capacityDelay, exp_vectors);
+
         % Get transisition mat to next state give current state and actions
 
             % Get transmat vector to next GW state 
@@ -898,12 +929,37 @@ parfor i = 1:R
 
             % Get transmat vector for next expansion state (deterministic)
             T_current_expand = zeros(1,exp_M);
-            if action_expand_now(t) == 0
-                T_current_expand(index_state_expand) = 1; % Stay in current state
-            elseif action_expand_now(t) == 1
-                T_current_expand(index_state_expand + 1) = 1; % Move up one state
-            elseif action_expand_now(t) == 2
-                T_current_expand(index_state_expand + 3) = 1; % Move up three states
+                             
+            if capacityDelay
+                subindex_s2 = linIndex2VecIndex(state_expand_now(t), {s_exp_on', s_exp_delay1', s_exp_delay2'});
+                T_exp_online_ind = subindex_s2(1);
+                T_exp_delay1_ind = subindex_s2(2);
+                T_exp_delay2_ind = subindex_s2(3);
+                % Move delayed capacity to online
+                if subindex_s2(3) == 2  % Move big plant from delay2 to delay 1
+                    T_exp_delay1_ind = 4;
+                    T_exp_delay2_ind = 1;
+                elseif subindex_s2(2) > 1
+                    T_exp_online_ind = T_exp_online_ind + (subindex_s2(2) - 1);
+                    T_exp_delay1_ind = 1;
+                end
+                % Add new capacity to delay
+                if action_expand_now(t) == 1
+                    T_exp_delay1_ind = 2;
+                elseif action_expand_now(t) == 2
+                    T_exp_delay2_ind = 2;
+                end
+                temp_index = vectorIndex([T_exp_online_ind T_exp_delay1_ind T_exp_delay2_ind], {s_exp_on', s_exp_delay1', s_exp_delay2'});
+                exp_index = find(s_expand == temp_index);
+                T_current_expand(exp_index) = 1;
+            else
+                if action_expand_now(t) == 0
+                    T_current_expand(index_state_expand) = 1; % Stay in current state
+                elseif action_expand_now(t) == 1
+                    T_current_expand(index_state_expand + 1) = 1; % Move up one state
+                elseif action_expand_now(t) == 2
+                    T_current_expand(index_state_expand + 3) = 1; % Move up three states
+                end
             end
 
             % Get Transition Matrix from rows

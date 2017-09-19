@@ -52,6 +52,7 @@ function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, sh
         * (100/percent_eff) * cost_per_kwh;
 
     % Expansion costs
+    expansionCost = [];
     switch a2
         case 0
             expansionCost = 0;
