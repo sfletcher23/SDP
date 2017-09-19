@@ -2,16 +2,15 @@
 
 tic
 
-%% Plot parameters
-
+%% Parameters
 
 % Run paramters
 runParam = struct;
 runParam.runSDP = true;
 runParam.simulateOn = true;
-runParam.calculateTgw = true;
-runParam.saveOn = true; 
-runParam.simNum = 10000;
+runParam.calculateTgw =false;
+runParam.saveOn = false; 
+runParam.simNum = 10;
 runParam.simpleVersion = false;
 runParam.flexOn = true;
 runParam.capacityDelay = true;
@@ -21,10 +20,10 @@ runParam.N = 30;
 
 plotParam = struct;
 plotParam.plotsOn = true;
-plotParam.policyPlotsOn = false;
+plotParam.policyPlotsOn = true;
 plotParam.simPlotsOn = true; 
 plotParam.plotInitialWaterBalance = false; 
-plotParam.plotHeatMaps = false;
+plotParam.plotHeatMaps = true;
 plotParam.plotinfoOverTime = false;
 
 % Cost paramters
@@ -48,7 +47,7 @@ popParam.growthScenario = 'none';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 10000;
+gwParam.sampleSize = 1000;
 gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
@@ -97,6 +96,9 @@ if ~isempty(getenv('SLURM_JOB_ID'))
     jobid = getenv('SLURM_JOB_ID');
 end
 
+%% Sensitivity inputs
+
+
 %% Run SDP  
 
 % Run SDP model. Four subparts can run: calculating T_gw, running simple
@@ -105,7 +107,7 @@ end
 
 
     [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors ] = ...
-        sdp_gw( runParam, costParam, popParam, gwParam, water, datetime );
+        sdp_gw( runParam, costParam, popParam, gwParam, water );
 
     if runParam.saveOn
         save(strcat(datetime,'_', num2str(jobid)));
@@ -122,13 +124,9 @@ if runParam.simulateOn
 % poolobj = gcp;
 % addAttachedFiles(poolobj,{'supplyAndCost.m'})
 
-    useNoInfoPolicy = false;
+    useNoInfoPolicy = true;
+    
     [ sim ] = sim_sdp_gw( X1, X2, V, T_gw_all, cumTgw, useNoInfoPolicy, lowestCostAction, runParam, gwParam, costParam, water, s_gw, s_expand, exp_vectors );
-
-    if runParam.solveNoLearning
-        useNoInfoPolicy = true;
-        [ simnolearn ] = sim_sdp_gw( X1, X2, V, T_gw_all, cumTgw, useNoInfoPolicy, lowestCostAction, runParam, gwParam, costParam, water, s_gw, s_expand, exp_vectors );
-    end
     
     if runParam.saveOn
     save(strcat(datetime,'_', num2str(jobid)));
@@ -142,12 +140,6 @@ end
 if plotParam.plotsOn
 	plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
         lowestCostAction, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam);
-    
-    if runParam.solveNoLearning
-        plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-        lowestCostAction, simnolearn, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam);
-    end
-
 end
 
 
