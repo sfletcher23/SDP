@@ -1,4 +1,4 @@
-function [K_samples, S_samples] = gen_param_dist(infoScenario, gwParam, t, N)
+function [K_samples, S_samples] = gen_param_dist(infoScenario, sampleSize, t, N)
 % Generate N samples of the aquifer parameters in time period t given the
 % information scenario number 
 
@@ -74,6 +74,16 @@ switch infoScenario
         S_lower_end = S_lower * .9 + S_mean * .1;
         S_upper_end = S_upper * .9 + S_mean * .1;
         
+    case 'full_range'
+        K_start = K_mean;
+        K_end = K_mean;
+        K_sigma_start = K_sigma;
+        K_sigma_end = K_sigma;
+        S_start = S_mean;
+        S_end = S_mean;
+        S_lower_end = S_lower;
+        S_upper_end = S_upper;
+        
     otherwise
         error('invalid information scenario name')
 end
@@ -94,9 +104,9 @@ S_upper_t = S_upper + S_upper_step * t;
 
 % Draw samples from K (lognorm) and S (triangular) distributions
 K_mu_t = log(K_t) - (K_sigma_t ^ 2) / 2;
-K_samples = lognrnd(K_mu_t,K_sigma_t, [1 gwParam.sampleSize]); 
+K_samples = lognrnd(K_mu_t,K_sigma_t, [1 sampleSize]); 
 pd = makedist('Triangular','a',S_lower_t,'b',S_t,'c',S_upper_t);
-S_samples = random(pd, [1 gwParam.sampleSize]);
+S_samples = random(pd, [1 sampleSize]);
 
 
 end
