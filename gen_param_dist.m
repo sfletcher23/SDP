@@ -84,6 +84,30 @@ switch infoScenario
         S_lower_end = S_lower;
         S_upper_end = S_upper;
         
+    case '10%_cutoff'
+        K_start = K_mean;
+        K_end = K_mean;
+        K_sigma_start = K_sigma* .9;
+        K_sigma_end = K_sigma * .9;
+        S_start = S_mean;
+        S_end = S_mean;
+        S_lower = S_mean - (S_mean-S_lower) *.9;
+        S_upper = S_mean + (S_upper-S_mean)*.9;
+        S_lower_end = S_lower;
+        S_upper_end = S_upper;
+        
+    case '20%_cutoff'
+         K_start = K_mean;
+        K_end = K_mean;
+        K_sigma_start = K_sigma* .8;
+        K_sigma_end = K_sigma * .8;
+        S_start = S_mean;
+        S_end = S_mean;
+        S_lower = S_mean - (S_mean-S_lower) *.8;
+        S_upper = S_mean + (S_upper-S_mean)*.8;
+        S_lower_end = S_lower;
+        S_upper_end = S_upper;
+        
     otherwise
         error('invalid information scenario name')
 end

@@ -7,16 +7,17 @@ tic
 
 % Run paramters
 runParam = struct;
-runParam.runSDP = true;
+runParam.runSDP = false;
 runParam.simulateOn = true;
-runParam.calculateTgw = true;
+runParam.calculateTgw = false;
 runParam.saveOn = true; 
-runParam.simNum = 10000;
+runParam.simNum = 2000;
 runParam.simpleVersion = false;
 runParam.flexOn = true;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
 runParam.adjustOutput = true;
+runParam.runSDPfunction = false;
 runParam.N = 30;
 
 plotParam = struct;
@@ -103,15 +104,15 @@ end
 % version of SDP, running full version of SDP, choosing best option when
 % restricted to 1st period only. 
 
-
+if runParam.runSDPfunction
     [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors ] = ...
         sdp_gw( runParam, costParam, popParam, gwParam, water, datetime );
 
     if runParam.saveOn
         save(strcat(datetime,'_', num2str(jobid)));
     end
+end
     
-
 %% Run forward simulation 
 % SDP above finds optimal policy for each state and time period. Now, use
 % intial state, and transition matrix to simulate performance of the

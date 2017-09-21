@@ -1,5 +1,5 @@
 function [ ] = plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam)
+    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, )
 % Make plots from SDP and simulation results
 
 [~,~,N] = size(T_gw_all);
@@ -174,6 +174,29 @@ if plotParam.policyPlotsOn
         title(strcat('Time step: ', num2str(times(t))))
         ax.XTickLabelRotation = 90;
     end
+    
+    
+    
+    %% Plot first drawdown level when build (when nocapacity)
+    X2nocap = permute(X2(:,1,1:end-1),[1,3,2]);
+    indexZeros = ~flipud(X2nocap == 0);
+    indexFirstZero = 200 - sum(cumprod(double(indexZeros),1)) + 3;
+    indexNan = sum(cumprod(~isnan(X2nocap)));
+    indexReplaceNan = indexFirstZero >= indexNan;
+    indexFirstZero(indexReplaceNan) = 1;
+    figure;
+    scatter(1:N, 200-s_gw(indexFirstZero));
+    xlabel('Year')
+    ylim([0 205])
+    ylabel('Minimum drawdown for expansion [m]')
+    title('Optimal expansion policy: Drawdown Threshold for Exapsnion over Time')
+    hold on
+    line([0 30], [200 200], 'Color', 'k')
+    line([0 30], [gwParam.depthLimit gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
+    
+    
+    
+    
 end
 
 
@@ -227,7 +250,7 @@ if R == 1
 
     subplot(1,3,2)
     plot(1:N,sim.costOverTime/1E6);
-    h = gca;
+    yLarge = gca;
     % ylim([0 700])
     hold on
     bar(1:N, [sim.shortageCostOverTime./1E6; sim.expansionCostOverTime./1E6; sim.pumpingCostOverTime./1E6; sim.margDesalCostOverTime./1E6]', 'stacked');
@@ -267,17 +290,36 @@ else
     title('Simulated Drawdown')
     
     % Plot expansion time distribution
-    [r,c] = find(sim.expansionCostOverTime);
+    [~,~, largeCost,~,~,~,~,~,~,~] = supplyAndCost( 0, 2, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
+    [~,~, smallCost,~,~,~,~,~,~,~] = supplyAndCost( 0, 1, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
+    indexLarge = sim.expansionCostOverTime == largeCost;
+    indexSmall = sim.expansionCostOverTime == smallCost;
+    expLargeOverTime = zeros(size(sim.expansionCostOverTime));
+    expSmallOverTime = zeros(size(sim.expansionCostOverTime));
+    expLargeOverTime(indexLarge) = 1;
+    expSmallOverTime(indexSmall) = 1;
+    [rLarge,cLarge] = find(expLargeOverTime);
+    [rSmall,cSmall] = find(expSmallOverTime);
     % for every row, take the minimum column index and put NaN if none is found
-    expTime = accumarray(r,c,[size(sim.expansionCostOverTime,1),1],@min,32);
+    expTimeLarge = accumarray(rLarge,cLarge,[size(expLargeOverTime,1),1],@min,32);
+    expTimeSmall = accumarray(rSmall,cSmall,[size(expSmallOverTime,1),1],@min,32);
+    countNever = sum((expTimeLarge == 32 & expTimeSmall == 32));
     figure
-    h = histogram(expTime,[0:32]);
+    yLarge = histc(expTimeLarge,[0:32]);
+    ySmall = histc(expTimeSmall,[0:32]);
+    bar(0:31, [yLarge(1:end-1) ySmall(1:end-1)], 'stacked')
+    hold on 
+    bar(31, countNever, 'k')
     ax = gca;
-    ax.XTick = [0.5:1:31.5];
+    ax.XTick = [0:31];
     ax.XTickLabel = num2cell(0:31,1);
     ax.XTickLabel{end} = 'Never';
+    xlim([0 32])
     xlabel('Expansion Year')
     ylabel('Frequency')
+    if runParam.flexOn
+        legend('Large plant', 'Small plant', 'Never')
+    end
     title(strcat('Histogram of expansion time in ', num2str(R), ' simulations'))
     
     % Plot total shortage vs total cost
@@ -338,6 +380,7 @@ if plotParam.plotinfoOverTime
     end
 
 end
+
 
 
 
