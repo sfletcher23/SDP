@@ -1,5 +1,5 @@
 function [ ] = plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, )
+    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water )
 % Make plots from SDP and simulation results
 
 [~,~,N] = size(T_gw_all);
@@ -188,11 +188,11 @@ if plotParam.policyPlotsOn
     scatter(1:N, 200-s_gw(indexFirstZero));
     xlabel('Year')
     ylim([0 205])
-    ylabel('Minimum drawdown for expansion [m]')
+    ylabel('Head [m]')
     title('Optimal expansion policy: Drawdown Threshold for Exapsnion over Time')
     hold on
     line([0 30], [200 200], 'Color', 'k')
-    line([0 30], [gwParam.depthLimit gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
+    line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
     
     
     
@@ -281,13 +281,16 @@ if R == 1
 else
     % Plot hydrographs
     figure;
-    indexLimit = find(sim.state_gw == -1 | sim.state_gw >= 100);
+    indexLimit = find(sim.state_gw == -1 | sim.state_gw >= gwParam.depthLimit);
     hydrograph = 200 - sim.state_gw;
     hydrograph(indexLimit) = gwParam.depthLimit;
     plot(1:N, hydrograph)
+    hold on 
+    line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit ], 'Color', 'k', 'LineStyle', '--')
     xlabel('Time [years]')
-    ylabel('Drawdown [m]')
+    ylabel('Head [m]')
     title('Simulated Drawdown')
+    ylim([0 200])
     
     % Plot expansion time distribution
     [~,~, largeCost,~,~,~,~,~,~,~] = supplyAndCost( 0, 2, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
@@ -339,45 +342,53 @@ end
 %% Show updated predictions over time
 if plotParam.plotinfoOverTime
     
-    figure;
-    for k = 1:R
-        numSamplesOverTime = sum(sampleIndexOverTime(:,:,k),1);
-        hydrographs = cell(1,30);
-        plotTimes = [1, 5, 10, 15, 20, 25];
-        count = 1;
-        for time = 1:30
-            numSamples = numSamplesOverTime(time);
-            indexSamples = find(sampleIndexOverTime(:,time,k));
-            hydrographs{time} = zeros(numSamples,30);
-            for i = 1:numSamples
-                x = [repmat(K_samples(indexSamples(i)),[1,N]); repmat(S_samples(indexSamples(i)),[1,N]); [1:365:365*(N)]];
-                tempHead = netscript(x, runParam.adjustOutput);
-                hydrographs{time}(i,:) = tempHead(gwParam.wellIndex,:);
-            end
-            if ismember(time, plotTimes) && false
-            subplot(2,3,count)
-            y = [ones(numSamples,1)*200 hydrographs{time}];
-            plot(0:30,y)
-            count = count + 1;
-            ylim([0 200])
-            title(strcat('Time ', num2str(time)))
-            end  
-        end
-        hold on
-        if R >1
-            subplot(R/2,2,k)
-        end
-        grp = [];
-        y = [];
-        for t=1:30
-            y = [y hydrographs{t}(:,end)'];
-            grp = [grp ones(1,numSamplesOverTime(t))*t]; 
-        end
-        boxplot(y,grp)
-        hold on
-        plot(xlim,[gwParam.depthLimit gwParam.depthLimit], 'k')
-        ylim([0 200])
+    if R > 20
+        indexSample = randsample(R,20);
+    else
+        indexSample = 1:R;
     end
+    figure;
+    plot(1:N, sim.failureProbOverTime(indexSample,:))
+
+%     figure;
+%     for k = 1:R
+%         numSamplesOverTime = sum(sim.sampleIndexOverTime(:,:,k),1);
+%         hydrographs = cell(1,30);
+%         plotTimes = [1, 5, 10, 15, 20, 25];
+%         count = 1;
+%         for time = 1:30
+%             numSamples = numSamplesOverTime(time);
+%             indexSamples = find(sim.sampleIndexOverTime(:,time,k));
+%             hydrographs{time} = zeros(numSamples,30);
+%             for i = 1:numSamples
+%                 x = [repmat(K_samples(indexSamples(i)),[1,N]); repmat(S_samples(indexSamples(i)),[1,N]); [1:365:365*(N)]];
+%                 tempHead = netscript(x, runParam.adjustOutput);
+%                 hydrographs{time}(i,:) = tempHead(gwParam.wellIndex,:);
+%             end
+%             if ismember(time, plotTimes) && false
+%             subplot(2,3,count)
+%             y = [ones(numSamples,1)*200 hydrographs{time}];
+%             plot(0:30,y)
+%             count = count + 1;
+%             ylim([0 200])
+%             title(strcat('Time ', num2str(time)))
+%             end  
+%         end
+%         hold on
+%         if R >1
+%             subplot(R/2,2,k)
+%         end
+%         grp = [];
+%         y = [];
+%         for t=1:30
+%             y = [y hydrographs{t}(:,end)'];
+%             grp = [grp ones(1,numSamplesOverTime(t))*t]; 
+%         end
+%         boxplot(y,grp)
+%         hold on
+%         plot(xlim,[gwParam.depthLimit gwParam.depthLimit], 'k')
+%         ylim([0 200])
+%     end
 
 end
 

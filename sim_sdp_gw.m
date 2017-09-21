@@ -1,4 +1,4 @@
-function [ sim ] = sim_sdp_gw( X1, X2, V, T_gw_all, cumTgw, useNoInfoPolicy, lowestCostActionIndex, runParam, gwParam, costParam, water, s_gw, s_expand, exp_vectors )
+function [ sim ] = sim_sdp_gw( X1, X2, V, T_gw_all, cumTgw, useNoInfoPolicy, lowestCostAction, runParam, gwParam, costParam, water, s_gw, s_expand, exp_vectors )
 % Use SDP policy or single time period decision to 
 
 
@@ -74,7 +74,7 @@ for i = 1:R
         % Lookup optimal policy for current state
         if useNoInfoPolicy
             if t == 1
-                action_expand_now(t) = lowestCostActionIndex;
+                action_expand_now(t) = lowestCostAction;
             else 
                 action_expand_now(t) = 0;
             end
@@ -190,7 +190,7 @@ for i = 1:R
     sim.expSupplyOverTime(i,:) = expSupplyOverTime_now;
     sim.margDesalCostOverTime(i,:) = margDesalCostOverTime_now;
     sim.T_gw_time(:,:,i) = T_gw_time_now;
-    sim.ampleIndexOverTime(:,:,i) = sampleIndexOverTime_now;
+    sim.sampleIndexOverTime(:,:,i) = sampleIndexOverTime_now;
     sim.failureProbOverTime(i,:) = failureProbOverTime_now;
 end
 

@@ -411,7 +411,7 @@ end
 % normal pumping costs but not exaggerated pumping costs.
 
 lowestCost = [];
-lowestCostActionIndex = [];
+lowestCostAction = [];
 
 if runParam.solveNoLearning
     
