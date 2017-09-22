@@ -7,17 +7,17 @@ tic
 
 % Run paramters
 runParam = struct;
-runParam.runSDP = true;
+runParam.runSDP = false;
 runParam.simulateOn = true;
 runParam.calculateTgw = true;
-runParam.saveOn = true; 
+runParam.saveOn = false; 
 runParam.simNum = 2000;
 runParam.simpleVersion = false;
 runParam.flexOn = false;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
 runParam.adjustOutput = true;
-runParam.runSDPfunction = true;
+runParam.runSDPfunction = false;
 runParam.N = 30;
 
 plotParam = struct;

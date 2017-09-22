@@ -283,7 +283,7 @@ else
     figure;
     indexLimit = find(sim.state_gw == -1 | sim.state_gw >= gwParam.depthLimit);
     hydrograph = 200 - sim.state_gw;
-    hydrograph(indexLimit) = gwParam.depthLimit;
+    hydrograph(indexLimit) = 200 - gwParam.depthLimit;
     plot(1:N, hydrograph)
     hold on 
     line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit ], 'Color', 'k', 'LineStyle', '--')
