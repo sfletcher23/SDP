@@ -2,30 +2,28 @@
 
 tic
 
-%% Plot parameters
-
+%% Parameters
 
 % Run paramters
 runParam = struct;
-runParam.runSDP = false;
+runParam.runSDP = true;
 runParam.simulateOn = true;
-runParam.calculateTgw = true;
+runParam.calculateTgw =false;
 runParam.saveOn = false; 
-runParam.simNum = 2000;
+runParam.simNum = 10;
 runParam.simpleVersion = false;
-runParam.flexOn = false;
+runParam.flexOn = true;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
 runParam.adjustOutput = true;
-runParam.runSDPfunction = false;
 runParam.N = 30;
 
 plotParam = struct;
 plotParam.plotsOn = true;
-plotParam.policyPlotsOn = false;
+plotParam.policyPlotsOn = true;
 plotParam.simPlotsOn = true; 
 plotParam.plotInitialWaterBalance = false; 
-plotParam.plotHeatMaps = false;
+plotParam.plotHeatMaps = true;
 plotParam.plotinfoOverTime = false;
 
 % Cost paramters
@@ -49,8 +47,8 @@ popParam.growthScenario = 'none';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 10000;
-gwParam.depthLimit = 150;
+gwParam.sampleSize = 1000;
+gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
@@ -98,21 +96,24 @@ if ~isempty(getenv('SLURM_JOB_ID'))
     jobid = getenv('SLURM_JOB_ID');
 end
 
+%% Sensitivity inputs
+
+
 %% Run SDP  
 
 % Run SDP model. Four subparts can run: calculating T_gw, running simple
 % version of SDP, running full version of SDP, choosing best option when
 % restricted to 1st period only. 
 
-if runParam.runSDPfunction
+
     [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors ] = ...
-        sdp_gw( runParam, costParam, popParam, gwParam, water, datetime );
+        sdp_gw( runParam, costParam, popParam, gwParam, water );
 
     if runParam.saveOn
         save(strcat(datetime,'_', num2str(jobid)));
     end
-end
     
+
 %% Run forward simulation 
 % SDP above finds optimal policy for each state and time period. Now, use
 % intial state, and transition matrix to simulate performance of the
@@ -123,13 +124,9 @@ if runParam.simulateOn
 % poolobj = gcp;
 % addAttachedFiles(poolobj,{'supplyAndCost.m'})
 
-    useNoInfoPolicy = false;
+    useNoInfoPolicy = true;
+    
     [ sim ] = sim_sdp_gw( X1, X2, V, T_gw_all, cumTgw, useNoInfoPolicy, lowestCostAction, runParam, gwParam, costParam, water, s_gw, s_expand, exp_vectors );
-
-    if runParam.solveNoLearning
-        useNoInfoPolicy = true;
-        [ simnolearn ] = sim_sdp_gw( X1, X2, V, T_gw_all, cumTgw, useNoInfoPolicy, lowestCostAction, runParam, gwParam, costParam, water, s_gw, s_expand, exp_vectors );
-    end
     
     if runParam.saveOn
     save(strcat(datetime,'_', num2str(jobid)));
@@ -142,29 +139,7 @@ end
 
 if plotParam.plotsOn
 	plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-        lowestCostAction, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water);
-    
-    if runParam.solveNoLearning
-        plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-        lowestCostAction, simnolearn, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water);
-    
-    % Combined plot
-    figure;
-    totalCost = sum(sim.costOverTime,2);
-    totalShortage = sum(sim.shortageOverTime,2);
-    scatter(totalShortage/1E6,totalCost/1E9, 50)
-    totalCost = sum(simnolearn.costOverTime,2);
-    totalShortage = sum(simnolearn.shortageOverTime,2);
-    hold on
-    scatter(totalShortage/1E6,totalCost/1E9)
-    title('Total Shortage vs. Total Cost')
-    legend({strcat('Learning over time policy: Average Cost ', num2str(sim.averageTotalCost, '%.3E')), ...
-        strcat('Fixed policy: Average Cost ', num2str(simnolearn.averageTotalCost, '%.3E'))},'FontSize', 12)
-    ylim([0 5])
-    xlabel('Total Shortage over 30 years [MCM]')
-    ylabel('Total Costs (including shortages) over 30 years [Billion USD]')
-    end
-
+        lowestCostAction, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam);
 end
 
 
