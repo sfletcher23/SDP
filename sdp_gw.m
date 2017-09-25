@@ -3,11 +3,6 @@ function [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, low
 % Run SDP for groundwater model. 
 
 
-%% Slurm setup
-% If running on cluster, get number of workers 
-if ~isempty(getenv('SLURM_CPUS_PER_TASK'))
-    parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
-end
 V = [];
 X1 = [];
 X2 = [];

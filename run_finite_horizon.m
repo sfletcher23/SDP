@@ -105,6 +105,12 @@ end
 % restricted to 1st period only. 
 
 if runParam.runSDPfunction
+
+    % If running on cluster, get number of workers 
+    if ~isempty(getenv('SLURM_CPUS_PER_TASK'))
+        parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
+    end
+    
     [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors, K_samples, S_samples ] = ...
         sdp_gw( runParam, costParam, popParam, gwParam, water, datetime );
 

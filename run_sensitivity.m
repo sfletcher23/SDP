@@ -115,6 +115,11 @@ sens = struct;
 % version of SDP, running full version of SDP, choosing best option when
 % restricted to 1st period only. 
 
+% If running on cluster, get number of workers 
+if ~isempty(getenv('SLURM_CPUS_PER_TASK'))
+    parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
+end
+
 for i = 1:length(sensInput)
     
     % Initialize output
