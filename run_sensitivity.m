@@ -7,9 +7,9 @@ tic
 % Run paramters
 runParam = struct;
 runParam.runSDP = true;
-runParam.simulateOn = true;
+runParam.simulateOn = false;
 runParam.calculateTgw =false;
-runParam.saveOn = false; 
+runParam.saveOn = true; 
 runParam.simNum = 10;
 runParam.simpleVersion = false;
 runParam.flexOn = true;
@@ -19,7 +19,7 @@ runParam.adjustOutput = true;
 runParam.N = 30;
 
 plotParam = struct;
-plotParam.plotsOn = true;
+plotParam.plotsOn = false;
 plotParam.policyPlotsOn = true;
 plotParam.simPlotsOn = true; 
 plotParam.plotInitialWaterBalance = false; 
@@ -98,6 +98,16 @@ end
 
 %% Sensitivity inputs
 
+sensInput = cell(5,1);
+sensInput{1} = deal({'gwParam', 'depthLimit', { 100 0, 150}});
+sensInput{2} = deal({'gwParam', 'wellIndex', { 108, 93, 68}});
+sensInput{3} = deal({'costParam', 'shortage_cost', { 1, 0.5, 5, 10}});
+sensInput{4} = deal({'costParam', 'discount_rate', { 0, 0.3, 0.5, 0.7}});
+sensInput{5} = deal({'gwParam', 'infoScenario', {'full_range', '10%_cutoff', '20%_cutoff'}});
+
+% Initialize output
+sens = struct;
+
 
 %% Run SDP  
 
@@ -105,15 +115,35 @@ end
 % version of SDP, running full version of SDP, choosing best option when
 % restricted to 1st period only. 
 
-
-    [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors ] = ...
-        sdp_gw( runParam, costParam, popParam, gwParam, water );
-
-    if runParam.saveOn
-        save(strcat(datetime,'_', num2str(jobid)));
-    end
+for i = 1:length(sensInput)
     
+    % Initialize output
+    sens.(sensInput{i}{2}) = cell(length(sensInput{i}{3}),1);
+    
+    for j = 1:length(sensInput{i}{3})
+        
+        % Change input parameter for sensitivity
+        evalin('base', strcat(sensInput{i}{1},'.',sensInput{i}{2}, '=',num2str(sensInput{i}{3}{j})));
 
+        [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors ] = ...
+            sdp_gw( runParam, costParam, popParam, gwParam, water );
+        
+        sens.(sensInput{i}{2}){j} = cell(5,1);
+        sens.(sensInput{i}{2}){j}{1} = V;
+        sens.(sensInput{i}{2}){j}{2} = X1;
+        sens.(sensInput{i}{2}){j}{3} = X2;
+        sens.(sensInput{i}{2}){j}{4} = T_gw_all;
+        sens.(sensInput{i}{2}){j}{5} = lowestCostAction;
+        
+        if runParam.saveOn
+            save(strcat('sens', datetime,'_', num2str(jobid)));
+        end
+        
+        % Change parameter back to base case for next round
+        evalin('base', strcat(sensInput{i}{1},'.',sensInput{i}{2}, '=',num2str(sensInput{i}{3}{1})));
+    
+    end
+end
 %% Run forward simulation 
 % SDP above finds optimal policy for each state and time period. Now, use
 % intial state, and transition matrix to simulate performance of the

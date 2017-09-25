@@ -292,6 +292,20 @@ else
     title('Simulated Drawdown')
     ylim([0 200])
     
+    % Plot hydrograph confidence interval
+    p5 = prctile(hydrograph,5);
+    p95 = prctile(hydrograph,95);
+    x=1:N;
+    X=[x,fliplr(x)];                %#create continuous x value array for plotting
+    Y=[p5,fliplr(p95)];              %#create y values for out and then back
+    figure
+    fill(X,Y,'b', 'FaceAlpha', .1);  
+    
+    % Show confidence interval evolve over time
+    sample = randsample(R,1);
+    
+
+    
     % Plot expansion time distribution
     [~,~, largeCost,~,~,~,~,~,~,~] = supplyAndCost( 0, 2, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
     [~,~, smallCost,~,~,~,~,~,~,~] = supplyAndCost( 0, 1, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
@@ -342,8 +356,8 @@ end
 %% Show updated predictions over time
 if plotParam.plotinfoOverTime
     
-    if R > 20
-        indexSample = randsample(R,20);
+    if R > 10
+        indexSample = randsample(R,10);
     else
         indexSample = 1:R;
     end

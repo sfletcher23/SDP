@@ -58,7 +58,7 @@ for i = 1:length(K_samples)
     head_t_next(i) = tempHead(wellIndex,end);
 end
 
-margin = 7; 
+margin = 10; 
 indexRelevantSamples = abs(head_t_current - (200 -s1)) < margin;
 numRelevantSamples = sum(indexRelevantSamples);
 
