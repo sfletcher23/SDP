@@ -1,4 +1,4 @@
-function [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors ] = ...
+function [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors, K_samples, S_samples ] = ...
     sdp_gw( runParam, costParam, popParam, gwParam, water, datetime )
 % Run SDP for groundwater model. 
 
@@ -111,7 +111,7 @@ if runParam.calculateTgw
         end
     end    
     
-    save(strcat('T_gw_',datetime), 'T_gw_all', 'K_samples', 'S_samples', 'index_s_gw_time', 'numRelevantSamples', 'stateInfeasible')
+%     save(strcat('T_gw_',datetime), 'T_gw_all', 'K_samples', 'S_samples', 'index_s_gw_time', 'numRelevantSamples', 'stateInfeasible')
     
 else
     load(gwParam.TgwLoadName)

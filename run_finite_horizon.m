@@ -105,7 +105,7 @@ end
 % restricted to 1st period only. 
 
 if runParam.runSDPfunction
-    [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors ] = ...
+    [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors, K_samples, S_samples ] = ...
         sdp_gw( runParam, costParam, popParam, gwParam, water, datetime );
 
     if runParam.saveOn

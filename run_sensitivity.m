@@ -8,7 +8,7 @@ tic
 runParam = struct;
 runParam.runSDP = true;
 runParam.simulateOn = false;
-runParam.calculateTgw =false;
+runParam.calculateTgw =true;
 runParam.saveOn = true; 
 runParam.simNum = 10;
 runParam.simpleVersion = false;
@@ -47,7 +47,7 @@ popParam.growthScenario = 'none';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 1000;
+gwParam.sampleSize = 10000;
 gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
@@ -125,7 +125,7 @@ for i = 1:length(sensInput)
         % Change input parameter for sensitivity
         evalin('base', strcat(sensInput{i}{1},'.',sensInput{i}{2}, '=',num2str(sensInput{i}{3}{j})));
 
-        [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors ] = ...
+        [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors, K_samples, S_samples ] = ...
             sdp_gw( runParam, costParam, popParam, gwParam, water );
         
         sens.(sensInput{i}{2}){j} = cell(6,1);
