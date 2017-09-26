@@ -7,9 +7,9 @@ tic
 
 % Run paramters
 runParam = struct;
-runParam.runSDP = false;
+runParam.runSDP = true;
 runParam.simulateOn = true;
-runParam.calculateTgw = true;
+runParam.calculateTgw = false;
 runParam.saveOn = false; 
 runParam.simNum = 2000;
 runParam.simpleVersion = false;
@@ -17,7 +17,7 @@ runParam.flexOn = false;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
 runParam.adjustOutput = true;
-runParam.runSDPfunction = false;
+runParam.runSDPfunction = true;
 runParam.N = 30;
 
 plotParam = struct;
@@ -26,7 +26,7 @@ plotParam.policyPlotsOn = false;
 plotParam.simPlotsOn = true; 
 plotParam.plotInitialWaterBalance = false; 
 plotParam.plotHeatMaps = false;
-plotParam.plotinfoOverTime = false;
+plotParam.plotinfoOverTime = true;
 
 % Cost paramters
 costParam = struct;
@@ -49,7 +49,7 @@ popParam.growthScenario = 'none';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 10000;
+gwParam.sampleSize = 1000;
 gwParam.depthLimit = 150;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
@@ -111,12 +111,14 @@ if runParam.runSDPfunction
         parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
     end
     
-    [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors, K_samples, S_samples ] = ...
+    [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, ...
+        s_gw, s_expand, exp_vectors, K_samples, S_samples, indexRelevantSamples ] = ...
         sdp_gw( runParam, costParam, popParam, gwParam, water, datetime );
 
     if runParam.saveOn
         save(strcat(datetime,'_', num2str(jobid)));
     end
+    
 end
     
 %% Run forward simulation 
@@ -134,7 +136,7 @@ if runParam.simulateOn
 
     if runParam.solveNoLearning
         useNoInfoPolicy = true;
-        [ simnolearn ] = sim_sdp_gw( X1, X2, V, T_gw_all, cumTgw, useNoInfoPolicy, lowestCostAction, runParam, gwParam, costParam, water, s_gw, s_expand, exp_vectors );
+        [ simnolearn ] = sim_sdp_gw( X1, X2, V, T_gw_all, cumTgw, useNoInfoPolicy, lowestCostAction, runParam, gwParam, costParam, water, s_gw, s_expand, exp_vectors);
     end
     
     if runParam.saveOn
@@ -148,11 +150,11 @@ end
 
 if plotParam.plotsOn
 	plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-        lowestCostAction, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water);
+        lowestCostAction, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, indexRelevantSamples);
     
     if runParam.solveNoLearning
         plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-        lowestCostAction, simnolearn, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water);
+        lowestCostAction, simnolearn, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, indexRelevantSamples);
     
     % Combined plot
     figure;

@@ -1,4 +1,5 @@
-function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples, drawdown] = gw_transrow_nn(gwParam, t, K_samples, S_samples, s1, s_gw, adjustOutput ) 
+function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples, drawdown] = ...
+    gw_transrow_nn(gwParam, t, K_samples, S_samples, s1, s_gw, adjustOutput ) 
 
 % Calculates drawdown between time t-1 and time t predicted by the neural
 % net indicated for each of the T and S samples indicated. 

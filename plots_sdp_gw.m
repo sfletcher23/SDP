@@ -1,5 +1,5 @@
 function [ ] = plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water )
+    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, indexRelevantSamples )
 % Make plots from SDP and simulation results
 
 [~,~,N] = size(T_gw_all);
@@ -175,29 +175,27 @@ if plotParam.policyPlotsOn
         ax.XTickLabelRotation = 90;
     end
     
-    
-    
-    %% Plot first drawdown level when build (when nocapacity)
-    X2nocap = permute(X2(:,1,1:end-1),[1,3,2]);
-    indexZeros = ~flipud(X2nocap == 0);
-    indexFirstZero = 200 - sum(cumprod(double(indexZeros),1)) + 3;
-    indexNan = sum(cumprod(~isnan(X2nocap)));
-    indexReplaceNan = indexFirstZero >= indexNan;
-    indexFirstZero(indexReplaceNan) = 1;
-    figure;
-    scatter(1:N, 200-s_gw(indexFirstZero));
-    xlabel('Year')
-    ylim([0 205])
-    ylabel('Head [m]')
-    title('Optimal expansion policy: Drawdown Threshold for Exapsnion over Time')
-    hold on
-    line([0 30], [200 200], 'Color', 'k')
-    line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
-    
-    
-    
-    
 end
+    
+%% Plot first drawdown level when build (when nocapacity)
+X2nocap = permute(X2(:,1,1:end-1),[1,3,2]);
+indexZeros = ~flipud(X2nocap == 0);
+indexFirstZero = 200 - sum(cumprod(double(indexZeros),1)) + 3;
+indexNan = sum(cumprod(~isnan(X2nocap)));
+indexReplaceNan = indexFirstZero >= indexNan;
+indexFirstZero(indexReplaceNan) = 1;
+figure;
+scatter(1:N, 200-s_gw(indexFirstZero));
+xlabel('Year')
+ylim([0 205])
+ylabel('Head [m]')
+title('Optimal expansion policy: Drawdown Threshold for Exapsnion over Time')
+hold on
+line([0 30], [200 200], 'Color', 'k')
+line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
+    
+    
+    
 
 
 
@@ -292,19 +290,27 @@ else
     title('Simulated Drawdown')
     ylim([0 200])
     
-    % Plot hydrograph confidence interval
-    p5 = prctile(hydrograph,5);
-    p95 = prctile(hydrograph,95);
-    x=1:N;
-    X=[x,fliplr(x)];                %#create continuous x value array for plotting
-    Y=[p5,fliplr(p95)];              %#create y values for out and then back
-    figure
-    fill(X,Y,'b', 'FaceAlpha', .1);  
+%     % Plot hydrograph confidence interval
+%     p5 = prctile(hydrograph,5);
+%     p95 = prctile(hydrograph,95);
+%     med = prctile(hydrograph,50);
+%     maxh = max(hydrograph);
+%     minh = min(hydrograph);
+%     x=1:N;
+%     X=[x,fliplr(x)];                %#create continuous x value array for plotting
+%     Y=[p5,fliplr(p95)];              %#create y values for out and then back
+% %     fill(X,Y,'b', 'FaceAlpha', .1);figure
+%     figure
+%     hold on
+%     plot(1:N, med, 'k');
+%     Y=[minh,fliplr(maxh)];
+%     fill(X,Y,'b', 'FaceAlpha', .1);
     
     % Show confidence interval evolve over time
     sample = randsample(R,1);
+    head = sim.state_gw(sample,:);
     
-
+    
     
     % Plot expansion time distribution
     [~,~, largeCost,~,~,~,~,~,~,~] = supplyAndCost( 0, 2, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
@@ -353,16 +359,65 @@ end
 
 end
 
+
+
+
 %% Show updated predictions over time
 if plotParam.plotinfoOverTime
     
-    if R > 10
-        indexSample = randsample(R,10);
-    else
-        indexSample = 1:R;
-    end
+    
+    numSamples = 6;
+
+    sample = randsample(R,numSamples);
+    netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
+    netscript = str2func(netname); 
+
     figure;
-    plot(1:N, sim.failureProbOverTime(indexSample,:))
+    for k = 1:numSamples
+        headSim = sim.state_gw(sample(k),:);
+
+        minh = zeros(N);
+        maxh = zeros(N);
+        maxTime = N;
+        for t = 1:N
+            indexState = find(headSim(t) == s_gw);
+            if indexState == 1
+                maxTime = t-1;
+                break;
+            end
+            K_samples_thisPeriod = K_samples(indexRelevantSamples{indexState,t});
+            S_samples_thisPeriod = S_samples(indexRelevantSamples{indexState,t});
+            headSamples = zeros(length(K_samples_thisPeriod),N);
+            for i = 1:length(K_samples_thisPeriod)
+                x = [repmat(K_samples_thisPeriod(i),[1,N]); repmat(S_samples_thisPeriod(i),[1,N]); [365:365:365*(N)]];
+                tempHead = netscript(x, runParam.adjustOutput);
+                headSamples(i,:) = tempHead(gwParam.wellIndex,:);
+            end
+           minh(t,:) = min(headSamples);
+           maxh(t,:) = max(headSamples);
+        end
+
+        subplot(2,3,k)
+        for t = 1:maxTime
+            x = t:N;
+            X=[x,fliplr(x)];
+            scatter(t,200-headSim(t),'*', 'k')
+            Y=[minh(t,t:end),fliplr(maxh(t,t:end))];
+            hold on
+            fill(X,Y,'b', 'FaceAlpha', .1); 
+        end
+        line([0 N], [200 - gwParam.depthLimit, 200 - gwParam.depthLimit], 'Color', 'r', 'LineStyle', '--')   
+    end
+
+    
+%     
+%     if R > 10
+%         indexSample = randsample(R,10);
+%     else
+%         indexSample = 1:R;
+%     end
+%     figure;
+%     plot(1:N, sim.failureProbOverTime(indexSample,:))
 
 %     figure;
 %     for k = 1:R
