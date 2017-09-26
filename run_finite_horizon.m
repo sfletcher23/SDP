@@ -9,7 +9,7 @@ tic
 runParam = struct;
 runParam.runSDP = true;
 runParam.simulateOn = true;
-runParam.calculateTgw = false;
+runParam.calculateTgw = true;
 runParam.saveOn = false; 
 runParam.simNum = 2000;
 runParam.simpleVersion = false;
@@ -49,8 +49,8 @@ popParam.growthScenario = 'none';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 1000;
-gwParam.depthLimit = 150;
+gwParam.sampleSize = 100;
+gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
@@ -60,6 +60,8 @@ gwParam.enforceLimit = false;
 gwParam.pumpingSubsidy = true;
 gwParam.infoScenario = 'full_range';
 gwParam.TgwLoadName = 'T_gw';
+gwParam.likelihoodfct = 'normal';
+gwParam.llhstddev = 5;
 
 % Water infrastructure paramters
 water = struct;
@@ -112,7 +114,7 @@ if runParam.runSDPfunction
     end
     
     [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, ...
-        s_gw, s_expand, exp_vectors, K_samples, S_samples, indexRelevantSamples ] = ...
+        s_gw, s_expand, exp_vectors, K_samples, S_samples, sampleProb ] = ...
         sdp_gw( runParam, costParam, popParam, gwParam, water, datetime );
 
     if runParam.saveOn
@@ -150,11 +152,11 @@ end
 
 if plotParam.plotsOn
 	plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-        lowestCostAction, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, indexRelevantSamples);
+        lowestCostAction, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, sampleProb, K_samples, S_samples);
     
     if runParam.solveNoLearning
         plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-        lowestCostAction, simnolearn, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, indexRelevantSamples);
+        lowestCostAction, simnolearn, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, sampleProb, K_samples, S_samples);
     
     % Combined plot
     figure;

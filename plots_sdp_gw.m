@@ -1,5 +1,5 @@
 function [ ] = plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, indexRelevantSamples )
+    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, sampleProb, K_samples, S_samples )
 % Make plots from SDP and simulation results
 
 [~,~,N] = size(T_gw_all);
@@ -376,8 +376,8 @@ if plotParam.plotinfoOverTime
     for k = 1:numSamples
         headSim = sim.state_gw(sample(k),:);
 
-        minh = zeros(N);
-        maxh = zeros(N);
+        p5 = zeros(N);
+        p95 = zeros(N);
         maxTime = N;
         for t = 1:N
             indexState = find(headSim(t) == s_gw);
@@ -385,16 +385,18 @@ if plotParam.plotinfoOverTime
                 maxTime = t-1;
                 break;
             end
-            K_samples_thisPeriod = K_samples(indexRelevantSamples{indexState,t});
-            S_samples_thisPeriod = S_samples(indexRelevantSamples{indexState,t});
-            headSamples = zeros(length(K_samples_thisPeriod),N);
-            for i = 1:length(K_samples_thisPeriod)
-                x = [repmat(K_samples_thisPeriod(i),[1,N]); repmat(S_samples_thisPeriod(i),[1,N]); [365:365:365*(N)]];
+            headSamples = zeros(length(K_samples),N);
+            for i = 1:length(K_samples)
+                x = [repmat(K_samples(i),[1,N]); repmat(S_samples(i)  ,[1,N]); [365:365:365*(N)]];
                 tempHead = netscript(x, runParam.adjustOutput);
                 headSamples(i,:) = tempHead(gwParam.wellIndex,:);
             end
-           minh(t,:) = min(headSamples);
-           maxh(t,:) = max(headSamples);
+           [headSamplesSorted, index] = sort(headSamples);
+           cumProb = cumsum(sampleProb{indexState,t}(index(:,t)));
+           indexp5 = index(find(cumProb > 0.05,1));
+           indexp95 = index(find(cumProb > 0.5,1));
+           p5(t,:) = headSamplesSorted(indexp5,:);
+           p95(t,:) = headSamplesSorted(indexp95,:);
         end
 
         subplot(2,3,k)
@@ -402,7 +404,7 @@ if plotParam.plotinfoOverTime
             x = t:N;
             X=[x,fliplr(x)];
             scatter(t,200-headSim(t),'*', 'k')
-            Y=[minh(t,t:end),fliplr(maxh(t,t:end))];
+            Y=[p5(t,t:end),fliplr(p95(t,t:end))];
             hold on
             fill(X,Y,'b', 'FaceAlpha', .1); 
         end

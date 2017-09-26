@@ -1,4 +1,4 @@
-function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples, drawdown] = ...
+function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, sampleProb, drawdown] = ...
     gw_transrow_nn(gwParam, t, K_samples, S_samples, s1, s_gw, adjustOutput ) 
 
 % Calculates drawdown between time t-1 and time t predicted by the neural
@@ -12,7 +12,7 @@ wellIndex = gwParam.wellIndex;
 stateInfeasible = false;
 indexAbove = [];
 indexBelow = [];
-indexRelevantSamples = [];
+sampleProb = [];
 drawdown = [];
 
 % If at max drawdown, stay at max drawdown
@@ -59,47 +59,74 @@ for i = 1:length(K_samples)
     head_t_next(i) = tempHead(wellIndex,end);
 end
 
-margin = 10; 
-indexRelevantSamples = abs(head_t_current - (200 -s1)) < margin;
-numRelevantSamples = sum(indexRelevantSamples);
+if strcmp(gwParam.likelihoodfct, 'uniform')
+    margin = gwParam.llhstddev; 
+    indexRelevantSamples = abs(head_t_current - (200 -s1)) < margin;
+    numRelevantSamples = sum(indexRelevantSamples);
 
-if numRelevantSamples == 0
-    warning(strcat('infeasible groundwater state : t=',num2str(t), ', 200-s1 = ', num2str(200-s1), ...
-        ', min nn head =', num2str(min(head_t_current)), ', max nn head =', num2str(max(head_t_current)) ));
-    stateInfeasible = true;
-    % Use closest sample even if outside error marign
-    [~, bestIndex] = min(abs(head_t_current - (200 -s1)));
-    indexRelevantSamples = false([1 numSamples]);
-    indexRelevantSamples(bestIndex) = 1;
-    indexRelevantSamples = logical(indexRelevantSamples);
-    numRelevantSamples = 1;
-    % Find above and below samples for analysis
-    [~, indexAbove] = min(head_t_current - (200 -s1));
-    [~, indexBelow] = min((200 -s1) - head_t_current);
-end
+    if numRelevantSamples == 0
+        warning(strcat('infeasible groundwater state : t=',num2str(t), ', 200-s1 = ', num2str(200-s1), ...
+            ', min nn head =', num2str(min(head_t_current)), ', max nn head =', num2str(max(head_t_current)) ));
+        stateInfeasible = true;
+        % Use closest sample even if outside error marign
+        [~, bestIndex] = min(abs(head_t_current - (200 -s1)));
+        indexRelevantSamples = false([1 numSamples]);
+        indexRelevantSamples(bestIndex) = 1;
+        indexRelevantSamples = logical(indexRelevantSamples);
+        numRelevantSamples = 1;
+        % Find above and below samples for analysis
+        [~, indexAbove] = min(head_t_current - (200 -s1));
+        [~, indexBelow] = min((200 -s1) - head_t_current);
+    end
 
 
-% In first period, accept all vlaues
-if t == 1 
-    indexRelevantSamples = true([1 numSamples]);
-end
+    % In first period, accept all vlaues
+    if t == 1 
+        indexRelevantSamples = true([1 numSamples]);
+    end
 
-% Update samples from previous period to include only relevant samples
-head_t_current = head_t_current(indexRelevantSamples);
-head_t_next = head_t_next(indexRelevantSamples);
+    % Update samples from previous period to include only relevant samples
+    head_t_current = head_t_current(indexRelevantSamples);
+    head_t_next = head_t_next(indexRelevantSamples);
+
+    % Calculate drawdown between t+1 and t
+    drawdown =  head_t_current - head_t_next;
+    indexNeg = drawdown < 0;
+    drawdown(indexNeg) = 0;
+
+    % Calculate next state
+    next_s1 = s1 + drawdown;
+    rounded_next_s1 = round2x(next_s1, s_gw);
+
+    % Calculate transition probability row
+    T_gw = histcounts(rounded_next_s1,  [s_gw(1:end):s_gw(end)] + 0.1, 'Normalization', 'probability');
+    T_gw = [0 T_gw];
+
+
+elseif strcmp(gwParam.likelihoodfct, 'normal')
+
+    % Calculate probability for each parameter sample    
+    u = head_t_current;
+    x = (200 -s1); 
+    sampleProb = normpdf(x, u, gwParam.llhstddev);
+    numRelevantSamples = sum(sampleProb > 0.001);
     
-% Calculate drawdown between t+1 and t
-drawdown =  head_t_current - head_t_next;
-indexNeg = drawdown < 0;
-drawdown(indexNeg) = 0;
-
-% Calculate next state
-next_s1 = s1 + drawdown;
-rounded_next_s1 = round2x(next_s1, s_gw);
-
-% Calculate transition probability row
-T_gw = histcounts(rounded_next_s1,  [s_gw(1:end):s_gw(end)] + 0.1, 'Normalization', 'probability');
-T_gw = [0 T_gw];
+    % Calculate next state for each parameter sample
+    drawdown =  head_t_current - head_t_next;
+    indexNeg = drawdown < 0;
+    drawdown(indexNeg) = 0;
+    next_s1 = s1 + drawdown;
+    rounded_next_s1 = round2x(next_s1, s_gw);
+    
+    % Sum probabilites for each possible next state
+    zeropstates = s_gw(~ismember(s_gw,rounded_next_s1));
+    [a,~,c] = unique([rounded_next_s1 zeropstates]);
+    prob = [sampleProb zeros(1,length(zeropstates))];     
+    out = [a', accumarray(c,prob)];
+    sumout = sum(out(:,2));
+    T_gw = out(:,2)'/sumout;
+    
+end
 
 % Find states above depth limit with positive prob and switch to absorbing state
 if gwParam.depthLimit

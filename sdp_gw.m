@@ -1,5 +1,5 @@
 function [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, ...
-    s_gw, s_expand, exp_vectors, K_samples, S_samples, indexRelevantSamples ] = ...
+    s_gw, s_expand, exp_vectors, K_samples, S_samples, sampleProb ] = ...
     sdp_gw( runParam, costParam, popParam, gwParam, water, datetime )
 
 % Run SDP for groundwater model. 
@@ -57,7 +57,7 @@ end
 N = runParam.N;
 numRelevantSamples = [];
 stateInfeasible = [];
-indexRelevantSamples = [];
+sampleProb = [];
 
 if runParam.calculateTgw
 
@@ -89,7 +89,7 @@ if runParam.calculateTgw
 
     stateInfeasible = true(gw_M, N);
     numRelevantSamples = zeros(gw_M, N);
-    indexRelevantSamples = cell(gw_M, N);
+    sampleProb = cell(gw_M, N);
     indexAbove = cell(gw_M, N);
     indexBelow = cell(gw_M, N);
 
@@ -98,18 +98,18 @@ if runParam.calculateTgw
     for t =1:N
         parfor index_s1 = 1:gw_M
             s1_now = s_gw(index_s1);
-            [T_gw_temp, numRel, stateInf, indAbv, indBlw, indRel] = ...
+            [T_gw_temp, numRel, stateInf, indAbv, indBlw, smpPrb] = ...
                 gw_transrow_nn(gwParam, t, K_samples, S_samples, s1_now, s_gw, runParam.adjustOutput);
             T_gw_all(:,index_s1,t) = T_gw_temp';
             numRelevantSamples(index_s1,t) = numRel;
             stateInfeasible(index_s1,t) = stateInf;
             indexAbove{index_s1, t} = indAbv;
             indexBelow{index_s1, t} = indBlw;
-            indexRelevantSamples{index_s1, t} = indRel;
+            sampleProb{index_s1, t} = smpPrb;
         end
     end    
     
-    save(strcat('T_gw_',datetime), 'T_gw_all', 'K_samples', 'S_samples', 'index_s_gw_time', 'numRelevantSamples', 'stateInfeasible', 'indexRelevantSamples')
+    save(strcat('T_gw_',datetime), 'T_gw_all', 'K_samples', 'S_samples', 'index_s_gw_time', 'numRelevantSamples', 'stateInfeasible', 'sampleProb')
     
 else
     load(gwParam.TgwLoadName)
