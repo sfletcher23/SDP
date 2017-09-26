@@ -125,6 +125,7 @@ elseif strcmp(gwParam.likelihoodfct, 'normal')
     out = [a', accumarray(c,prob)];
     sumout = sum(out(:,2));
     T_gw = out(:,2)'/sumout;
+    sampleProb = sampleProb/sumout;
     
 end
 

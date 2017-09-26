@@ -10,7 +10,7 @@ runParam = struct;
 runParam.runSDP = true;
 runParam.simulateOn = true;
 runParam.calculateTgw = true;
-runParam.saveOn = false; 
+runParam.saveOn = true; 
 runParam.simNum = 2000;
 runParam.simpleVersion = false;
 runParam.flexOn = false;
@@ -21,7 +21,7 @@ runParam.runSDPfunction = true;
 runParam.N = 30;
 
 plotParam = struct;
-plotParam.plotsOn = true;
+plotParam.plotsOn = false;
 plotParam.policyPlotsOn = false;
 plotParam.simPlotsOn = true; 
 plotParam.plotInitialWaterBalance = false; 
@@ -61,7 +61,7 @@ gwParam.pumpingSubsidy = true;
 gwParam.infoScenario = 'full_range';
 gwParam.TgwLoadName = 'T_gw';
 gwParam.likelihoodfct = 'normal';
-gwParam.llhstddev = 5;
+gwParam.llhstddev = 10;
 
 % Water infrastructure paramters
 water = struct;

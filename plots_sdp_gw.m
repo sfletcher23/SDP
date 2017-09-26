@@ -392,11 +392,12 @@ if plotParam.plotinfoOverTime
                 headSamples(i,:) = tempHead(gwParam.wellIndex,:);
             end
            [headSamplesSorted, index] = sort(headSamples);
-           cumProb = cumsum(sampleProb{indexState,t}(index(:,t)));
+           cumProb = cumsum(sampleProb{indexState,t}(index(:,end)));
            indexp5 = index(find(cumProb > 0.05,1));
-           indexp95 = index(find(cumProb > 0.5,1));
+           indexp95 = index(find(cumProb > 0.95,1));
            p5(t,:) = headSamplesSorted(indexp5,:);
            p95(t,:) = headSamplesSorted(indexp95,:);
+
         end
 
         subplot(2,3,k)
