@@ -373,6 +373,7 @@ if plotParam.plotinfoOverTime
     netscript = str2func(netname); 
 
     figure;
+    finalHead = zeros(5,N,6);
     for k = 1:numSamples
         headSim = sim.state_gw(sample(k),:);
 
@@ -393,10 +394,15 @@ if plotParam.plotinfoOverTime
             end
            [headSamplesSorted, index] = sort(headSamples);
            cumProb = cumsum(sampleProb{indexState,t}(index(:,end)));
-           indexp5 = index(find(cumProb > 0.05,1));
-           indexp95 = index(find(cumProb > 0.95,1));
+           indexp5 = find(cumProb > 0.05,1);
+           indexp25 = find(cumProb > 0.25,1);
+           indexp50 = find(cumProb > 0.5,1);
+           indexp75 = find(cumProb > 0.75,1);
+           indexp95 = find(cumProb > 0.95,1);
            p5(t,:) = headSamplesSorted(indexp5,:);
            p95(t,:) = headSamplesSorted(indexp95,:);
+           finalHead(:,t,k) = [headSamplesSorted(indexp5,end); headSamplesSorted(indexp25,end); headSamplesSorted(indexp50,end);...
+               headSamplesSorted(indexp75,end); headSamplesSorted(indexp95,end)];
 
         end
 
@@ -412,57 +418,28 @@ if plotParam.plotinfoOverTime
         line([0 N], [200 - gwParam.depthLimit, 200 - gwParam.depthLimit], 'Color', 'r', 'LineStyle', '--')   
     end
 
-    
-%     
-%     if R > 10
-%         indexSample = randsample(R,10);
-%     else
-%         indexSample = 1:R;
-%     end
-%     figure;
-%     plot(1:N, sim.failureProbOverTime(indexSample,:))
+    figure;
+    for i=1:6
+        figure;
+        finalH = fliplr(finalHead(:,:,i));
+        b = boxplot(rand(30));
+        h = findobj(gcf,'tag','Upper Whisker');
+        set(h,{'YData'},num2cell(finalH(end-1:end,:),1)');
+        h = findobj(gcf,'tag','Lower Whisker')
+        set(h,{'YData'},num2cell(finalH(1:2,:),1)')
+        h = findobj(gcf,'tag','Upper Adjacent Value')
+        set(h,{'YData'},num2cell(finalH([end end],:),1)')
+        h = findobj(gcf,'tag','Lower Adjacent Value')
+        set(h,{'YData'},num2cell(finalH([1 1],:),1)')
+        h = findobj(gcf,'tag','Box')
+        set(h,{'YData'},num2cell(finalH([2 4 4 2 2],:),1)')
+        h = findobj(gcf,'tag','Median')
+        set(h,{'YData'},num2cell(finalH([3 3],:),1)')
+        h = findobj(gcf,'tag','Outliers')
+        set(h,{'Visible'},{'off'})
+        ylim([0 200])
 
-%     figure;
-%     for k = 1:R
-%         numSamplesOverTime = sum(sim.sampleIndexOverTime(:,:,k),1);
-%         hydrographs = cell(1,30);
-%         plotTimes = [1, 5, 10, 15, 20, 25];
-%         count = 1;
-%         for time = 1:30
-%             numSamples = numSamplesOverTime(time);
-%             indexSamples = find(sim.sampleIndexOverTime(:,time,k));
-%             hydrographs{time} = zeros(numSamples,30);
-%             for i = 1:numSamples
-%                 x = [repmat(K_samples(indexSamples(i)),[1,N]); repmat(S_samples(indexSamples(i)),[1,N]); [1:365:365*(N)]];
-%                 tempHead = netscript(x, runParam.adjustOutput);
-%                 hydrographs{time}(i,:) = tempHead(gwParam.wellIndex,:);
-%             end
-%             if ismember(time, plotTimes) && false
-%             subplot(2,3,count)
-%             y = [ones(numSamples,1)*200 hydrographs{time}];
-%             plot(0:30,y)
-%             count = count + 1;
-%             ylim([0 200])
-%             title(strcat('Time ', num2str(time)))
-%             end  
-%         end
-%         hold on
-%         if R >1
-%             subplot(R/2,2,k)
-%         end
-%         grp = [];
-%         y = [];
-%         for t=1:30
-%             y = [y hydrographs{t}(:,end)'];
-%             grp = [grp ones(1,numSamplesOverTime(t))*t]; 
-%         end
-%         boxplot(y,grp)
-%         hold on
-%         plot(xlim,[gwParam.depthLimit gwParam.depthLimit], 'k')
-%         ylim([0 200])
-%     end
-
-end
+    end
 
 
 

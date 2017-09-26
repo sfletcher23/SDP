@@ -58,6 +58,8 @@ gwParam.enforceLimit = false;
 gwParam.pumpingSubsidy = true;
 gwParam.infoScenario = 'full_range';
 gwParam.TgwLoadName = 'T_gw';
+gwParam.likelihoodfct = 'normal';
+gwParam.llhstddev = 10;
 
 % Water infrastructure paramters
 water = struct;
@@ -98,12 +100,13 @@ end
 
 %% Sensitivity inputs
 
-sensInput = cell(5,1);
+sensInput = cell(6,1);
 sensInput{1} = deal({'gwParam', 'depthLimit', { 100 0, 150}});
 sensInput{2} = deal({'gwParam', 'wellIndex', { 108, 93, 68}});
 sensInput{3} = deal({'costParam', 'shortage_cost', { 1, 0.5, 5, 10}});
 sensInput{4} = deal({'costParam', 'discount_rate', { 0, 0.3, 0.5, 0.7}});
 sensInput{5} = deal({'gwParam', 'infoScenario', {'full_range', '10%_cutoff', '20%_cutoff'}});
+sensInput{6} = deal({'gwParam', 'llhstddev', {10, 5}});
 
 % Initialize output
 sens = struct;
@@ -130,16 +133,20 @@ for i = 1:length(sensInput)
         % Change input parameter for sensitivity
         evalin('base', strcat(sensInput{i}{1},'.',sensInput{i}{2}, '=',num2str(sensInput{i}{3}{j})));
 
-        [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw, s_expand, exp_vectors,~, ~, ~ ] = ...
+        [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw,...
+            s_expand, exp_vectors, K_samples, S_samples, sampleProb] = ...
             sdp_gw( runParam, costParam, popParam, gwParam, water );
         
-        sens.(sensInput{i}{2}){j} = cell(6,1);
+        sens.(sensInput{i}{2}){j} = cell(9,1);
         sens.(sensInput{i}{2}){j}{1} = sensInput{i}{3}{j};
         sens.(sensInput{i}{2}){j}{2} = V;
         sens.(sensInput{i}{2}){j}{3} = X1;
         sens.(sensInput{i}{2}){j}{4} = X2;
         sens.(sensInput{i}{2}){j}{5} = T_gw_all;
         sens.(sensInput{i}{2}){j}{6} = lowestCostAction;
+        sens.(sensInput{i}{2}){j}{7} = K_samples;
+        sens.(sensInput{i}{2}){j}{8} = S_samples;
+        sens.(sensInput{i}{2}){j}{9} = sampleProb;
         
         if runParam.saveOn
             save(strcat('sens', datetime,'_', num2str(jobid)));
