@@ -366,7 +366,7 @@ end
 if plotParam.plotinfoOverTime
     
     
-    numSamples = 6;
+    numSamples = 2;
 
     sample = randsample(R,numSamples);
     netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
@@ -406,17 +406,20 @@ if plotParam.plotinfoOverTime
 
         end
 
-        subplot(2,3,k)
+        subplot(1,2,k)
         for t = 1:maxTime
             x = t:N;
             X=[x,fliplr(x)];
             scatter(t,200-headSim(t),'*', 'k')
             Y=[p5(t,t:end),fliplr(p95(t,t:end))];
             hold on
-            fill(X,Y,'b', 'FaceAlpha', .1); 
+            fill(X,Y,'b', 'FaceAlpha', .05); 
+            xlabel('Year')
+            ylabel('Head [m]')
         end
         line([0 N], [200 - gwParam.depthLimit, 200 - gwParam.depthLimit], 'Color', 'r', 'LineStyle', '--')   
     end
+    suptitle('Hydrograph Confidence Intervals Over Time')
 
     figure;
     for i=1:6

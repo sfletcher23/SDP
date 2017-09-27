@@ -104,7 +104,7 @@ sensInput = cell(6,1);
 sensInput{1} = deal({'gwParam', 'depthLimit', { 100 0, 150}});
 sensInput{2} = deal({'gwParam', 'wellIndex', { 108, 93, 68}});
 sensInput{3} = deal({'costParam', 'shortage_cost', { 1, 0.5, 5, 10}});
-sensInput{4} = deal({'costParam', 'discount_rate', { 0, 0.3, 0.5, 0.7}});
+sensInput{4} = deal({'costParam', 'discount_rate', { 0, 0.03, 0.05, 0.07}});
 sensInput{5} = deal({'gwParam', 'infoScenario', {'full_range', '10%_cutoff', '20%_cutoff'}});
 sensInput{6} = deal({'gwParam', 'llhstddev', {10, 5}});
 
@@ -126,27 +126,33 @@ end
 for i = 1:length(sensInput)
     
     % Initialize output
-    sens.(sensInput{i}{2}) = cell(length(sensInput{i}{3}),1);
+%     sens.(sensInput{i}{2}) = cell(length(sensInput{i}{3}),1);
+    evalin('base', strcat(sensInput{i}{1},'_Output', '=', 'cell(length(sensInput{i}{3}),1);'));
     
     for j = 1:length(sensInput{i}{3})
         
         % Change input parameter for sensitivity
-        evalin('base', strcat(sensInput{i}{1},'.',sensInput{i}{2}, '=',num2str(sensInput{i}{3}{j})));
-
+        if isnumeric(sensInput{i}{3}{j})
+            evalin('base', strcat(sensInput{i}{1},'.',sensInput{i}{2}, '=',num2str(sensInput{i}{3}{j})));
+        else
+            evalin('base', strcat(sensInput{i}{1},'.',sensInput{i}{2}, '='' ', sensInput{i}{3}{j}, ''''));
+        end
+            
         [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, s_gw,...
             s_expand, exp_vectors, K_samples, S_samples, sampleProb] = ...
             sdp_gw( runParam, costParam, popParam, gwParam, water, datetime );
         
-        sens.(sensInput{i}{2}){j} = cell(9,1);
-        sens.(sensInput{i}{2}){j}{1} = sensInput{i}{3}{j};
-        sens.(sensInput{i}{2}){j}{2} = V;
-        sens.(sensInput{i}{2}){j}{3} = X1;
-        sens.(sensInput{i}{2}){j}{4} = X2;
-        sens.(sensInput{i}{2}){j}{5} = T_gw_all;
-        sens.(sensInput{i}{2}){j}{6} = lowestCostAction;
-        sens.(sensInput{i}{2}){j}{7} = K_samples;
-        sens.(sensInput{i}{2}){j}{8} = S_samples;
-        sens.(sensInput{i}{2}){j}{9} = sampleProb;
+        
+        evalin('base',  strcat(sensInput{i}{1},'_Output{j} = cell(9,1)'));
+        evalin('base',  strcat(sensInput{i}{1},'_Output{j}{1} = sensInput{i}{3}{j}'));
+        evalin('base',  strcat(sensInput{i}{1},'_Output{j}{2} = V'));
+        evalin('base',  strcat(sensInput{i}{1},'_Output{j}{3} = X1'));
+        evalin('base',  strcat(sensInput{i}{1},'_Output{j}{4} = X2'));
+        evalin('base',  strcat(sensInput{i}{1},'_Output{j}{5} = T_gw_all'));
+        evalin('base',  strcat(sensInput{i}{1},'_Output{j}{6} = lowestCostAction'));
+        evalin('base', strcat(sensInput{i}{1},'_Output{j}{7} = K_samples'));
+        evalin('base',  strcat(sensInput{i}{1},'_Output{j}{8} = S_samples'));
+        evalin('base',  strcat(sensInput{i}{1},'_Output{j}{9} = sampleProb'));
         
         if runParam.saveOn
             save(strcat('sens', datetime,'_', num2str(jobid)));
