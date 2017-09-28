@@ -159,8 +159,11 @@ for i = 1:length(sensInput)
         end
         
         % Change parameter back to base case for next round
-        evalin('base', strcat(sensInput{i}{1},'.',sensInput{i}{2}, '=',num2str(sensInput{i}{3}{1})));
-    
+        if isnumeric(sensInput{i}{3}{j})
+            evalin('base', strcat(sensInput{i}{1},'.',sensInput{i}{2}, '=',num2str(sensInput{i}{3}{1})));
+        else
+            evalin('base', strcat(sensInput{i}{1},'.',sensInput{i}{2}, '='' ', sensInput{i}{3}{1}, ''''));
+        end
     end
 end
 %% Run forward simulation 
