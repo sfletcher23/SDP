@@ -14,20 +14,25 @@ saveOn = true;
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 1000;
+gwParam.sampleSize = 100;
 gwParam.depthLimit = 200;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 17182;
 gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemesy, 93 is royal garage
 gwParam.exaggeratePumpCost = false;
-
+gwParam.enforceLimit = false;
+gwParam.pumpingSubsidy = true;
+gwParam.infoScenario = 'full_range';
+gwParam.TgwLoadName = 'T_gw';
+gwParam.likelihoodfct = 'normal';
+gwParam.llhstddev = 10;
 %% Get modflow, nn, and sdp hydrograph estimates and plot: One well one run
 if true
 
 % Sample run number and well number to plot
 numRuns = length(hk);
-% i = randsample(numRuns,1);
+i = randsample(numRuns,1);
 
 N = 30;
 

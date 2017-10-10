@@ -10,7 +10,7 @@ runParam.runSDP = true;
 runParam.simulateOn = true;
 runParam.calculateTgw =true;
 runParam.saveOn = true; 
-runParam.simNum = 5000;
+runParam.simNum = 1000;
 runParam.simpleVersion = false;
 runParam.flexOn = true;
 runParam.capacityDelay = true;
@@ -47,7 +47,7 @@ popParam.growthScenario = 'none';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 2000;
+gwParam.sampleSize = 100;
 gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
@@ -101,16 +101,21 @@ end
 %% Sensitivity inputs
 
 % sensInput = cell(6,1);
-sensInput{1} = deal({'gwParam', 'depthLimit', { 50, 100, 150}});
-sensInput{2} = deal({'gwParam', 'wellIndex', { 108, 93, 68}});
-sensInput{3} = deal({'costParam', 'shortage_cost', { 1, 0.5, 5, 10}});
-sensInput{4} = deal({'costParam', 'discount_rate', { 0, 0.03, 0.05, 0.07}});
-sensInput{5} = deal({'gwParam', 'infoScenario', {'full_range', '10%_cutoff', '20%_cutoff'}});
-sensInput{6} = deal({'gwParam', 'llhstddev', {10, 5}});
+sensInput{1} = deal({'costParam', 'discount_rate', { 0, 0.03, 0.05, 0.07}});
 
-sensParams = {'depthLimit', ...
-    'wellIndex'...
-    'shortage_cost', 'discount_rate', 'infoScenario', 'llhstddev'...
+% sensInput{1} = deal({'gwParam', 'depthLimit', { 50, 100, 150}});
+% sensInput{2} = deal({'gwParam', 'wellIndex', { 108, 93, 68}});
+% sensInput{3} = deal({'costParam', 'shortage_cost', { 1, 0.5, 5, 10}});
+% sensInput{4} = deal({'costParam', 'discount_rate', { 0, 0.03, 0.05, 0.07}});
+% sensInput{5} = deal({'gwParam', 'infoScenario', {'full_range', '10%_cutoff', '20%_cutoff'}});
+% sensInput{6} = deal({'gwParam', 'llhstddev', {10, 5}});
+
+sensParams = {...
+%     'depthLimit', ...
+%     'wellIndex'...
+%     'shortage_cost', ...
+'discount_rate', ...
+% 'infoScenario', 'llhstddev'...
 };
 
 
@@ -175,7 +180,7 @@ end
 % system
 
 if runParam.simulateOn
-    for i = 1:length(sensParams)
+    for i = 1 %1:length(sensParams)
         for j = 1:length(sensInput{i})
             
             evalin('base', strcat( 'V = ', sensParams{i}, '_Output{j}{2};'));
@@ -202,8 +207,10 @@ end
 
 if plotParam.plotsOn
     R = runParam.simNum;
+    N = 30;
+    
     % Expansion time sensitivity
-    for i = 1:length(sensParams)
+    for i = 1 %:length(sensParams)
         figure;
         for j = 1:length(sensInput{i})
             evalin('base', strcat('sim = sim_', sensParams{i}, num2str(j),';'));
@@ -248,6 +255,58 @@ if plotParam.plotsOn
     end
     
     
+    % Plot first drawdown level when build (when nocapacity)
+    for i = 1:length(sensParams)
+        figure;
+        for j = 1:length(sensInput{i})
+            evalin('base', strcat( 'X2 = ', sensParams{i}, '_Output{j}{4};'));
+            if strcmp(sensParams{i}, 'depthLimit')
+                gwParam.depthLimit = sensInput{i}{3}{j};
+            end
+            X2nocap = permute(X2(:,1,1:end-1),[1,3,2]);
+            indexZeros = ~flipud(X2nocap == 0);
+            indexFirstZero = 200 - sum(cumprod(double(indexZeros),1)) + 3;
+            indexNan = sum(cumprod(~isnan(X2nocap)));
+            indexReplaceNan = indexFirstZero >= indexNan;
+            indexFirstZero(indexReplaceNan) = 1;
+            subplot(1,length(sensInput{i}), j)
+            scatter(1:N, 200-s_gw(indexFirstZero));
+            xlabel('Year')
+            ylim([0 205])
+            ylabel('Head [m]')
+            if isnumeric(sensInput{i}{3}{j})
+                title(strcat(sensParams{i}, ' = ',  num2str(sensInput{i}{3}{j})));  
+            else
+                title(strcat(sensParams{i}, ' = ',  sensInput{i}{3}{j}));  
+            end
+            hold on
+            line([0 30], [200 200], 'Color', 'k')
+            line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
+
+        end
+        suptitle('Optimal expansion policy: Drawdown Threshold for Exapsnion over Time')
+    end
+    
+    
+    % Plot total shortage vs total cost
+    for i = 1:length(sensParams)
+        figure;
+        for j = 1:length(sensInput{i})
+            evalin('base', strcat('sim = sim_', sensParams{i}, num2str(j),';'));
+            totalCost = sum(sim.costOverTime,2);
+            totalShortage = sum(sim.shortageOverTime,2);
+            subplot(1,length(sensInput{i}), j)
+            scatter(totalShortage/gwParam.pumpingRate,totalCost/1E9)
+            ylim([0 4])
+            xlim([0 8])
+            if isnumeric(sensInput{i}{3}{j})
+                title(strcat('Avg Cost:', num2str(sim.averageTotalCost, '%.1E'), ',  ', sensParams{i}, ' = ',  num2str(sensInput{i}{3}{j})));  
+            else
+                title(strcat(sensParams{i}, ' = ',  sensInput{i}{3}{j}));  
+            end
+        end
+        suptitle(strcat('Total shortage vs total cost'))
+    end
     
 end
 
