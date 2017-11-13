@@ -162,17 +162,20 @@ if plotParam.plotsOn
     figure;
     totalCost = sum(sim.costOverTime,2);
     totalShortage = sum(sim.shortageOverTime,2);
-    scatter(totalShortage/1E6,totalCost/1E9, 50)
+    scatter(totalShortage/1E6,totalCost/1E9, 70, 'MarkerFaceColor', 'b', 'MarkerEdgeColor', 'b')
     totalCost = sum(simnolearn.costOverTime,2);
     totalShortage = sum(simnolearn.shortageOverTime,2);
     hold on
-    scatter(totalShortage/1E6,totalCost/1E9)
+    scatter(totalShortage/1E6,totalCost/1E9, 20, '*')
     title('Total Shortage vs. Total Cost')
     legend({strcat('Learning over time policy: Average Cost ', num2str(sim.averageTotalCost, '%.3E')), ...
         strcat('Fixed policy: Average Cost ', num2str(simnolearn.averageTotalCost, '%.3E'))},'FontSize', 12)
+    legend('boxoff')
     ylim([0 5])
     xlabel('Total Shortage over 30 years [MCM]')
     ylabel('Total Costs (including shortages) over 30 years [Billion USD]')
+    set(gca, 'FontSize', 14)
+    set(gca, 'LineWidth', 2)
     end
 
 end

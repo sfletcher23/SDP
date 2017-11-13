@@ -32,24 +32,53 @@ function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, sh
     discountFactor = 1/((1+costParam.discount_rate)^t);
 
     % Pumping cost in $/m^3
-    density=1000; %in kg/m^3
-    cost_per_kwh=.08;
-    conversion_factor=2.777778e-7;
-    percent_eff=80;
-    f=0.013;
-    D=0.508;
-    v=0.24669;
-    aquiferDepth = 1200;
-    if gwParam.exaggeratePumpCost
-        v= 70;
-        cost_per_kwh=.01;
-        aquiferDepth = 2;
+    density_pump=1010; %in kg/m^3
+    cost_per_kwh=.10; %$/kWh
+    conversion_factor=2.777778e-7;  % kWh/J
+    percent_eff_pump=80;
+    f_pump=0.04;
+    D_pump=0.2;
+    v_pump=18;
+    startingDepth = 300;
+    brackish_cost_min = .3;
+    brackish_cost_max = .6; % At 300 m drawdown
+    brackish_cost =  brackish_cost_min + (brackish_cost_max - brackish_cost_min) * s1/300;
+    effective_head_pump = (s1 + startingDepth) + f_pump * (s1+startingDepth)/D_pump * v_pump^2 / (2*9.81);
+    pump_cost_perunit=density_pump * 9.81 * effective_head_pump * conversion_factor ...
+        * (100/percent_eff_pump) * cost_per_kwh;
+
+    
+    % Pipeline costs
+    percent_eff_pipe=90;
+    density_pipe=1000;
+    f_pipe=0.01;
+    D_pipe=1.6;
+    v_pipe=4;
+    L = 466000;
+    delta_h = 615;
+    effective_head_pipe = delta_h + f_pipe * L/D_pipe * v_pipe^2 / (2*9.81);
+    pipe_cost_perunit = density_pipe * 9.81 * effective_head_pipe * conversion_factor ...
+        * 100/percent_eff_pipe * cost_per_kwh;
+    
+    
+    if false
+        figure;
+        for s1 = 1:400
+            Hf(s1) = (s1 + startingDepth) + f_pump * (s1+startingDepth)/D_pump * v_pump^2 / (2*9.81);
+            pc(s1) = density_pump * 9.81 * Hf(s1) * conversion_factor ...
+            * (100/percent_eff_pump) * cost_per_kwh;
+        end
+        subplot(1,2,1)
+        plot((1:400)+ startingDepth, pc)
+        xlabel('drawdown [m]')
+        ylabel('pumping cost [$/m3]')
+        title('Pumping costs')
+        subplot(1,2,2)
+        plot((1:400) + startingDepth, Hf)
+        xlabel('drawdown [m]')
+        ylabel('effective depth [m]')
+        title('Effective pumping depth')
     end
-    if gwParam.pumpingSubsidy
-        cost_per_kwh = .05;
-    end
-    pump_cost_perunit=density * 9.81 * (((f*(s1+aquiferDepth)^2*v^2)/(2*9.81*D))+(s1+aquiferDepth)) * conversion_factor ...
-        * (100/percent_eff) * cost_per_kwh;
 
     % Expansion costs
     expansionCost = [];
@@ -87,7 +116,7 @@ function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, sh
 
 % Costs include shortage costs, expansion costs, and pumping costs
     shortageCost = shortage * costParam.shortage_cost * discountFactor;
-    pumpingCost =  pump_cost_perunit * a1 * minjur_supply * discountFactor;
+    pumpingCost =  (pump_cost_perunit + brackish_cost) * a1 * minjur_supply * discountFactor;
     marginalDesalCost = exp_supply * costParam.marginal_cost;
     cost = shortageCost + expansionCost + pumpingCost + marginalDesalCost;
 
