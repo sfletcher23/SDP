@@ -7,7 +7,7 @@ function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, samp
 % next groundwater state
 
 nnNumber = gwParam.nnNumber;
-wellIndex = gwParam.wellIndex;
+nstp = gwParam.nstp;
 
 stateInfeasible = false;
 indexAbove = [];
@@ -50,33 +50,37 @@ netscript = str2func(netname);
 
 [~, numSamples] = size(K_samples);
 
-head_t_current = zeros(1, length(K_samples));
-head_t_next = zeros(1, length(K_samples));
+drawdown_t_current = zeros(1, length(K_samples));
+drawdown_t_next = zeros(1, length(K_samples));
 for i = 1:length(K_samples)
-    x = [repmat(K_samples(i),[1,t+1]); repmat(S_samples(i),[1,t+1]); [0:365:365*(t)]];
-    tempHead = netscript(x, adjustOutput);
-    head_t_current(i) = tempHead(wellIndex,end-1);
-    head_t_next(i) = tempHead(wellIndex,end);
+    x = [repmat(K_samples(i),[1,t+1]); repmat(S_samples(i),[1,t+1]); 0:365:365*(t) ];
+    tempHead = netscript(x, gwParam);
+    if t == 1
+        drawdown_t_current(i) = 0;
+    else
+        drawdown_t_current(i) = tempHead(end-1);
+    end
+    drawdown_t_next(i) = tempHead(end);
 end
 
-if strcmp(gwParam.likelihoodfct, 'uniform')
+if strcmp(gwParam.likelihoodfct, 'uniform') % Need to fix this with new drawdon approach if use again
     margin = gwParam.llhstddev; 
-    indexRelevantSamples = abs(head_t_current - (200 -s1)) < margin;
+    indexRelevantSamples = abs(drawdown_t_current - s1) < margin;
     numRelevantSamples = sum(indexRelevantSamples);
 
     if numRelevantSamples == 0
-        warning(strcat('infeasible groundwater state : t=',num2str(t), ', 200-s1 = ', num2str(200-s1), ...
-            ', min nn head =', num2str(min(head_t_current)), ', max nn head =', num2str(max(head_t_current)) ));
+        warning(strcat('infeasible groundwater state : t=',num2str(t), ', drawdown = ', num2str(s1), ...
+            ', min nn head =', num2str(min(drawdown_t_current)), ', max nn head =', num2str(max(drawdown_t_current)) ));
         stateInfeasible = true;
         % Use closest sample even if outside error marign
-        [~, bestIndex] = min(abs(head_t_current - (200 -s1)));
+        [~, bestIndex] = min(abs(drawdown_t_current - s1));
         indexRelevantSamples = false([1 numSamples]);
         indexRelevantSamples(bestIndex) = 1;
         indexRelevantSamples = logical(indexRelevantSamples);
         numRelevantSamples = 1;
         % Find above and below samples for analysis
-        [~, indexAbove] = min(head_t_current - (200 -s1));
-        [~, indexBelow] = min((200 -s1) - head_t_current);
+        [~, indexAbove] = min(drawdown_t_current -s1);
+        [~, indexBelow] = min(s1 - drawdown_t_current);
     end
 
 
@@ -86,11 +90,11 @@ if strcmp(gwParam.likelihoodfct, 'uniform')
     end
 
     % Update samples from previous period to include only relevant samples
-    head_t_current = head_t_current(indexRelevantSamples);
-    head_t_next = head_t_next(indexRelevantSamples);
+    drawdown_t_current = drawdown_t_current(indexRelevantSamples);
+    drawdown_t_next = drawdown_t_next(indexRelevantSamples);
 
     % Calculate drawdown between t+1 and t
-    drawdown =  head_t_current - head_t_next;
+    drawdown =  drawdown_t_current - drawdown_t_next;
     indexNeg = drawdown < 0;
     drawdown(indexNeg) = 0;
 
@@ -106,13 +110,13 @@ if strcmp(gwParam.likelihoodfct, 'uniform')
 elseif strcmp(gwParam.likelihoodfct, 'normal')
 
     % Calculate probability for each parameter sample    
-    u = head_t_current;
-    x = (200 -s1); 
+    u = drawdown_t_current;
+    x = s1; 
     sampleProb = normpdf(x, u, gwParam.llhstddev);
     numRelevantSamples = sum(sampleProb > 0.001);
     
     % Calculate next state for each parameter sample
-    drawdown =  head_t_current - head_t_next;
+    drawdown =  drawdown_t_next - drawdown_t_current;
     indexNeg = drawdown < 0;
     drawdown(indexNeg) = 0;
     next_s1 = s1 + drawdown;
@@ -145,6 +149,6 @@ if err > margin
     datetime=strrep(datetime,':','_'); %Replace colon with underscore
     datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
     datetime=strrep(datetime,' ','_');%Replace space with underscore
-    save(strcat('t_gw_error_', datetime), 'nnNumber' ,'wellIndex', 't', 'K_samples', 'S_samples', 's1', 's_gw', 'adjustOutput');
+    save(strcat('t_gw_error_', datetime), 'nnNumber' , 't', 'K_samples', 'S_samples', 's1', 's_gw', 'adjustOutput');
     error(strcat('Invalid probability distribution for T_gw'))
 end

@@ -11,8 +11,6 @@ X2 = [];
 
 % Generate state space for groundwater head and demand range
 [s_gw, gw_M] = gen_water_growth_states(gwParam);
-s_gw = [-1 s_gw]; % This is absorbing state where can't pump anymore
-gw_M = gw_M + 1;
 
 % Actions: Stop pumping groundwater (0), continue pumping (1)
 a_gw_available = [0 1];
@@ -73,11 +71,11 @@ if runParam.calculateTgw
     minS = min(S_samples);
     time = 1*365:365:N*365;
     x = [ones(1,N) * maxK; ones(1,N) * maxS; time]; 
-    y = netscript(x, runParam.adjustOutput);
-    minDrawdownHydrograph = y(gwParam.wellIndex,:);
+    y = netscript(x, gwParam);
+    minDrawdownHydrograph = y;
     x = [ones(1,N) * minK; ones(1,N) * minS; time]; 
-    y = netscript(x, runParam.adjustOutput);
-    maxDrawdownHydrograph = y(gwParam.wellIndex,:);
+    y = netscript(x, gwParam);
+    maxDrawdownHydrograph = y;
     for t = 1:N
         indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t) + 2;
         index_s_gw_time{t} = find(indexValidState);
@@ -421,8 +419,8 @@ if runParam.solveNoLearning
     headSample = zeros(length(K_samples), N);
     for i = 1:length(K_samples)
         x = [repmat(K_samples(i),[1,N]); repmat(S_samples(i),[1,N]); [365:365:365*(N)]];
-        tempHead = netscript(x, runParam.adjustOutput); 
-        headSample(i,:) = tempHead(gwParam.wellIndex,:);
+        tempHead = netscript(x, gwParam); 
+        headSample(i,:) = tempHead;
     end
     headSampleRounded = round2x(headSample, s_gw);
     indexPumpingOff = headSample <= gwParam.depthLimit;

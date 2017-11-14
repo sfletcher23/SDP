@@ -11,7 +11,7 @@ runParam.runSDP = true;
 runParam.simulateOn = true;
 runParam.calculateTgw = true;
 runParam.saveOn = true; 
-runParam.simNum = 1000;
+runParam.simNum = 5000;
 runParam.simpleVersion = false;
 runParam.flexOn = true;
 runParam.capacityDelay = true;
@@ -53,8 +53,7 @@ gwParam.sampleSize = 1000;
 gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
-gwParam.nnNumber = 17182;
-gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemesy, 93 is royal garage
+gwParam.nnNumber = 49010;
 gwParam.exaggeratePumpCost = false;
 gwParam.enforceLimit = false;
 gwParam.pumpingSubsidy = true;
@@ -62,6 +61,8 @@ gwParam.infoScenario = '20%_cutoff';
 gwParam.TgwLoadName = 'T_gw';
 gwParam.likelihoodfct = 'normal';
 gwParam.llhstddev = 10;
+gwParam.startingHead = 337.143;
+gwParam.nstp = 100;
 
 % Water infrastructure paramters
 water = struct;
@@ -162,20 +163,17 @@ if plotParam.plotsOn
     figure;
     totalCost = sum(sim.costOverTime,2);
     totalShortage = sum(sim.shortageOverTime,2);
-    scatter(totalShortage/1E6,totalCost/1E9, 70, 'MarkerFaceColor', 'b', 'MarkerEdgeColor', 'b')
+    scatter(totalShortage/1E6,totalCost/1E9, 50)
     totalCost = sum(simnolearn.costOverTime,2);
     totalShortage = sum(simnolearn.shortageOverTime,2);
     hold on
-    scatter(totalShortage/1E6,totalCost/1E9, 20, '*')
+    scatter(totalShortage/1E6,totalCost/1E9)
     title('Total Shortage vs. Total Cost')
     legend({strcat('Learning over time policy: Average Cost ', num2str(sim.averageTotalCost, '%.3E')), ...
         strcat('Fixed policy: Average Cost ', num2str(simnolearn.averageTotalCost, '%.3E'))},'FontSize', 12)
-    legend('boxoff')
     ylim([0 5])
     xlabel('Total Shortage over 30 years [MCM]')
     ylabel('Total Costs (including shortages) over 30 years [Billion USD]')
-    set(gca, 'FontSize', 14)
-    set(gca, 'LineWidth', 2)
     end
 
 end
