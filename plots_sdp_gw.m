@@ -180,19 +180,19 @@ end
 %% Plot first drawdown level when build (when nocapacity)
 X2nocap = permute(X2(:,1,1:end-1),[1,3,2]);
 indexZeros = ~flipud(X2nocap == 0);
-indexFirstZero = 200 - sum(cumprod(double(indexZeros),1)) + 3;
+indexFirstZero = gwParam.startingHead - sum(cumprod(double(indexZeros),1)) + 3;
 indexNan = sum(cumprod(~isnan(X2nocap)));
 indexReplaceNan = indexFirstZero >= indexNan;
 indexFirstZero(indexReplaceNan) = 1;
 figure;
-scatter(1:N, 200-s_gw(indexFirstZero));
+scatter(1:N, gwParam.startingHead-s_gw(indexFirstZero));
 xlabel('Year')
 ylim([0 205])
 ylabel('Head [m]')
 title('Optimal expansion policy: Drawdown Threshold for Exapsnion over Time')
 hold on
-line([0 30], [200 200], 'Color', 'k')
-line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
+line([0 30], [gwParam.startingHead-s_gw(end) -5 , gwParam.startingHead + 5], 'Color', 'k')
+%line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
     
     
     
