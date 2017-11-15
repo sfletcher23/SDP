@@ -7,7 +7,7 @@ tic
 
 % Run paramters
 runParam = struct;
-runParam.runSDP = false;
+runParam.runSDP = true;
 runParam.simulateOn = false;
 runParam.calculateTgw = true;
 runParam.saveOn = true; 
