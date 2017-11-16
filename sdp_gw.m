@@ -49,6 +49,12 @@ if runParam.capacityDelay
     exp_vectors = {s_exp_on' s_exp_delay1' s_exp_delay2'};
 end
 
+% Set cost function
+if runParam.oldCost
+    cost_supply_func = str2func('supplyAndCost_old');
+else
+    cost_supply_func = str2func('supplyAndCost');
+end
 
 %% Get K and S samples and use to prune state space
 
@@ -302,7 +308,7 @@ for t = linspace(N,1,N)
                     demandThisPeriod = gwParam.pumpingRate;
 
                     % Calculate cost and shortages this period
-                    [ cost, ~,~, ~,~, ~, ~, ~, ~, ~ ] = supplyAndCost( a1, a2, s1, s2, costParam, water, gwParam, t, demandThisPeriod, runParam.capacityDelay, exp_vectors);
+                    [ cost, ~,~, ~,~, ~, ~, ~, ~, ~ ] = cost_supply_func( a1, a2, s1, s2, costParam, water, gwParam, t, demandThisPeriod, runParam.capacityDelay, exp_vectors);
 
                     % Calculate transition matrix
                     
@@ -464,7 +470,7 @@ if runParam.solveNoLearning
                     end
                 end
                 [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply, othergw_supply ] ...
-                 = supplyAndCost( a1, a2_now, s1, s2_now, costParam, water, gwParam, t, gwParam.pumpingRate, false, []);
+                 = cost_supply_func( a1, a2_now, s1, s2_now, costParam, water, gwParam, t, gwParam.pumpingRate, false, []);
                 costOverTime_sample(t) = cost;
                 expansionCostOverTime_sample(t) = expansionCost;
                 pumpingCostOverTime_sample(t) = pumpingCost;

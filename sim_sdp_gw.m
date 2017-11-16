@@ -6,6 +6,14 @@ R = runParam.simNum;
 N = runParam.N;
 [gw_M, exp_M, ~] = size(V);
 
+% Set cost function
+if runParam.oldCost
+    cost_supply_func = str2func('supplyAndCost_old');
+else
+    cost_supply_func = str2func('supplyAndCost');
+end
+
+
 % Initialize vector tracking state, actions, water balance, costs over time 
 sim = struct;
 sim.state_gw = zeros(R,N);
@@ -93,7 +101,7 @@ for i = 1:R
         demandOverTime_now(t) = gwParam.pumpingRate;
         [ costOverTime_now(t), shortageCostOverTime_now(t), expansionCostOverTime_now(t), pumpingCostOverTime_now(t), margDesalCostOverTime_now(t), ...
             shortageOverTime_now(t), capacityOverTime_now(t),minjurSupplyOverTime_now(t), expSupplyOverTime_now(t), othergwSupplyOverTime_now(t) ] ...
-            = supplyAndCost( action_gw_now(t),  action_expand_now(t), state_gw_now(t), state_expand_now(t), ...
+            = cost_supply_func( action_gw_now(t),  action_expand_now(t), state_gw_now(t), state_expand_now(t), ...
             costParam, water, gwParam, t,  demandOverTime_now(t), runParam.capacityDelay, exp_vectors);
 
         % Get transisition mat to next state give current state and actions
