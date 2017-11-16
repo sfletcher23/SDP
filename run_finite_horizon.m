@@ -17,7 +17,7 @@ runParam.flexOn = true;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
 runParam.adjustOutput = true;
-runParam.runSDPfunction = false;
+runParam.runSDPfunction = true;
 runParam.N = 30;
 
 plotParam = struct;
@@ -49,7 +49,7 @@ popParam.growthScenario = 'none';
 % GW Parameters
 gwParam = struct;
 gwParam.initialDrawdown = 0;
-gwParam.sampleSize = 1000;
+gwParam.sampleSize = 2000;
 gwParam.depthLimit = 300;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
