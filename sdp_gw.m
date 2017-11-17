@@ -65,7 +65,7 @@ sampleProb = [];
 
 if runParam.calculateTgw
 
-    [K_samples, S_samples] = gen_param_dist('full_range', gwParam.sampleSize, 1, N);
+    [K_samples, S_samples] = gen_param_dist(gwParam.sampleSize);
 
     % Get min and max hydrograph
     % Get neural net script
