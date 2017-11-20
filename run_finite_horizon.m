@@ -8,30 +8,30 @@ tic
 % Run paramters
 runParam = struct;
 runParam.runSDP = true;
-runParam.simulateOn = false;
+runParam.simulateOn = true;
 runParam.calculateTgw = true;
 runParam.saveOn = true; 
-runParam.simNum = 5000;
+runParam.simNum = 1;
 runParam.simpleVersion = false;
 runParam.flexOn = true;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
 runParam.adjustOutput = true;
-runParam.runSDPfunction = true;
+runParam.runSDPfunction = false;
 runParam.oldCost = true;
 runParam.N = 30;
 
 plotParam = struct;
-plotParam.plotsOn = false;
-plotParam.policyPlotsOn = true;
+plotParam.plotsOn = true;
+plotParam.policyPlotsOn = false;
 plotParam.simPlotsOn = true; 
 plotParam.plotInitialWaterBalance = false; 
-plotParam.plotHeatMaps = true;
-plotParam.plotinfoOverTime = true;
+plotParam.plotHeatMaps = false;
+plotParam.plotinfoOverTime = false;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 1;    % $/m^2
+costParam.shortage_cost = 100;    % $/m^2
 % costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 % costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
 costParam.marginal_cost = .48;

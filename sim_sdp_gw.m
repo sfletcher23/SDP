@@ -2,9 +2,11 @@ function [ sim ] = sim_sdp_gw( X1, X2, V, T_gw_all, cumTgw, useNoInfoPolicy, low
 % Use SDP policy or single time period decision to 
 
 
+
 R = runParam.simNum;
 N = runParam.N;
 [gw_M, exp_M, ~] = size(V);
+%% 
 
 % Set cost function
 if runParam.oldCost
