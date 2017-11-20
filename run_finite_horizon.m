@@ -17,12 +17,12 @@ runParam.flexOn = true;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
 runParam.adjustOutput = true;
-runParam.runSDPfunction = false;
+runParam.runSDPfunction = true;
 runParam.oldCost = true;
 runParam.N = 30;
 
 plotParam = struct;
-plotParam.plotsOn = true;
+plotParam.plotsOn = false;
 plotParam.policyPlotsOn = true;
 plotParam.simPlotsOn = true; 
 plotParam.plotInitialWaterBalance = false; 
@@ -31,7 +31,7 @@ plotParam.plotinfoOverTime = false;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 10;    % $/m^2
+costParam.shortage_cost = 10    ;    % $/m^2
 % costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 % costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
 costParam.marginal_cost = .48;
