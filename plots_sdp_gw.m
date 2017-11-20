@@ -179,17 +179,16 @@ if plotParam.policyPlotsOn
 end
     
 %% Plot first drawdown level when build (when nocapacity)
-if false
+if true
 X2nocap = permute(X2(:,1,1:end-1),[1,3,2]);
 indexZeros = ~flipud(X2nocap == 0);
-indexFirstZero = gwParam.startingHead - sum(cumprod(double(indexZeros),1)) + 3;
+indexFirstZero =sum(cumprod(double(indexZeros),1)) + 3;
 indexNan = sum(cumprod(~isnan(X2nocap)));
 indexReplaceNan = indexFirstZero >= indexNan;
 indexFirstZero(indexReplaceNan) = 1;
 figure;
-scatter(1:N, gwParam.startingHead-s_gw(indexFirstZero));
+scatter(1:N, s_gw(indexFirstZero));
 xlabel('Year')
-ylim([0 205])
 ylabel('Head [m]')
 title('Optimal expansion policy: Drawdown Threshold for Exapsnion over Time')
 hold on

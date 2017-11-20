@@ -8,14 +8,14 @@ tic
 % Run paramters
 runParam = struct;
 runParam.runSDP = true;
-runParam.simulateOn = false;
+runParam.simulateOn = true;
 runParam.calculateTgw = true;
 runParam.saveOn = true; 
 runParam.simNum = 100;
 runParam.simpleVersion = false;
 runParam.flexOn = true;
 runParam.capacityDelay = true;
-runParam.solveNoLearning = true;
+runParam.solveNoLearning = false;
 runParam.adjustOutput = true;
 runParam.runSDPfunction = true;
 runParam.oldCost = true;
@@ -31,7 +31,7 @@ plotParam.plotinfoOverTime = false;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 10    ;    % $/m^2
+costParam.shortage_cost = 10;    % $/m^2
 % costParam.expansion_cost.capex.large = 258658804 * 2 * .9; % $
 % costParam.expansion_cost.capex.small = costParam.expansion_cost.capex.large /3 * 1.15;
 costParam.marginal_cost = .48;

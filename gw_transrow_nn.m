@@ -58,11 +58,12 @@ drawdown_t_next = zeros(1, length(K_samples));
 for i = 1:length(K_samples)
     x = [repmat(K_samples(i),[1,t+1]); repmat(S_samples(i),[1,t+1]); 0:365:365*(t) ];
     tempHead = netscript(x, gwParam);
-    if t == 1
-        drawdown_t_current(i) = 0;
-    else
-        drawdown_t_current(i) = tempHead(end-1);
-    end
+%     if t == 1
+%         drawdown_t_current(i) = 0;
+%     else
+%         drawdown_t_current(i) = tempHead(end-1);
+%     end
+    drawdown_t_current(i) = tempHead(end-1);
     drawdown_t_next(i) = tempHead(end);
 end
 
@@ -88,9 +89,9 @@ if strcmp(gwParam.likelihoodfct, 'uniform') % Need to fix this with new drawdon 
 
 
     % In first period, accept all vlaues
-    if t == 1 
-        indexRelevantSamples = true([1 numSamples]);
-    end
+%     if t == 1 
+%         indexRelevantSamples = true([1 numSamples]);
+%     end
 
     % Update samples from previous period to include only relevant samples
     drawdown_t_current = drawdown_t_current(indexRelevantSamples);
