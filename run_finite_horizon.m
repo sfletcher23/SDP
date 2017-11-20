@@ -8,7 +8,7 @@ tic
 % Run paramters
 runParam = struct;
 runParam.runSDP = true;
-runParam.simulateOn = true;
+runParam.simulateOn = false;
 runParam.calculateTgw = true;
 runParam.saveOn = true; 
 runParam.simNum = 5000;
@@ -17,12 +17,12 @@ runParam.flexOn = true;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
 runParam.adjustOutput = true;
-runParam.runSDPfunction = false;
+runParam.runSDPfunction = true;
 runParam.oldCost = true;
 runParam.N = 30;
 
 plotParam = struct;
-plotParam.plotsOn = true;
+plotParam.plotsOn = false;
 plotParam.policyPlotsOn = true;
 plotParam.simPlotsOn = true; 
 plotParam.plotInitialWaterBalance = false; 
@@ -51,7 +51,7 @@ popParam.growthScenario = 'none';
 gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 2000;
-gwParam.depthLimit = 300;
+gwParam.depthLimit = 100;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
 gwParam.nnNumber = 54215;

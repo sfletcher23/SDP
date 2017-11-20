@@ -95,6 +95,7 @@ end
 %% Visualize results: plot optimal policies
 
 if plotParam.policyPlotsOn
+    addpath('/Users/sarahfletcher/Documents/MATLAB/cbrewer');
     gw_step = s_gw(3) - s_gw(2);
     exp_step = s_expand(2) - s_expand(1);
     blues = colormap(cbrewer('seq', 'Blues', 6));
@@ -178,6 +179,7 @@ if plotParam.policyPlotsOn
 end
     
 %% Plot first drawdown level when build (when nocapacity)
+if false
 X2nocap = permute(X2(:,1,1:end-1),[1,3,2]);
 indexZeros = ~flipud(X2nocap == 0);
 indexFirstZero = gwParam.startingHead - sum(cumprod(double(indexZeros),1)) + 3;
@@ -191,10 +193,10 @@ ylim([0 205])
 ylabel('Head [m]')
 title('Optimal expansion policy: Drawdown Threshold for Exapsnion over Time')
 hold on
-line([0 30], [gwParam.startingHead-s_gw(end) -5 , gwParam.startingHead + 5], 'Color', 'k')
+%line([0 30], [gwParam.startingHead-s_gw(end)-5 , gwParam.startingHead + 5], 'Color', 'k')
 %line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
     
-    
+end
     
 
 
@@ -280,15 +282,15 @@ else
     % Plot hydrographs
     figure;
     indexLimit = find(sim.state_gw == -1 | sim.state_gw >= gwParam.depthLimit);
-    hydrograph = 200 - sim.state_gw;
-    hydrograph(indexLimit) = 200 - gwParam.depthLimit;
+    hydrograph = gwParam.startingHead - sim.state_gw;
+    hydrograph(indexLimit) = gwParam.startingHead - gwParam.depthLimit;
     plot(1:N, hydrograph)
     hold on 
-    line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit ], 'Color', 'k', 'LineStyle', '--')
+    line([0 30], [gwParam.startingHead-gwParam.depthLimit gwParam.startingHead-gwParam.depthLimit ], 'Color', 'k', 'LineStyle', '--')
     xlabel('Time [years]')
     ylabel('Head [m]')
     title('Simulated Drawdown')
-    ylim([0 200])
+    ylim([0 gwParam.startingHead])
     
 %     % Plot hydrograph confidence interval
 %     p5 = prctile(hydrograph,5);
@@ -363,8 +365,7 @@ end
 
 
 %% Show updated predictions over time
-if plotParam.plotinfoOverTime
-    
+if plotParam.plotinfoOverTime && false
     
     numSamples = 2;
 

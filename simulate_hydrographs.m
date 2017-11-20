@@ -5,7 +5,7 @@ end
 
 %% Get nn function
 
-nnNumber = 49010;
+nnNumber = 54215;
 netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
 netscript = str2func(netname); 
 adjustOutput = true;
@@ -15,10 +15,10 @@ saveOn = true;
 gwParam = struct;
 gwParam.initialDrawdown = 0;
 gwParam.sampleSize = 100;
-gwParam.depthLimit = false;
+gwParam.depthLimit = 300;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
-gwParam.nnNumber = 49010;
+gwParam.nnNumber = 54215;
 gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemess, 93 is royal garage
 gwParam.exaggeratePumpCost = false;
 gwParam.enforceLimit = false;
@@ -30,7 +30,7 @@ gwParam.llhstddev = 10;
 gwParam.startingHead = 337.143;
 gwParam.nstp = 100;
 %% Get modflow, nn, and sdp hydrograph estimates and plot: One well one run
-if true
+if false
     
 % Sample run number and well number to plot
 numRuns = length(hk);
@@ -94,7 +94,7 @@ end
 
 %% Error histogram
 
-if true
+if false
     runs = 500;
     N = 30;
     error_nn = zeros([length(runs) N]);
@@ -186,16 +186,18 @@ if true
 end
 
 %% Simulate sdp hydrographs from multiple using data updating
-if false
+if true
 
-sampleSize = 10000;
+sampleSize = 1000;
 runs = 20;
 N = 30;
-s_gw = [-1 0:gwParam.depthLimit];
+[s_gw, gw_M] = gen_water_growth_states(gwParam);
 gw_state = zeros(runs,N+1);
 numSampUsed = zeros(runs,N);
 drawdown = cell(runs,N);
-[K_samples, S_samples] = gen_param_dist('full_range', sampleSize, 1, N);
+[K_samples, S_samples] = gen_param_dist(sampleSize);
+
+figure;
 for i = 1:runs
     disp(num2str(i))
     tempGwState = zeros([1 N+1]);
@@ -204,14 +206,16 @@ for i = 1:runs
     for time = 1:N
         % Get transmat vector to next GW state 
         gw_state_current = tempGwState(time);
+        index_s1 = find(gw_state_current == s_gw);
         [T_current_gw, numSampUsedNow, ~, ~, ~, ~, tempDrawdown] = gw_transrow_nn(gwParam, time, K_samples, S_samples, gw_state_current, s_gw, adjustOutput);
+        %T_current_gw = T_gw_all(:,index_s1,time);
         tempNumSamples(time) = numSampUsedNow;
         p = rand();
         index = find(p < cumsum(T_current_gw),1);
         tempGwState(time+1) = s_gw(index);
     end
     gw_state(i,:) = tempGwState;
-    numSampUsed(i,:) = tempNumSamples;
+    %numSampUsed(i,:) = tempNumSamples;
 end
 y_sdp = gwParam.startingHead - gw_state;
 
@@ -221,7 +225,7 @@ ylim([-650 350])
 
 end
 
-if saveOn
+if false
     datetime=datestr(now);  
     datetime=strrep(datetime,':','_'); %Replace colon with underscore
     datetime=strrep(datetime,'-','_');%Replace minus sign with underscore

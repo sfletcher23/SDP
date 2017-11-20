@@ -15,6 +15,9 @@ indexBelow = [];
 sampleProb = [];
 drawdown = [];
 
+K_samples = log(K_samples);
+S_samples = log(S_samples);
+
 % If at max drawdown, stay at max drawdown
 % if s1 == 200
 %     T_gw = zeros(1,length(s_gw));
@@ -116,7 +119,7 @@ elseif strcmp(gwParam.likelihoodfct, 'normal')
     numRelevantSamples = sum(sampleProb > 0.001);
     
     % Calculate next state for each parameter sample
-    drawdown =  drawdown_t_current - drawdown_t_next;
+    drawdown =  drawdown_t_next - drawdown_t_current;
     indexNeg = drawdown < 0;
     drawdown(indexNeg) = 0;
     next_s1 = s1 + drawdown;
