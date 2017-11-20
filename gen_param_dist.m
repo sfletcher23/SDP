@@ -9,7 +9,6 @@ K_mean = 4.8;
 K_var = 47.15;
 S_lower = 6.09E-6;
 S_upper = 2.2E-5;
-S_mean = 0.13;
 
 
 % Draw samples from K (lognorm) and S (triangular) distributions

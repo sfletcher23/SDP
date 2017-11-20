@@ -17,7 +17,7 @@ runParam.flexOn = true;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
 runParam.adjustOutput = true;
-runParam.runSDPfunction = true;
+runParam.runSDPfunction = false;
 runParam.oldCost = true;
 runParam.N = 30;
 

@@ -116,7 +116,7 @@ elseif strcmp(gwParam.likelihoodfct, 'normal')
     numRelevantSamples = sum(sampleProb > 0.001);
     
     % Calculate next state for each parameter sample
-    drawdown =  drawdown_t_next - drawdown_t_current;
+    drawdown =  drawdown_t_current - drawdown_t_next;
     indexNeg = drawdown < 0;
     drawdown(indexNeg) = 0;
     next_s1 = s1 + drawdown;
