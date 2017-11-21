@@ -5,7 +5,7 @@ end
 
 %% Get nn function
 
-nnNumber = 54215;
+nnNumber = 54212;
 netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
 netscript = str2func(netname); 
 adjustOutput = true;
@@ -18,7 +18,7 @@ gwParam.sampleSize = 100;
 gwParam.depthLimit = 300;
 gwParam.pumpingRate = 640000 * 365;  % m^3/y
 gwParam.otherPumpingRate = (970000 + 100000 - 640000) * 365;  % m^3/y    % From ADA water balance report 2016 estimates
-gwParam.nnNumber = 54215;
+gwParam.nnNumber = 54212;
 gwParam.wellIndex = 108; % 68 is RR1, 108 is Shemess, 93 is royal garage
 gwParam.exaggeratePumpCost = false;
 gwParam.enforceLimit = false;
@@ -30,12 +30,11 @@ gwParam.llhstddev = 10;
 gwParam.startingHead = 337.143;
 gwParam.nstp = 100;
 %% Get modflow, nn, and sdp hydrograph estimates and plot: One well one run
-if false
+if true
     
 % Sample run number and well number to plot
 numRuns = length(hk);
 i = randsample(numRuns,1);
-i = 3;
 
 N = 30;
 
@@ -59,8 +58,8 @@ y_modflow = y_modflow(indexTime);
 [s_gw, gw_M] = gen_water_growth_states(gwParam);
 gw_state = zeros(1,N);
 % [K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist('full_range', gwParam, 1, N);
-K_samples_thisPeriod = hk(i);
-S_samples_thisPeriod = ss(i);
+K_samples_thisPeriod = exp(hk(i));
+S_samples_thisPeriod = exp(ss(i));
 % K_samples_thisPeriod = 0.6701;
 % S_samples_thisPeriod = 0.2062;
 
@@ -71,7 +70,7 @@ for time = 1:N-1
     else
         gw_state_current = gw_state(time);
     end
-    [T_current_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples, drawdown] = gw_transrow_nn(gwParam, time, K_samples_thisPeriod, S_samples_thisPeriod, gw_state_current, s_gw, adjustOutput);
+    [T_current_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples, drawdown] = gw_transrow_nn(gwParam, time, K_samples_thisPeriod, S_samples_thisPeriod, gw_state_current, s_gw);
     p = rand();
     index = find(p < cumsum(T_current_gw),1);
     gw_state(time+1) = s_gw(index);
@@ -207,7 +206,7 @@ for i = 1:runs
         % Get transmat vector to next GW state 
         gw_state_current = tempGwState(time);
         index_s1 = find(gw_state_current == s_gw);
-        [T_current_gw, numSampUsedNow, ~, ~, ~, ~, tempDrawdown] = gw_transrow_nn(gwParam, time, K_samples, S_samples, gw_state_current, s_gw, adjustOutput);
+        [T_current_gw, numSampUsedNow, ~, ~, ~, ~, tempDrawdown] = gw_transrow_nn(gwParam, time, K_samples, S_samples, gw_state_current, s_gw);
         %T_current_gw = T_gw_all(:,index_s1,time);
         tempNumSamples(time) = numSampUsedNow;
         p = rand();

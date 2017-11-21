@@ -1,5 +1,5 @@
 function[T_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, sampleProb, drawdown] = ...
-    gw_transrow_nn(gwParam, t, K_samples, S_samples, s1, s_gw, adjustOutput ) 
+    gw_transrow_nn(gwParam, t, K_samples, S_samples, s1, s_gw, ~ ) 
 
 % Calculates drawdown between time t-1 and time t predicted by the neural
 % net indicated for each of the T and S samples indicated. 
@@ -153,6 +153,6 @@ if err > margin
     datetime=strrep(datetime,':','_'); %Replace colon with underscore
     datetime=strrep(datetime,'-','_');%Replace minus sign with underscore
     datetime=strrep(datetime,' ','_');%Replace space with underscore
-    save(strcat('t_gw_error_', datetime), 'nnNumber' , 't', 'K_samples', 'S_samples', 's1', 's_gw', 'adjustOutput');
+    save(strcat('t_gw_error_', datetime), 'nnNumber' , 't', 'K_samples', 'S_samples', 's1', 's_gw');
     error(strcat('Invalid probability distribution for T_gw'))
 end

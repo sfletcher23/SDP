@@ -364,13 +364,15 @@ end
 
 
 %% Show updated predictions over time
-if plotParam.plotinfoOverTime && false
-    
-    numSamples = 2;
+if plotParam.plotinfoOverTime 
+       
+    [clrmp]=cbrewer('seq', 'Reds', N);
+    numSamples = 1;
 
     sample = randsample(R,numSamples);
     netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
     netscript = str2func(netname); 
+    
 
     figure;
     finalHead = zeros(5,N,6);
@@ -379,6 +381,7 @@ if plotParam.plotinfoOverTime && false
 
         p5 = zeros(N);
         p95 = zeros(N);
+        samplesP5toP95 = cell(N,1);
         maxTime = N;
         for t = 1:N
             indexState = find(headSim(t) == s_gw);
@@ -388,9 +391,9 @@ if plotParam.plotinfoOverTime && false
             end
             headSamples = zeros(length(K_samples),N);
             for i = 1:length(K_samples)
-                x = [repmat(K_samples(i),[1,N]); repmat(S_samples(i)  ,[1,N]); [365:365:365*(N)]];
-                tempHead = netscript(x, runParam.adjustOutput);
-                headSamples(i,:) = tempHead(gwParam.wellIndex,:);
+                x = [repmat(log(K_samples(i)),[1,N]); repmat(log(S_samples(i))  ,[1,N]); [365:365:365*(N)]];
+                tempDrawdown = netscript(x, gwParam);
+                headSamples(i,:) = gwParam.startingHead - tempDrawdown;
             end
            [headSamplesSorted, index] = sort(headSamples);
            cumProb = cumsum(sampleProb{indexState,t}(index(:,end)));
@@ -401,50 +404,109 @@ if plotParam.plotinfoOverTime && false
            indexp95 = find(cumProb > 0.95,1);
            p5(t,:) = headSamplesSorted(indexp5,:);
            p95(t,:) = headSamplesSorted(indexp95,:);
+           sampleIndexP5toP95 = index(indexp5:indexp95,end);
+           samplesP5toP95{t} = [K_samples(sampleIndexP5toP95) ; S_samples(sampleIndexP5toP95)];
            finalHead(:,t,k) = [headSamplesSorted(indexp5,end); headSamplesSorted(indexp25,end); headSamplesSorted(indexp50,end);...
                headSamplesSorted(indexp75,end); headSamplesSorted(indexp95,end)];
 
         end
 
-        subplot(1,2,k)
+        subplot(1,2,1)
         for t = 1:maxTime
             x = t:N;
             X=[x,fliplr(x)];
-            scatter(t,200-headSim(t),'*', 'k')
+            scatter(t,gwParam.startingHead-headSim(t),'*', 'k')
             Y=[p5(t,t:end),fliplr(p95(t,t:end))];
             hold on
-            fill(X,Y,'b', 'FaceAlpha', .05); 
+            fill(X,Y,clrmp(t,:)); 
             xlabel('Year')
             ylabel('Head [m]')
         end
-        line([0 N], [200 - gwParam.depthLimit, 200 - gwParam.depthLimit], 'Color', 'r', 'LineStyle', '--')   
+        subplot(1,2,2)
+        for t = 1:maxTime
+            scatter(samplesP5toP95{t}(1,:),samplesP5toP95{t}(2,:),'o', 'k','MarkerFaceColor', clrmp(t,:))
+            hold on
+            xlabel('K [m/d]')
+            ylabel('S')
+        end
+        
+%         line([0 N], [200 - gwParam.depthLimit, 200 - gwParam.depthLimit], 'Color', 'r', 'LineStyle', '--')   
     end
     suptitle('Hydrograph Confidence Intervals Over Time')
-
-    figure;
-    for i=1:6
-        figure;
-        finalH = fliplr(finalHead(:,:,i));
-        b = boxplot(rand(30));
-        h = findobj(gcf,'tag','Upper Whisker');
-        set(h,{'YData'},num2cell(finalH(end-1:end,:),1)');
-        h = findobj(gcf,'tag','Lower Whisker')
-        set(h,{'YData'},num2cell(finalH(1:2,:),1)')
-        h = findobj(gcf,'tag','Upper Adjacent Value')
-        set(h,{'YData'},num2cell(finalH([end end],:),1)')
-        h = findobj(gcf,'tag','Lower Adjacent Value')
-        set(h,{'YData'},num2cell(finalH([1 1],:),1)')
-        h = findobj(gcf,'tag','Box')
-        set(h,{'YData'},num2cell(finalH([2 4 4 2 2],:),1)')
-        h = findobj(gcf,'tag','Median')
-        set(h,{'YData'},num2cell(finalH([3 3],:),1)')
-        h = findobj(gcf,'tag','Outliers')
-        set(h,{'Visible'},{'off'})
-        ylim([0 200])
-
+    
+    if false
+    % Make movie for one sample
+    fig = figure;
+    for t = 1:maxTime
+        subplot(1,2,1)
+        x = t:N;
+        X=[x,fliplr(x)];
+        scatter(t,gwParam.startingHead-headSim(t),35, 'd', 'k', 'MarkerFaceColor', 'k')
+        Y=[p5(t,t:end),fliplr(p95(t,t:end))];
+        hold on
+        fill(X,Y,clrmp(t,:), 'LineWidth', 1.5); 
+        xlabel('Year')
+        ylabel('Head [m]')
+        set(gca,'linewidth',1.5)
+        set(gca,'FontSize',10)
+        title('Head predictions')
+        subplot(1,2,2)
+        scatter(samplesP5toP95{t}(1,:),samplesP5toP95{t}(2,:),'o', 'k','MarkerFaceColor', clrmp(t,:))
+        hold on
+        xlabel('K [m/d]')
+        ylabel('S')
+        set(gca,'linewidth',1.5)
+        set(gca,'FontSize',10)
+        title('Parameters')
+%         if t == 1
+%             suptitle('Updated predictions over time (90% CI)')
+%         end
+        set(fig,'Position', [680 558 1000 750])
+        if t == 1 
+            set(gca,'Units','normalized')
+            xLabelHandle = get( gca ,'XLabel' );
+            pos  = get( xLabelHandle , 'position' )
+            pos1 = pos - [0 0.05 0]; 
+            set( xLabelHandle , 'position' , pos1 );
+        end
+        frames(t) = getframe(gcf);
     end
 
-
+    % Save as movie
+    myVideo = VideoWriter('infoOverTime.mpv4');
+    open(myVideo)
+    writeVideo(myVideo, frames);
+    close(myVideo)
+    
+    end
+    
+    
+% 
+%     figure;
+%     for i=1:6
+%         figure;
+%         finalH = fliplr(finalHead(:,:,i));
+%         b = boxplot(rand(30));
+%         h = findobj(gcf,'tag','Upper Whisker');
+%         set(h,{'YData'},num2cell(finalH(end-1:end,:),1)');
+%         h = findobj(gcf,'tag','Lower Whisker');
+%         set(h,{'YData'},num2cell(finalH(1:2,:),1)')
+%         h = findobj(gcf,'tag','Upper Adjacent Value');
+%         set(h,{'YData'},num2cell(finalH([end end],:),1)')
+%         h = findobj(gcf,'tag','Lower Adjacent Value');
+%         set(h,{'YData'},num2cell(finalH([1 1],:),1)')
+%         h = findobj(gcf,'tag','Box');
+%         set(h,{'YData'},num2cell(finalH([2 4 4 2 2],:),1)')
+%         h = findobj(gcf,'tag','Median');
+%         set(h,{'YData'},num2cell(finalH([3 3],:),1)')
+%         h = findobj(gcf,'tag','Outliers');
+%         set(h,{'Visible'},{'off'})
+%         %ylim([0 200])
+% 
+%     end
+    
+    
+    
 
 
 end
