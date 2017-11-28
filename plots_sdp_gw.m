@@ -457,18 +457,22 @@ if plotParam.plotinfoOverTime
         ylabel('S')
         set(gca,'linewidth',1.5)
         set(gca,'FontSize',10)
+        set(gca,'Units','normalized')
+        pos = get(gca, 'Position');
+        set(gca, 'Position', pos + [0 0.05 0 -0.05])
         title('Parameters')
+        xlim([0 45])
 %         if t == 1
 %             suptitle('Updated predictions over time (90% CI)')
 %         end
         set(fig,'Position', [680 558 1000 750])
-        if t == 1 
+        %if t == 1 
             set(gca,'Units','normalized')
             xLabelHandle = get( gca ,'XLabel' );
             pos  = get( xLabelHandle , 'position' )
-            pos1 = pos - [0 0.05 0]; 
+            pos1 = pos - [0 0.02 0]; 
             set( xLabelHandle , 'position' , pos1 );
-        end
+        %end
         frames(t) = getframe(gcf);
     end
 
