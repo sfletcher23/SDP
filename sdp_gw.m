@@ -240,7 +240,7 @@ for t = linspace(N,1,N)
     
     % Loop over groundwater state: 1 is depleted, M1 is full
     index_s_gw_thisPeriod = index_s_gw_time{t}; 
-    parfor index_s1 = index_s_gw_thisPeriod
+    for index_s1 = index_s_gw_thisPeriod
         s1 = s_gw(index_s1);
        
         % Loop over expansion state: 1 is unexpanded, 2 is expanded
@@ -367,12 +367,19 @@ for t = linspace(N,1,N)
                     TRows{2} = T_expand;
                     [ T ] = transrow2mat( TRows );
 
-                     % Calculate expected future cost
-                     %nextV = V(:,:,:,:,t+1);
+                     % Calculate expected future cost or percentile cost
                     indexNonZeroT = find(T > 0);
-                    expV = sum(T(indexNonZeroT) .* nextV(indexNonZeroT));
-                    for i = 2:4
-                        expV = sum(expV);
+                    if runParam.percentile
+                        nonZeroV = nextV(indexNonZeroT);
+                        [sortedNextV, indexSort] = sort(reshape(nonZeroV, 1, []));
+                        TnonZero = T(indexNonZeroT);
+                        indexPrcnV = find(cumsum(TnonZero(indexSort)) > runParam.percentile/100, 1);
+                        expV = nonZeroV(indexPrcnV);
+                    else
+                        expV = sum(T(indexNonZeroT) .* nextV(indexNonZeroT));
+                        for i = 2:4
+                            expV = sum(expV);
+                        end
                     end
                     
                     stateMsg = strcat('t=', num2str(t), ', s1=', num2str(s1), ', a1=', num2str(a1), ', s2=', num2str(s2), ', a2=', num2str(a2))

@@ -3,8 +3,8 @@ function [K_samples, S_samples] = gen_param_dist(sampleSize)
 % information scenario number 
 
 % Starting parameter values
-K_lower = 1.2; % [ m^2/day]
-K_upper = 14.3;
+K_lower = 0.9; % [ m^2/day]
+K_upper = 14;
 K_mean = 4.8;
 K_var = 47.15;
 S_lower = 6.09E-6;
