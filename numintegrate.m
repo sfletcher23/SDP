@@ -1,7 +1,3 @@
-
-% Notes: limiting distribution on S (bc uniform over narrow range) means
-% less variation in K.  
-
 %% Generate some sample paths
 
 % figure;
@@ -34,55 +30,31 @@
 % t=25: 28.1761
 % t=30: 29.9804
 
+%%
 
-%% MCMC to estimate posterior
+S_lower = 6.09E-6; 
+S_upper = 2.2E-5;
 
-plotOn = false;
 
-% Slice sampling
-N = 10000;
 pdf_func = str2func('unnormalized_pdf');
-x = slicesample([1 1E-5], N, 'pdf',pdf_func,'thin',5,'burnin',1000);
-save(strcat('slice_data', getenv('SLURM_JOB_ID')), x)
+norm_c = integral2(pdf_func(k,s,t),0,15,S_lower,S_upper)
 
-prior_k = lognrnd(K_mu, K_sigma,[N 1]);
-prior_s = unifrnd(S_lower, S_upper,[N 1]);
+logk = 0:.01:5;
+logs = -12:.01:-11;
+k = repmat(logk, length(logs), 1);
+s = repmat(logs', 1, length(logk));
+p = unnormalized_pdf(exp(k), exp(s));
+figure
+surf(exp(k), exp(s), p/norm_c)
 
-if plotOn
-figure;
-% plot K
-subplot(1,2,1)
-[binheight,bincenter] = hist(x(:,1),[0:.5:100]);
-h = bar(bincenter,binheight,'hist');
-h.FaceColor = [.8 .8 1];
-h.FaceAlpha = 0.5;
-hold on 
-[binheight,bincenter] = hist(prior_k,[0:.5:100]);
-h = bar(bincenter,binheight,'hist');
-h.FaceColor = [1 .8 .8];
-h.FaceAlpha = 0.5;
-xlim([0 100])
-% plot S
-subplot(1,2,2)
-[binheight,bincenter] = hist(x(:,2));
-h = bar(bincenter,binheight,'hist');
-h.FaceColor = [.8 .8 1];
-h.FaceAlpha = 0.5;
-hold on 
-[binheight,bincenter] = hist(prior_s);
-h = bar(bincenter,binheight,'hist');
-h.FaceColor = [1 .8 .8];
-h.FaceAlpha = 0.5;
+unnormalized_pdf(1,8E-6)/norm_c
+unnormalized_pdf(14,2E-5)/norm_c
 
-end
+function [p] = unnormalized_pdf(k, s, t)
 
+[a, b] = size(k);
 
-function [p] = unnormalized_pdf(params)
-
-k = params(1);
-s = params(2);
-
-s1 = 179;
+s1 = 289;
 
 % NN info
 nnNumber = 54212;
@@ -107,25 +79,33 @@ K_sigma = sqrt(log(K_var/(K_mean^2)+1));
 % pd = makedist('Lognormal','mu',K_mu,'sigma',K_sigma);
 % pd = truncate(pd,0,40);
 % prior_k = pdf(pd, k);
-% if k > 15
-%     prior_k = 0;
-% else
+if k > 15
+    prior_k = 0;
+else
     prior_k = lognpdf(k, K_mu, K_sigma);
-% end
+end
 prior_s = unifpdf(s, S_lower, S_upper);
 
 % Log transform data for nn
 k = log(k);
 s = log(s);
 
+% reshape
+k = reshape(k, 1, []);
+s = reshape(s, 1, []);
+prior_s = reshape(prior_s, 1, []);
+prior_k = reshape(prior_k, 1, []);
+
 % Calculate likelihood using model
-input = [k; s; 365*10];
+input = [k; s; repmat(365*t, size(k))];
 drawdown_t_current = netscript(input, gwParam);
 y = drawdown_t_current;
 u = s1; 
 likelihood = normpdf(y, u, L_sigma);
 
 % Multiply prior times likelihood
-p = prior_k * prior_s * likelihood; 
+p = prior_k .* prior_s .* likelihood; 
+p = reshape(p, a, b);
+
 
 end
