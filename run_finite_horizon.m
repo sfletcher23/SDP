@@ -17,7 +17,7 @@ runParam.flexOn = true;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = false;
 runParam.adjustOutput = true;
-runParam.runSDPfunction = true;
+runParam.runSDPfunction = false;
 runParam.oldCost = true;
 runParam.percentile = 90;
 runParam.N = 30;
@@ -27,7 +27,7 @@ plotParam.plotsOn = true;
 plotParam.policyPlotsOn = true;
 plotParam.simPlotsOn = true; 
 plotParam.plotInitialWaterBalance = false; 
-plotParam.plotHeatMaps = true;
+plotParam.plotHeatMaps = false;
 plotParam.plotinfoOverTime = true;
 
 % Cost paramters
