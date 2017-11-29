@@ -50,13 +50,18 @@ S_upper = 2.2E-5;
 % unnorm_param_pdf(1,8E-6)/norm_c
 % unnorm_param_pdf(14,2E-5)/norm_c
 
-bins = 0:20:360;
+bins = 0:1:360;
 for i = 1:length(bins)-1
     zmin = bins(i);
     zmax = bins(i+1);
     h_func = str2func('h_pdf');
-    prob_h_next(i) =  integral3(h_func,0,15,S_lower,S_upper,zmin,zmax, 'AbsTol', 1e-7, 'RelTol', 1e-5);
+    p(i) =  integral3(h_func,0,15,S_lower,S_upper,zmin,zmax, 'AbsTol', 1e-7, 'RelTol', 1e-5);
 end
+save(strcat('next_h_dist', getenv('SLURM_JOB_ID')),'p', 'bins');
+figure; 
+bincenter = bins(1:end-1) + 0.5;
+binheight = p;
+h = bar(bincenter,binheight,'hist');
 
 function [p] = unnorm_param_pdf(k, s)
 
