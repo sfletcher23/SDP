@@ -35,26 +35,35 @@
 S_lower = 6.09E-6; 
 S_upper = 2.2E-5;
 
+% 
+% pdf_func = str2func('unnorm_param_pdf');
+% norm_c = integral2(pdf_func,0,15,S_lower,S_upper)
+% 
+% logk = 0:.01:5;
+% logs = -12:.01:-11;
+% k = repmat(logk, length(logs), 1);
+% s = repmat(logs', 1, length(logk));
+% p = unnorm_param_pdf(exp(k), exp(s));
+% figure
+% surf(exp(k), exp(s), p/norm_c)
+% 
+% unnorm_param_pdf(1,8E-6)/norm_c
+% unnorm_param_pdf(14,2E-5)/norm_c
 
-pdf_func = str2func('unnormalized_pdf');
-norm_c = integral2(pdf_func(k,s,t),0,15,S_lower,S_upper)
+bins = 0:20:360;
+for i = 1:length(bins)-1
+    zmin = bins(i);
+    zmax = bins(i+1);
+    h_func = str2func('h_pdf');
+    prob_h_next(i) =  integral3(h_func,0,15,S_lower,S_upper,zmin,zmax, 'AbsTol', 1e-7, 'RelTol', 1e-5);
+end
 
-logk = 0:.01:5;
-logs = -12:.01:-11;
-k = repmat(logk, length(logs), 1);
-s = repmat(logs', 1, length(logk));
-p = unnormalized_pdf(exp(k), exp(s));
-figure
-surf(exp(k), exp(s), p/norm_c)
-
-unnormalized_pdf(1,8E-6)/norm_c
-unnormalized_pdf(14,2E-5)/norm_c
-
-function [p] = unnormalized_pdf(k, s, t)
+function [p] = unnorm_param_pdf(k, s)
 
 [a, b] = size(k);
 
-s1 = 289;
+s1 = 240;
+t = 20;
 
 % NN info
 nnNumber = 54212;
@@ -107,5 +116,40 @@ likelihood = normpdf(y, u, L_sigma);
 p = prior_k .* prior_s .* likelihood; 
 p = reshape(p, a, b);
 
+end
+
+function [p] = h_pdf(k, s, h)
+
+[a, b] = size(k);
+t = 20;
+norm_c = 0.0012;
+
+% NN info
+nnNumber = 54212;
+netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
+netscript = str2func(netname); 
+gwParam.startingHead = 337.143;
+
+% Calculate K,S prob using above
+p_param = unnorm_param_pdf(k,s)/norm_c;
+p_param = reshape(p_param, 1, []);
+
+% Calculate likelihood using model
+k = log(k);
+s = log(s);
+k = reshape(k, 1, []);
+s = reshape(s, 1, []);
+h = reshape(h, 1, []);
+input = [k; s; repmat(365*t+1, size(k))];
+dd = netscript(input, gwParam);
+y = dd;
+u = h; 
+L_sigma = 5;
+conditional = normpdf(y, u, L_sigma);
+
+% Multiply conditional by param
+p = p_param .* conditional;
+p = reshape(p, a, b);
 
 end
+
