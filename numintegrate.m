@@ -58,18 +58,22 @@ for i = 1:length(bins)-1
     h_func = str2func('h_pdf');
     p_h(i) =  integral3(h_func,0,15,S_lower,S_upper,zmin,zmax, 'AbsTol', 1e-7, 'RelTol', 1e-5);
 end
-save(strcat('next_h_dist', getenv('SLURM_JOB_ID')),'p', 'bins');
+save(strcat('next_h_dist', getenv('SLURM_JOB_ID')),'p_h', 'bins');
 figure; 
 bincenter = bins(1:end-1) + 0.5;
-binheight = p_h;
+binheight = p_h(1:end-1);
 h = bar(bincenter,binheight,'hist');
 
+
+% This function calcuates the unnormalized pdf for the posterior f(K,S|h(t))
+% I integrate it over the full parameter space to get the normaling
+% constant
 function [p] = unnorm_param_pdf(k, s)
 
 [a, b] = size(k);
 
-s1 = 240;
-t = 20;
+s1 = 180;
+t = 10;
 
 % NN info
 nnNumber = 54212;
@@ -124,10 +128,14 @@ p = reshape(p, a, b);
 
 end
 
+% This function is used to calculate the pdf of h in the next step given
+% the paramter distribution in this step. I use the previously calcualted
+% posterior and the coniditional probability of the next head given the
+% parameter. Integrating this gives us the marginal of h(t+1).
 function [p] = h_pdf(k, s, h)
 
 [a, b] = size(k);
-t = 20;
+t = 10;
 norm_c = 0.0012;
 
 % NN info
