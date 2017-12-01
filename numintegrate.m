@@ -7,6 +7,7 @@
 % input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
 % drawdown1 = netscript(input, gwParam);
 % plot(1:N,  gwParam.startingHead - drawdown1)
+
 % hold on
 % k = 14;
 % s = 2E-5;
@@ -34,6 +35,8 @@
 
 S_lower = 6.09E-6; 
 S_upper = 2.2E-5;
+K_lower = 0.0001;
+K_upper = 15;
 
 % 
 % pdf_func = str2func('unnorm_param_pdf');
@@ -42,63 +45,65 @@ S_upper = 2.2E-5;
 
 if false
     
-logk = 0:.01:4;
-logs = -12:.01:-11;
-k = repmat(logk, length(logs), 1);
-s = repmat(logs', 1, length(logk));
-p = unnorm_param_pdf(exp(k), exp(s));
+    logk = log(K_lower):.01:log(K_upper);
+    logs = log(S_lower):.01:log(S_upper);
+    logk_rep = repmat(logk, length(logs), 1);
+    logs_rep = repmat(logs', 1, length(logk));
+    p = unnorm_param_pdf(logk_rep,logs_rep);
+    norm_c
 
-% plot joint density as surface
-figure
-surf(exp(k), exp(s), p/norm_c)
+    % plot joint density as surface
+    figure
+    surf(exp(logk), exp(logs), p/norm_c)
 
-%% integrate (sum) to get marginals
-marg_s = sum(p,2);
-marg_k = sum(p,1);
+    % integrate (sum) to get marginals
+    marg_s = sum(p,2);
+    marg_k = sum(p,1);
 
-figure
-subplot(1,2,1)
-bincenter = logk;
-binheight = marg_k;
-h = bar(bincenter,binheight,'hist');
-h.FaceColor = [.8 .8 1];
+    figure
+    subplot(1,2,1)
+    bincenter = logk;
+    binheight = marg_k;
+    h = bar(bincenter,binheight,'hist');
+    h.FaceColor = [.8 .8 1];
 
-hold on 
-subplot(1,2,2)
-bincenter = exp(logs);
-binheight = marg_s;
-h = bar(bincenter,binheight,'hist');
-h.FaceColor = [.8 .8 1];
+    hold on 
+    subplot(1,2,2)
+    bincenter = logs;
+    binheight = marg_s;
+    h = bar(bincenter,binheight,'hist');
+    h.FaceColor = [.8 .8 1];
 
 end
 
 % 
 % unnorm_param_pdf(1,8E-6)/norm_c
 % unnorm_param_pdf(14,2E-5)/norm_c
-
-bins = 5:0.5:25;
-p_h = zeros(1,length(bins)); 
-for i = 1:length(bins)-1
-    zmin = bins(i);
-    zmax = bins(i+1);
-    h_func = str2func('h_pdf');
-    p_h(i) =  integral3(h_func,0,15,S_lower,S_upper,zmin,zmax, 'AbsTol', 1e-7, 'RelTol', 1e-5);
+if true
+    bins = 50:0.5:100;
+    p_h = zeros(1,length(bins)); 
+    for i = 1:length(bins)-1
+        zmin = bins(i);
+        zmax = bins(i+1);
+        h_func = str2func('h_pdf');
+        p_h(i) =  integral3(h_func,log(K_lower),log(K_upper),log(S_lower),log(S_upper),zmin,zmax, 'AbsTol', 1e-7, 'RelTol', 1e-5);
+    end
+    save(strcat('next_h_dist', getenv('SLURM_JOB_ID')),'p_h', 'bins');
+    figure; 
+    bincenter = bins(1:end-1) + 0.5;
+    binheight = p_h(1:end-1);
+    h = bar(bincenter,binheight,'hist');
 end
-save(strcat('next_h_dist', getenv('SLURM_JOB_ID')),'p_h', 'bins');
-figure; 
-bincenter = bins(1:end-1) + 0.5;
-binheight = p_h(1:end-1);
-h = bar(bincenter,binheight,'hist');
 
 
 % This function calcuates the unnormalized pdf for the posterior f(K,S|h(t))
 % I integrate it over the full parameter space to get the normalizing
 % constant
-function [p] = unnorm_param_pdf(k, s)
+function [p] = unnorm_param_pdf(logk, logs)
 
-[a, b] = size(k);
+[a, b] = size(logk);
 
-s1 = 8;
+s1 = 50;
 t = 1;
 
 % NN info
@@ -124,20 +129,16 @@ K_sigma = sqrt(log(K_var/(K_mean^2)+1));
 % pd = makedist('Lognormal','mu',K_mu,'sigma',K_sigma);
 % pd = truncate(pd,0,40);
 % prior_k = pdf(pd, k);
-if k > 15
+if exp(logk) > 15
     prior_k = 0;
 else
-    prior_k = lognpdf(k, K_mu, K_sigma);
+    prior_k = normpdf(logk, K_mu, K_sigma);
 end
-prior_s = unifpdf(s, S_lower, S_upper);
-
-% Log transform data for nn
-k = log(k);
-s = log(s);
+prior_s = unifpdf(exp(logs), S_lower, S_upper);
 
 % reshape
-k = reshape(k, 1, []);
-s = reshape(s, 1, []);
+k = reshape(logk, 1, []);
+s = reshape(logs, 1, []);
 prior_s = reshape(prior_s, 1, []);
 prior_k = reshape(prior_k, 1, []);
 
@@ -158,10 +159,10 @@ end
 % the paramter distribution in this step. I use the previously calcualted
 % posterior and the coniditional probability of the next head given the
 % parameter. Integrating this gives us the marginal of h(t+1).
-function [p] = h_pdf(k, s, h)
+function [p] = h_pdf(logk, logs, h)
 
-[a, b] = size(k);
-s1 = 8;
+[a, b] = size(logk);
+s1 = 50;
 t = 1;
 norm_c = 0.0012;
 
@@ -172,14 +173,12 @@ netscript = str2func(netname);
 gwParam.startingHead = 337.143;
 
 % Calculate K,S prob using above
-p_param = unnorm_param_pdf(k,s)/norm_c;
+p_param = unnorm_param_pdf(logk,logs)/norm_c;
 p_param = reshape(p_param, 1, []);
 
 % Calculate conditional drawdowon using model
-k = log(k);
-s = log(s);
-k = reshape(k, 1, []);
-s = reshape(s, 1, []);
+k = reshape(logk, 1, []);
+s = reshape(logs, 1, []);
 h = reshape(h, 1, []);
 input = [k; s; repmat(365*t+1, size(k))];
 dd_next = netscript(input, gwParam);
