@@ -4,19 +4,19 @@
 
 %% Generate some sample paths
 
-% figure;
-% N = 30;
-% k = 1;
-% s = 8E-6;
-% input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
-% drawdown1 = netscript(input, gwParam);
+figure;
+N = 30;
+k = 1;
+s = 8E-6;
+input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
+drawdown1 = netscript(input, gwParam);
 % plot(1:N,  gwParam.startingHead - drawdown1)
 % hold on
-% k = 14;
-% s = 2E-5;
-% input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
-% drawdown2 = netscript(input, gwParam);
-% plot(1:N, gwParam.startingHead - drawdown2)
+k = 14;
+s = 2E-5;
+input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
+drawdown2 = netscript(input, gwParam);
+plot(1:N, gwParam.startingHead - drawdown2)
 
 % drawdown 1:
 % t=5: 132.8063

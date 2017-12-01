@@ -39,18 +39,44 @@ S_upper = 2.2E-5;
 % pdf_func = str2func('unnorm_param_pdf');
 % norm_c = integral2(pdf_func,0,15,S_lower,S_upper)
 % 
-% logk = 0:.01:5;
-% logs = -12:.01:-11;
-% k = repmat(logk, length(logs), 1);
-% s = repmat(logs', 1, length(logk));
-% p = unnorm_param_pdf(exp(k), exp(s));
-% figure
-% surf(exp(k), exp(s), p/norm_c)
+
+if false
+    
+logk = 0:.01:4;
+logs = -12:.01:-11;
+k = repmat(logk, length(logs), 1);
+s = repmat(logs', 1, length(logk));
+p = unnorm_param_pdf(exp(k), exp(s));
+
+% plot joint density as surface
+figure
+surf(exp(k), exp(s), p/norm_c)
+
+%% integrate (sum) to get marginals
+marg_s = sum(p,2);
+marg_k = sum(p,1);
+
+figure
+subplot(1,2,1)
+bincenter = logk;
+binheight = marg_k;
+h = bar(bincenter,binheight,'hist');
+h.FaceColor = [.8 .8 1];
+
+hold on 
+subplot(1,2,2)
+bincenter = exp(logs);
+binheight = marg_s;
+h = bar(bincenter,binheight,'hist');
+h.FaceColor = [.8 .8 1];
+
+end
+
 % 
 % unnorm_param_pdf(1,8E-6)/norm_c
 % unnorm_param_pdf(14,2E-5)/norm_c
 
-bins = 0:1:360;
+bins = 5:0.5:25;
 p_h = zeros(1,length(bins)); 
 for i = 1:length(bins)-1
     zmin = bins(i);
@@ -66,14 +92,14 @@ h = bar(bincenter,binheight,'hist');
 
 
 % This function calcuates the unnormalized pdf for the posterior f(K,S|h(t))
-% I integrate it over the full parameter space to get the normaling
+% I integrate it over the full parameter space to get the normalizing
 % constant
 function [p] = unnorm_param_pdf(k, s)
 
 [a, b] = size(k);
 
-s1 = 180;
-t = 10;
+s1 = 8;
+t = 1;
 
 % NN info
 nnNumber = 54212;
@@ -135,7 +161,8 @@ end
 function [p] = h_pdf(k, s, h)
 
 [a, b] = size(k);
-t = 10;
+s1 = 8;
+t = 1;
 norm_c = 0.0012;
 
 % NN info
@@ -148,21 +175,25 @@ gwParam.startingHead = 337.143;
 p_param = unnorm_param_pdf(k,s)/norm_c;
 p_param = reshape(p_param, 1, []);
 
-% Calculate likelihood using model
+% Calculate conditional drawdowon using model
 k = log(k);
 s = log(s);
 k = reshape(k, 1, []);
 s = reshape(s, 1, []);
 h = reshape(h, 1, []);
 input = [k; s; repmat(365*t+1, size(k))];
-dd = netscript(input, gwParam);
-y = dd;
-u = h; 
-L_sigma = 5;
-conditional = normpdf(y, u, L_sigma);
+dd_next = netscript(input, gwParam);
+input = [k; s; repmat(365*t, size(k))];
+dd_now = netscript(input, gwParam);
+y = dd_next-dd_now;
+% conditional = zeros(size(p_param));
+% indexOne = abs(h - (s1 + y)) < 1;
+% conditional(indexOne) = 1/2;
+conditional = lognpdf(h - (s1 + y), 0,1);
 
 % Multiply conditional by param
 p = p_param .* conditional;
+p = p_param;
 p = reshape(p, a, b);
 
 end
