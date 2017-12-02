@@ -14,7 +14,8 @@ if "SLURM_JOB_ID" in os.environ:
 
 # open .m file
 if "SLURM_JOB_ID" in os.environ:
-    filepath = 'integrate_posterior.m'
+    i = os.getenv('SLURM_ARRAY_TASK_ID')
+    filepath = 'integrate_posterior_' + str(i) + '.m'
 else:
     filepath = '/Users/sarahfletcher/Documents/MATLAB/Repository_SDP/integrate_posterior.m'
 
