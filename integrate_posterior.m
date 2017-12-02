@@ -16,6 +16,7 @@ logk_rep = repmat(logk', 1, length(logs));
 logs_rep = repmat(logs,length(logk), 1);
 norm_p = unnorm_param_pdf(logk_rep, logs_rep) / norm_c;
 
+
 % Save
 save('posterior_samples', 'norm_p');
 
@@ -27,8 +28,8 @@ function [p] = unnorm_param_pdf(logk, logs)
 
 [a, b] = size(logk);
 
-s1 = 290;
-t = 30;
+s1 = 122;
+t = 25;
 
 % NN info
 nnNumber = 54212;

@@ -24,8 +24,8 @@ if importProb:
     # Define function that interpolates in order to get an arbitrary pdf value for joint distrbution
     k = np.arange(np.log(K_lower),np.log(K_upper), 0.01)
     s = np.arange(np.log(S_lower),np.log(S_upper), 0.01)
-    joint_ks = intp.interp2d(k,s,np.transpose(p), kind='linear')
-    #total_p = integrate.dblquad(joint_ks, s[0], s[-1], lambda x: k[924], lambda x: k[-1], epsabs=1.49e-05, epsrel=1.49e-05)
+    joint_ks = intp.interp2d(k,s,np.transpose(p), kind='cubic')
+    # total_p = integrate.dblquad(joint_ks, s[0], s[-1], lambda x: k[924], lambda x: k[-1], epsabs=1.49e-05, epsrel=1.49e-05)
     # print(total_p[1])
 
 
@@ -33,18 +33,18 @@ if importProb:
     p_k = np.zeros(len(s))
     for i in range(len(s)):
         print(i)
-        [p_k[i], er] = integrate.quad(joint_ks,np.log(K_lower), np.log(K_upper), args=s[i], epsabs=1.49e-06, epsrel=1.49e-06, limit=100 )
-    marg_s = intp.interp1d(s,p_k)
-    # Check that marginal integrates to 1
-    total_p = integrate.quad(marg_s, s[0], s[-1])
-    print(total_p[0])
-    if abs(total_p[0] - 1) > 0.01:
-        error('Marginal dist for S not valid')
-    else:
-        np.save('sample_data', marg_s, joint_ks)
+        [p_k[i], er] = integrate.quad(joint_ks,np.log(K_lower), np.log(K_upper), args=s[i], epsabs=1.49e-06, epsrel=1.49e-06, limit=200 )
+    marg_s = intp.interp1d(s, p_k, kind='cubic')
+    # # Check that marginal integrates to 1
+    # total_p = integrate.quad(marg_s, s[0], s[-1], limit=200)
+    # print(total_p[0])
+    # if abs(total_p[0] - 1) > 0.01:
+    #     error('Marginal dist for S not valid')
+    # else:
+    #     np.save('sample_data', marg_s, joint_ks)
     # plot marginal
     plt.plot(s,marg_s(s))
-    #plt.show()
+    plt.show()
 
     # Calculate conditional of K on S
     p_k_s = np.zeros([len(k), len(s)])
