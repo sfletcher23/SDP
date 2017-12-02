@@ -3,7 +3,7 @@
 taskID = getenv('SLURM_ARRAY_TASK_ID');
 jobID = getenv('SLURM_JOB_ID');
 
-filename = strcat('samples_', num2str(jobID), '_',  num2str(taskID);
+filename = strcat('samples_', num2str(jobID), '_',  num2str(taskID));
 load(filename)
 
 % NN info

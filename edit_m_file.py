@@ -5,7 +5,8 @@ sgw = np.arange(20, 30, 1)
 time = np.arange(5, 10, 1)
 
 if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
-    i = os.getenv('SLURM_ARRAY_TASK_ID')
+    i = int(os.getenv('SLURM_ARRAY_TASK_ID'))
+    print(i)
 else:
     i = 0
 
@@ -14,7 +15,7 @@ t = str(time[i])
 
 # open .m file
 if "SLURM_JOB_ID" in os.environ:
-    filepath = './SDP/integrate_posterior.m'
+    filepath = 'SDP/integrate_posterior.m'
 else:
     filepath = '/Users/sarahfletcher/Documents/MATLAB/Repository_SDP/integrate_posterior.m'
 
