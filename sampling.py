@@ -52,8 +52,7 @@ marg_s = intp.interp1d(s, p_k, kind='cubic')
 total_p = integrate.quad(marg_s, s[0], s[-1], limit=200)
 print(total_p[0])
 if abs(total_p[0] - 1) > 0.01:
-    error('Marginal dist for S not valid')
-else:
+    print('Marginal dist for S not valid')
     np.save('sample_data', marg_s, joint_ks)
 # plot marginal
 if plotOn:
