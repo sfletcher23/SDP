@@ -30,11 +30,12 @@ print(t)
 
 data = io.loadmat('posterior_samples_' + str(i) + '.mat')
 p = data['norm_p']
+print(np.size(p))
 
 S_lower = 6.09e-6
 S_upper = 2.2e-5
-K_lower = 0.0001
-K_upper = 25
+K_lower = 0.9
+K_upper = 14
 
 # Define function that interpolates in order to get an arbitrary pdf value for joint distrbution
 k = np.arange(np.log(K_lower),np.log(K_upper), 0.01)

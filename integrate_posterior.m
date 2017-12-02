@@ -3,7 +3,7 @@
 S_lower = 6.09E-6; 
 S_upper = 2.2E-5;
 K_lower = 0.9;
-K_upper = 25;
+K_upper = 14;
 
 % Integrate posterior to get normalizing constant
 pdf_func = str2func('unnorm_param_pdf');
@@ -29,8 +29,8 @@ function [p] = unnorm_param_pdf(logk, logs)
 
 [a, b] = size(logk);
 
-s1 = 30;
-t = 3;
+s1 = 8;
+t = 1;
 
 % NN info
 nnNumber = 54212;
