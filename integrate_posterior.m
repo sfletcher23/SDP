@@ -28,8 +28,8 @@ function [p] = unnorm_param_pdf(logk, logs)
 
 [a, b] = size(logk);
 
-s1 = 201;
-t = 15;
+s1 = 30;
+t = 3;
 
 % NN info
 nnNumber = 54212;

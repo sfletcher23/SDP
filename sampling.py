@@ -7,7 +7,7 @@ import matplotlib as ml
 import matplotlib.pyplot as plt
 import os
 
-num_sample = 10
+num_sample = 3
 plotOn = True
 if "SLURM_JOB_ID" in os.environ:
     plotOn = False
@@ -46,11 +46,12 @@ joint_ks = intp.interp2d(k,s,np.transpose(p), kind='cubic')
 p_k = np.zeros(len(s))
 for i in range(len(s)):
     print(i)
-    [p_k[i], er] = integrate.quad(joint_ks,np.log(K_lower), np.log(K_upper), args=s[i], epsabs=1.49e-06, epsrel=1.49e-06, limit=200 )
+    [p_k[i], er] = integrate.quad(joint_ks,np.log(K_lower), np.log(K_upper), args=s[i], epsabs=1.49e-06, epsrel=1.49e-06, limit=500 )
 marg_s = intp.interp1d(s, p_k, kind='cubic')
 # Check that marginal integrates to 1
 total_p = integrate.quad(marg_s, s[0], s[-1], limit=200)
 print(total_p[0])
+margs_c = total_p[0]
 if abs(total_p[0] - 1) > 0.01:
     print('Marginal dist for S not valid')
     np.save('sample_data', marg_s, joint_ks)
@@ -93,7 +94,7 @@ for i in range(len(sample_s)):
     sample_k[i] = cond_ks_dist.ppf(r2)
 
 jobId = os.environ.get('SLURM_JOB_ID', [])
-outputDic = dict(zip(['sample_logs', 'sample_logk', 's', 't'], [sample_s, sample_k, s1, t]))
+outputDic = dict(zip(['sample_logs', 'sample_logk', 's', 't', 'margs_c'], [sample_s, sample_k, s1, t, margs_c]))
 
 if "SLURM_JOB_ID" in os.environ:
     jobId = os.getenv('SLURM_JOB_ID')
