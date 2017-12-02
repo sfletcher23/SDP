@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="7761629d-54a2-442a-9864-4dcb83efaf00" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/integrate_posterior.m" afterPath="$PROJECT_DIR$/integrate_posterior.m" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/sampling.py" afterPath="$PROJECT_DIR$/sampling.py" />
-    </list>
+    <list default="true" id="7761629d-54a2-442a-9864-4dcb83efaf00" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -33,7 +30,7 @@
       <file leaf-file-name="sampling.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/sampling.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="300">
+            <state relative-caret-position="240">
               <caret line="37" column="12" lean-forward="false" selection-start-line="37" selection-start-column="12" selection-end-line="37" selection-end-column="12" />
               <folding>
                 <element signature="e#0#24#0" expanded="true" />
@@ -373,7 +370,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/sampling.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="300">
+        <state relative-caret-position="240">
           <caret line="37" column="12" lean-forward="false" selection-start-line="37" selection-start-column="12" selection-end-line="37" selection-end-column="12" />
           <folding>
             <element signature="e#0#24#0" expanded="true" />

@@ -19,4 +19,4 @@ input = [sample_logk; sample_logs; repmat(365*(t+1), size(sample_logk))];
 drawdown_next = netscript(input, gwParam);
 dd = drawdown_next - drawdown_current;
 
-save(filename, 'drawdown_current', 'drawdown_next', 'dd')
+save(filename, 'drawdown_current', 'drawdown_next', 'dd', 'sample_logk', 'sample_logs')
