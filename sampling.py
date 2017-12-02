@@ -106,5 +106,7 @@ if "SLURM_JOB_ID" in os.environ:
 else:
     filename = 'samples_' + 'dd' + str(s1) + '_t' + str(t)
 
+print(filename)
+print(os.path)
 io.savemat(filename, outputDic)
 
