@@ -10,7 +10,7 @@ import os
 num_sample = 2000
 importProb = True
 plotOn = True
-if "SLRUM_JOB_ID" in os.environ:
+if "SLURM_JOB_ID" in os.environ:
     plotOn = False
 
 if importProb:
