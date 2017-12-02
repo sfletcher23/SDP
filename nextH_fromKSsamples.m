@@ -13,7 +13,7 @@ netscript = str2func(netname);
 gwParam.startingHead = 337.143;
 
 % Calculate head at next period for each sample
-input = [sample_logk; sample_logs; repmat(365*t, size(k))];
+input = [sample_logk; sample_logs; repmat(365*t, size(sample_logk))];
 drawdown_current = netscript(input, gwParam);
 input = [sample_logk; sample_logs; repmat(365*(t+1), size(sample_logk))];
 drawdown_next = netscript(input, gwParam);
