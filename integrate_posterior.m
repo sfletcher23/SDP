@@ -1,5 +1,12 @@
 
+% Define parameter space
+S_lower = 6.09E-6; 
+S_upper = 2.2E-5;
+K_lower = 0.0001;
+K_upper = 25;
+
 % Integrate posterior to get normalizing constant
+pdf_func = str2func('unnorm_param_pdf');
 norm_c = integral2(pdf_func,log(K_lower),log(K_upper),log(S_lower),log(S_upper));
 
 % Use norm_c to get pdf values of normalized posterior
