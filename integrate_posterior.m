@@ -2,7 +2,7 @@
 % Define parameter space
 S_lower = 6.09E-6; 
 S_upper = 2.2E-5;
-K_lower = 0.0001;
+K_lower = 0.9;
 K_upper = 25;
 
 % Integrate posterior to get normalizing constant

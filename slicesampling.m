@@ -4,6 +4,31 @@
 
 %% Generate some sample paths
 
+N = 30;
+S_lower = 6.09E-6; 
+S_upper = 2.2E-5;
+K_lower = 0.9;
+K_upper = 14;
+gwParam.startingHead = 337.143;
+nnNumber = 54212;
+netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
+netscript = str2func(netname); 
+
+k = K_lower;
+s = S_lower;
+input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
+drawdown_max = netscript(input, gwParam);
+
+k = K_upper;
+s = S_upper;
+input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
+drawdown_min = netscript(input, gwParam);
+figure
+plot(1:N, gwParam.startingHead - drawdown_min)
+hold on
+plot(1:N,gwParam.startingHead - drawdown_max)
+
+
 % figure;
 % N = 30;
 % k = 1;
@@ -24,6 +49,8 @@
 % input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
 % drawdown3 = netscript(input, gwParam);
 % plot(1:N, gwParam.startingHead - drawdown3)
+
+
 
 
 % drawdown 1:
@@ -54,6 +81,8 @@
 
 plotOn = false;
 
+if false
+
 % Slice sampling
 N = 10000;
 pdf_func = str2func('unnormalized_pdf');
@@ -62,6 +91,8 @@ save(strcat('slice_data', getenv('SLURM_JOB_ID')), x)
 
 prior_k = lognrnd(K_mu, K_sigma,[N 1]);
 prior_s = unifrnd(S_lower, S_upper,[N 1]);
+
+end
 
 if plotOn
 figure;
