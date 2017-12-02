@@ -25,7 +25,7 @@ for i in range(len(time)):
     dd.append(statesThisTime)
     tlist.append([i+1] * numStatesNow)
 dd = [item for sublist in dd for item in sublist]
-tlist = [item for sublist in t for item in sublist]
+tlist = [item for sublist in tlist for item in sublist]
 
 if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
     i = int(os.getenv('SLURM_ARRAY_TASK_ID'))
