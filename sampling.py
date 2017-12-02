@@ -9,6 +9,9 @@ import os
 
 num_sample = 2000
 importProb = True
+plotOn = True
+if "SLRUM_JOB_ID" in os.environ:
+    plotOn = False
 
 if importProb:
 
@@ -35,16 +38,17 @@ if importProb:
         print(i)
         [p_k[i], er] = integrate.quad(joint_ks,np.log(K_lower), np.log(K_upper), args=s[i], epsabs=1.49e-06, epsrel=1.49e-06, limit=200 )
     marg_s = intp.interp1d(s, p_k, kind='cubic')
-    # # Check that marginal integrates to 1
-    # total_p = integrate.quad(marg_s, s[0], s[-1], limit=200)
-    # print(total_p[0])
-    # if abs(total_p[0] - 1) > 0.01:
-    #     error('Marginal dist for S not valid')
-    # else:
-    #     np.save('sample_data', marg_s, joint_ks)
+    # Check that marginal integrates to 1
+    total_p = integrate.quad(marg_s, s[0], s[-1], limit=200)
+    print(total_p[0])
+    if abs(total_p[0] - 1) > 0.01:
+        error('Marginal dist for S not valid')
+    else:
+        np.save('sample_data', marg_s, joint_ks)
     # plot marginal
-    plt.plot(s,marg_s(s))
-    plt.show()
+    if plotOn:
+        plt.plot(s,marg_s(s))
+        plt.show()
 
     # Calculate conditional of K on S
     p_k_s = np.zeros([len(k), len(s)])
