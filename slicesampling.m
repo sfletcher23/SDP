@@ -4,19 +4,27 @@
 
 %% Generate some sample paths
 
-figure;
-N = 30;
-k = 1;
-s = 8E-6;
-input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
-drawdown1 = netscript(input, gwParam);
+% figure;
+% N = 30;
+% k = 1;
+% s = 8E-6;
+% input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
+% drawdown1 = netscript(input, gwParam);
 % plot(1:N,  gwParam.startingHead - drawdown1)
+
 % hold on
-k = 14;
-s = 2E-5;
-input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
-drawdown2 = netscript(input, gwParam);
-plot(1:N, gwParam.startingHead - drawdown2)
+% k = 14;
+% s = 2E-5;
+% input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
+% drawdown2 = netscript(input, gwParam);
+% plot(1:N, gwParam.startingHead - drawdown2)
+% 
+% k = 3;
+% s = 1E-5;
+% input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
+% drawdown3 = netscript(input, gwParam);
+% plot(1:N, gwParam.startingHead - drawdown3)
+
 
 % drawdown 1:
 % t=5: 132.8063
@@ -34,6 +42,13 @@ plot(1:N, gwParam.startingHead - drawdown2)
 % t=25: 28.1761
 % t=30: 29.9804
 
+% drawdown 3:
+% t=5: 62.6876
+% t=10: 85.0936
+% t=15: 100.4990
+% t=20: 113.3558
+% t=25: 122.9495
+% t=30: 132.4284
 
 %% MCMC to estimate posterior
 

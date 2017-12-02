@@ -1,50 +1,4 @@
-%% Generate some sample paths
 
-% figure;
-% N = 30;
-% k = 1;
-% s = 8E-6;
-% input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
-% drawdown1 = netscript(input, gwParam);
-% plot(1:N,  gwParam.startingHead - drawdown1)
-
-% hold on
-% k = 14;
-% s = 2E-5;
-% input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
-% drawdown2 = netscript(input, gwParam);
-% plot(1:N, gwParam.startingHead - drawdown2)
-% 
-% k = 3;
-% s = 1E-5;
-% input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
-% drawdown3 = netscript(input, gwParam);
-% plot(1:N, gwParam.startingHead - drawdown3)
-
-
-% drawdown 1:
-% t=5: 132.8063
-% t=10: 179.7696
-% t=15: 211.3471
-% t=20: 239.1236
-% t=25: 264.5149
-% t=30: 289.9733
-
-% drawdown 2:
-% t=5: 17.8151
-% t=10: 23.9065
-% t=15: 27.8651
-% t=20: 29.9804
-% t=25: 28.1761
-% t=30: 29.9804
-
-% drawdown 3:
-% t=5: 62.6876
-% t=10: 85.0936
-% t=15: 100.4990
-% t=20: 113.3558
-% t=25: 122.9495
-% t=30: 132.4284
 %% 
 figure; 
 subplot(1,2,1) 
@@ -117,36 +71,7 @@ if true
 
 end
 
-if false
-    % Calulcate head for each paramter bin in p
-    t = 15;
-    logk_reshape = reshape(logk_rep, 1, []);
-    logs_reshape = reshape(logs_rep, 1, []);
-    input = [logk_reshape; logs_reshape; repmat(t*365, [1, length(logk_reshape)] )];
-    dd = netscript(input, gwParam);
-    dd = reshape(dd,size(logk_rep));
-    figure;
-    hist(dd)
-end
 
-if false
-    bins = 20:0.5:30;
-    p_h = zeros(1,length(bins)); 
-    for i = 1:length(bins)-1
-        zmin = bins(i);
-        zmax = bins(i+1);
-        h_func = str2func('h_pdf');
-        %p_h(i) =  integral3(h_func,log(K_lower),log(K_upper),log(S_lower),log(S_upper),zmin,zmax, 'AbsTol', 1e-7, 'RelTol', 1e-5);
-        p_h(i) =  integral3(h_func,log(14.9),log(15.1),log(2.1E-5*.95),log(2.1E-5*1.1),zmin,zmax, 'AbsTol', 1e-6, 'RelTol', 1e-4);
-    end
-    save(strcat('next_h_dist', getenv('SLURM_JOB_ID')),'p_h', 'bins');
-    figure; 
-    bincenter = bins(1:end-1) + 0.5;
-    binheight = p_h(1:end-1);
-    h = bar(bincenter,binheight,'hist');
-end
-
-% unnorm_param_pdf(log(3.5), log(.9E-5))
 
 % This function calcuates the unnormalized pdf for the posterior f(K,S|h(t))
 % I integrate it over the full parameter space to get the normalizing
@@ -207,44 +132,7 @@ p = reshape(p, a, b);
 
 end
 
-% This function is used to calculate the pdf of h in the next step given
-% the paramter distribution in this step. I use the previously calcualted
-% posterior and the coniditional probability of the next head given the
-% parameter. Integrating this gives us the marginal of h(t+1).
-function [p] = h_pdf(logk, logs, h)
 
-[a, b] = size(logk);
-s1 = 26;
-t = 15;
-norm_c = 0.0012;
 
-% NN info
-nnNumber = 54212;
-netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
-netscript = str2func(netname); 
-gwParam.startingHead = 337.143;
 
-% Calculate K,S prob using above
-p_param = unnorm_param_pdf(logk,logs)/norm_c;
-p_param = reshape(p_param, 1, []);
-
-% Calculate conditional drawdowon using model
-k = reshape(logk, 1, []);
-s = reshape(logs, 1, []);
-h = reshape(h, 1, []);
-input = [k; s; repmat(365*(t+1), size(k))];
-dd_next = netscript(input, gwParam);
-input = [k; s; repmat(365*t, size(k))];
-dd_now = netscript(input, gwParam);
-y = dd_next-dd_now;
-% conditional = zeros(size(p_param));
-% indexOne = abs(h - (s1 + y)) < 1;
-% conditional(indexOne) = 1/2;
-conditional = lognpdf(h - (s1 + y), 0,1);
-
-% Multiply conditional by param
-p = p_param .* conditional;
-p = reshape(p, a, b);
-
-end
 
