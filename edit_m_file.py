@@ -13,6 +13,7 @@ else:
 s1 = str(sgw[i])
 t = str(time[i])
 
+
 # open .m file
 if "SLURM_JOB_ID" in os.environ:
     filepath = 'integrate_posterior.m'
@@ -27,6 +28,13 @@ data[31] = 't = ' + t + ';' + '\n'
 
 with open(filepath, 'w') as file:
     file.writelines( data )
+
+with open(filepath, 'r') as file:
+    data = file.readlines()
+s1 = data[30][5:-2]
+t = data[31][4:-2]
+print(s1)
+print(t)
 
 
 
