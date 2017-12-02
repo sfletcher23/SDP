@@ -27,7 +27,8 @@ print(s1)
 print(t)
 
 # Load estimated pdf values
-data = io.loadmat('posterior_samples.mat')
+
+data = io.loadmat('posterior_samples_' + str(i) + '.mat')
 p = data['norm_p']
 
 S_lower = 6.09e-6

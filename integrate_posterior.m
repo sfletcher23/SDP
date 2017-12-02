@@ -18,7 +18,8 @@ norm_p = unnorm_param_pdf(logk_rep, logs_rep) / norm_c;
 
 
 % Save
-save('posterior_samples', 'norm_p');
+filename = strcat('posterior_samples_',getenv('SLURM_ARRAY_TASK_ID'));
+save(filename, 'norm_p');
 
 % This function calcuates the unnormalized pdf for the posterior f(K,S|h(t))
 % I integrate it over the full parameter space to get the normalizing
