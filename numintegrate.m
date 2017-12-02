@@ -14,6 +14,13 @@
 % input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
 % drawdown2 = netscript(input, gwParam);
 % plot(1:N, gwParam.startingHead - drawdown2)
+% 
+% k = 3;
+% s = 1E-5;
+% input = [repmat(log(k), [1 N]); repmat(log(s), [1 N]); 365:365:365*N];
+% drawdown3 = netscript(input, gwParam);
+% plot(1:N, gwParam.startingHead - drawdown3)
+
 
 % drawdown 1:
 % t=5: 132.8063
@@ -31,34 +38,68 @@
 % t=25: 28.1761
 % t=30: 29.9804
 
+% drawdown 3:
+% t=5: 62.6876
+% t=10: 85.0936
+% t=15: 100.4990
+% t=20: 113.3558
+% t=25: 122.9495
+% t=30: 132.4284
+%% 
+figure; 
+subplot(1,2,1) 
+hist(sample_logk)
+subplot(1,2,2) 
+hist(sample_logs)
+
 %%
 
 S_lower = 6.09E-6; 
 S_upper = 2.2E-5;
 K_lower = 0.0001;
-K_upper = 15;
+K_upper = 25;
 
-% 
-% pdf_func = str2func('unnorm_param_pdf');
-% norm_c = integral2(pdf_func,0,15,S_lower,S_upper)
-% 
+% NN info
+nnNumber = 54212;
+netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
+netscript = str2func(netname); 
+gwParam.startingHead = 337.143;
 
-if false
+
+if true
     
+    % Calculate norm_c
+    pdf_func = str2func('unnorm_param_pdf');
+    norm_c = integral2(pdf_func,log(K_lower),log(K_upper),log(S_lower),log(S_upper))
+
+
+    % Use norm_c to normalized, then plot distribution
     logk = log(K_lower):.01:log(K_upper);
     logs = log(S_lower):.01:log(S_upper);
-    logk_rep = repmat(logk, length(logs), 1);
-    logs_rep = repmat(logs', 1, length(logk));
-    p = unnorm_param_pdf(logk_rep,logs_rep);
-    norm_c
+    logk_rep = repmat(logk', 1, length(logs));
+    logs_rep = repmat(logs,length(logk), 1);
+    norm_p = unnorm_param_pdf(logk_rep, logs_rep) / norm_c;
+    
+    
+%     norm_p = zeros(length(logk), length(logs));
+%     for i=1:length(logk)
+%         for j =1:length(logs)
+%             logk_rep(i,j) = logk(i);
+%             logs_rep(i,j) = logs(j);
+%             norm_p(i,j) =  unnorm_param_pdf(logk(i), logs(j)) / norm_c;
+%         end
+%     end
 
     % plot joint density as surface
     figure
-    surf(exp(logk), exp(logs), p/norm_c)
+    surf(exp(logk), exp(logs), norm_p')
+    
+    % save normalized density
+    save('pdf', 'norm_p');
 
     % integrate (sum) to get marginals
-    marg_s = sum(p,2);
-    marg_k = sum(p,1);
+    marg_s = sum(norm_p,1);
+    marg_k = sum(norm_p,2);
 
     figure
     subplot(1,2,1)
@@ -76,17 +117,27 @@ if false
 
 end
 
-% 
-% unnorm_param_pdf(1,8E-6)/norm_c
-% unnorm_param_pdf(14,2E-5)/norm_c
-if true
-    bins = 50:0.5:100;
+if false
+    % Calulcate head for each paramter bin in p
+    t = 15;
+    logk_reshape = reshape(logk_rep, 1, []);
+    logs_reshape = reshape(logs_rep, 1, []);
+    input = [logk_reshape; logs_reshape; repmat(t*365, [1, length(logk_reshape)] )];
+    dd = netscript(input, gwParam);
+    dd = reshape(dd,size(logk_rep));
+    figure;
+    hist(dd)
+end
+
+if false
+    bins = 20:0.5:30;
     p_h = zeros(1,length(bins)); 
     for i = 1:length(bins)-1
         zmin = bins(i);
         zmax = bins(i+1);
         h_func = str2func('h_pdf');
-        p_h(i) =  integral3(h_func,log(K_lower),log(K_upper),log(S_lower),log(S_upper),zmin,zmax, 'AbsTol', 1e-7, 'RelTol', 1e-5);
+        %p_h(i) =  integral3(h_func,log(K_lower),log(K_upper),log(S_lower),log(S_upper),zmin,zmax, 'AbsTol', 1e-7, 'RelTol', 1e-5);
+        p_h(i) =  integral3(h_func,log(14.9),log(15.1),log(2.1E-5*.95),log(2.1E-5*1.1),zmin,zmax, 'AbsTol', 1e-6, 'RelTol', 1e-4);
     end
     save(strcat('next_h_dist', getenv('SLURM_JOB_ID')),'p_h', 'bins');
     figure; 
@@ -95,6 +146,7 @@ if true
     h = bar(bincenter,binheight,'hist');
 end
 
+% unnorm_param_pdf(log(3.5), log(.9E-5))
 
 % This function calcuates the unnormalized pdf for the posterior f(K,S|h(t))
 % I integrate it over the full parameter space to get the normalizing
@@ -103,8 +155,8 @@ function [p] = unnorm_param_pdf(logk, logs)
 
 [a, b] = size(logk);
 
-s1 = 50;
-t = 1;
+s1 = 290;
+t = 30;
 
 % NN info
 nnNumber = 54212;
@@ -162,8 +214,8 @@ end
 function [p] = h_pdf(logk, logs, h)
 
 [a, b] = size(logk);
-s1 = 50;
-t = 1;
+s1 = 26;
+t = 15;
 norm_c = 0.0012;
 
 % NN info
@@ -180,7 +232,7 @@ p_param = reshape(p_param, 1, []);
 k = reshape(logk, 1, []);
 s = reshape(logs, 1, []);
 h = reshape(h, 1, []);
-input = [k; s; repmat(365*t+1, size(k))];
+input = [k; s; repmat(365*(t+1), size(k))];
 dd_next = netscript(input, gwParam);
 input = [k; s; repmat(365*t, size(k))];
 dd_now = netscript(input, gwParam);
@@ -192,7 +244,6 @@ conditional = lognpdf(h - (s1 + y), 0,1);
 
 % Multiply conditional by param
 p = p_param .* conditional;
-p = p_param;
 p = reshape(p, a, b);
 
 end
