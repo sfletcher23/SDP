@@ -14,7 +14,7 @@ if "SLURM_JOB_ID" in os.environ:
 
 # open .m file
 if "SLURM_JOB_ID" in os.environ:
-    filepath = './SDP/integrate_posterior.m'
+    filepath = 'integrate_posterior.m'
 else:
     filepath = '/Users/sarahfletcher/Documents/MATLAB/Repository_SDP/integrate_posterior.m'
 
