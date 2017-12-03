@@ -51,8 +51,8 @@ else:
 with open(filepath, 'r') as file:
     data = file.readlines()
 
-data[30] = 's1 = ' + s1 + ';' + '\n'
-data[31] = 't = ' + t + ';' + '\n'
+data[33] = 's1 = ' + s1 + ';' + '\n'
+data[34] = 't = ' + t + ';' + '\n'
 
 with open(filepath, 'w') as file:
     file.writelines( data )
@@ -60,8 +60,8 @@ with open(filepath, 'w') as file:
 
 with open(filepath, 'r') as file:
     data = file.readlines()
-s1 = data[30][5:-2]
-t = data[31][4:-2]
+s1 = data[33][5:-2]
+t = data[34][4:-2]
 print(s1)
 print(t)
 

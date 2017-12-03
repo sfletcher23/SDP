@@ -3,9 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="7761629d-54a2-442a-9864-4dcb83efaf00" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/edit_m_file.py" afterPath="$PROJECT_DIR$/edit_m_file.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/integrate_posterior.m" afterPath="$PROJECT_DIR$/integrate_posterior.m" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/nextH_fromKSsamples.m" afterPath="$PROJECT_DIR$/nextH_fromKSsamples.m" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/numintegrate.m" afterPath="$PROJECT_DIR$/numintegrate.m" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/sampling.py" afterPath="$PROJECT_DIR$/sampling.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -21,11 +18,11 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="edit_m_file.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="edit_m_file.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/edit_m_file.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="345">
-              <caret line="44" column="77" lean-forward="false" selection-start-line="44" selection-start-column="58" selection-end-line="44" selection-end-column="77" />
+            <state relative-caret-position="372">
+              <caret line="59" column="0" lean-forward="true" selection-start-line="59" selection-start-column="0" selection-end-line="59" selection-end-column="0" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -33,11 +30,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="sampling.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="sampling.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/sampling.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="135">
-              <caret line="9" column="14" lean-forward="false" selection-start-line="9" selection-start-column="14" selection-end-line="9" selection-end-column="14" />
+            <state relative-caret-position="209">
+              <caret line="25" column="11" lean-forward="false" selection-start-line="25" selection-start-column="10" selection-end-line="25" selection-end-column="11" />
               <folding>
                 <element signature="e#0#24#0" expanded="true" />
               </folding>
@@ -56,14 +53,19 @@
       </file>
     </leaf>
   </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>30</find>
+    </findStrings>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/edit_m_file.py" />
         <option value="$PROJECT_DIR$/sampling.py" />
+        <option value="$PROJECT_DIR$/edit_m_file.py" />
       </list>
     </option>
   </component>
@@ -364,22 +366,22 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/edit_m_file.py">
+    <entry file="file://$PROJECT_DIR$/sampling.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="44" column="77" lean-forward="false" selection-start-line="44" selection-start-column="58" selection-end-line="44" selection-end-column="77" />
+        <state relative-caret-position="209">
+          <caret line="25" column="11" lean-forward="false" selection-start-line="25" selection-start-column="10" selection-end-line="25" selection-end-column="11" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#24#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/sampling.py">
+    <entry file="file://$PROJECT_DIR$/edit_m_file.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="135">
-          <caret line="9" column="14" lean-forward="false" selection-start-line="9" selection-start-column="14" selection-end-line="9" selection-end-column="14" />
+        <state relative-caret-position="372">
+          <caret line="59" column="0" lean-forward="true" selection-start-line="59" selection-start-column="0" selection-end-line="59" selection-end-column="0" />
           <folding>
-            <element signature="e#0#24#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="true" />
           </folding>
         </state>
       </provider>

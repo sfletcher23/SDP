@@ -23,8 +23,8 @@ else:
 
 with open(filepath, 'r') as file:
     data = file.readlines()
-s1 = data[30][5:-2]
-t = data[31][4:-2]
+s1 = data[33][5:-2]
+t = data[34][4:-2]
 print(s1)
 print(t)
 
