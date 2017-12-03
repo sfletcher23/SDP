@@ -5,6 +5,13 @@ subplot(1,2,1)
 hist(sample_logk)
 subplot(1,2,2) 
 hist(sample_logs)
+figure;
+subplot(1,3,1)
+hist(drawdown_current)
+subplot(1,3,2)
+hist(drawdown_next)
+subplot(1,3,3)
+hist(dd)
 
 %%
 

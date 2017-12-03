@@ -28,8 +28,10 @@ dd = [item for sublist in dd for item in sublist]
 tlist = [item for sublist in tlist for item in sublist]
 
 if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
-    i = int(os.getenv('SLURM_ARRAY_TASK_ID'))
-    print(i)
+    taskId = int(os.getenv('SLURM_ARRAY_TASK_ID'))
+    jobId = int(os.getenv('SLURM_JOB_ID'))
+    i = taskId
+    print(taskId)
 else:
     i = 0
 
@@ -40,8 +42,8 @@ t = str(tlist[i])
 # open .m file
 if "SLURM_JOB_ID" in os.environ:
     filepath = 'integrate_posterior.m'
-    copyfile(filepath,'integrate_posterior_' + str(i) + '.m')
-    filepath = 'integrate_posterior_' + str(i) + '.m'
+    copyfile(filepath,'integrate_posterior_' + str(jobId) + '_' + str(taskId) + '.m')
+    filepath = 'integrate_posterior_' + str(jobId) + '_' + str(taskId) + '.m'
 
 else:
     filepath = '/Users/sarahfletcher/Documents/MATLAB/Repository_SDP/integrate_posterior.m'

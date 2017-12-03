@@ -7,15 +7,17 @@ import matplotlib as ml
 import matplotlib.pyplot as plt
 import os
 
-num_sample = 5000
+num_sample = 5
 plotOn = True
 if "SLURM_JOB_ID" in os.environ:
     plotOn = False
 
+jobId = os.environ.get('SLURM_JOB_ID', [])
+taskId = os.environ.get('SLURM_ARRAY_TASK_ID', [])
+
 # open .m file
 if "SLURM_JOB_ID" in os.environ:
-    i = os.getenv('SLURM_ARRAY_TASK_ID')
-    filepath = 'integrate_posterior_' + str(i) + '.m'
+    filepath = 'integrate_posterior_' + str(jobId) + '_' + str(taskId) + '.m'
 else:
     filepath = '/Users/sarahfletcher/Documents/MATLAB/Repository_SDP/integrate_posterior.m'
 
@@ -28,7 +30,7 @@ print(t)
 
 # Load estimated pdf values
 
-data = io.loadmat('posterior_samples_' + str(i) + '.mat')
+data = io.loadmat('samples_' + str(jobId) + '_' + str(taskId) + '.mat')
 p = data['norm_p']
 print(np.size(p))
 
@@ -96,14 +98,14 @@ for i in range(len(sample_s)):
     r2 = np.random.rand(1)
     sample_k[i] = cond_ks_dist.ppf(r2)
 
-jobId = os.environ.get('SLURM_JOB_ID', [])
-outputDic = dict(zip(['sample_logs', 'sample_logk', 's', 't', 'margs_c'], [sample_s, sample_k, s1, t, margs_c]))
+
+outputDic = dict(zip(['sample_logs', 'sample_logk', 's', 't', 'margs_c', 'norm_p'],
+                     [sample_s, sample_k, s1, t, margs_c, p]))
 
 if "SLURM_JOB_ID" in os.environ:
     jobId = os.getenv('SLURM_JOB_ID')
     if "SLURM_ARRAY_TASK_ID" in os.environ:
-        taskID = os.getenv('SLURM_ARRAY_TASK_ID')
-        filename = 'samples_' + str(jobId) + '_' + str(taskID)
+        filename = 'samples_' + str(jobId) + '_' + str(taskId)
     else:
         filename = 'samples_' + str(jobId) + '_' + 'dd' + str(s1) + '_t' + str(t)
 else:

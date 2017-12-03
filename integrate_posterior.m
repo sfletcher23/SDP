@@ -18,7 +18,9 @@ norm_p = unnorm_param_pdf(logk_rep, logs_rep) / norm_c;
 
 
 % Save
-filename = strcat('posterior_samples_',getenv('SLURM_ARRAY_TASK_ID'));
+taskID = getenv('SLURM_ARRAY_TASK_ID');
+jobID = getenv('SLURM_JOB_ID');
+filename = strcat('samples_', num2str(jobID), '_',  num2str(taskID), '.mat');
 save(filename, 'norm_p');
 
 % This function calcuates the unnormalized pdf for the posterior f(K,S|h(t))

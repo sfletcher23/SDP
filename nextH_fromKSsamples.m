@@ -12,11 +12,14 @@ netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
 netscript = str2func(netname); 
 gwParam.startingHead = 337.143;
 
+t = str2num(t);
+s = str2num(s);
+
 % Calculate head at next period for each sample
-input = [sample_logk; sample_logs; repmat(365*t, size(sample_logk))];
+input = [sample_logk; sample_logs; repmat(365*t, [1 length(sample_logk)])];
 drawdown_current = netscript(input, gwParam);
 input = [sample_logk; sample_logs; repmat(365*(t+1), size(sample_logk))];
 drawdown_next = netscript(input, gwParam);
 dd = drawdown_next - drawdown_current;
 
-save(filename, 'drawdown_current', 'drawdown_next', 'dd', 'sample_logk', 'sample_logs')
+save(filename, 'drawdown_current', 'drawdown_next', 'dd', 'sample_logk', 'sample_logs', 's', 't', 'margs_c', 'norm_p')
