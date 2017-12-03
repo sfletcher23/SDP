@@ -31,7 +31,7 @@ function [p] = unnorm_param_pdf(logk, logs)
 
 [a, b] = size(logk);
 
-s1 = 8;
+s1 = 7.0;
 t = 1;
 
 % NN info

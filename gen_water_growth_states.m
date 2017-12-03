@@ -9,7 +9,7 @@ if gwParam.depthLimit
 end
 
 %  Calculate discretization size
-step = 0.5;
+step = 1;
 
 % Define states: 
 s_gw = 0: step: limit;
