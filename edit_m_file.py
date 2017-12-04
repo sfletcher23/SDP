@@ -38,7 +38,7 @@ if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
     i = taskId
     print(taskId)
 else:
-    i = 0
+    i = 4
 
 i = reruns[i-1]
 
