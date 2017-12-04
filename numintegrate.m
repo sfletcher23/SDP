@@ -22,10 +22,13 @@ N = 30;
 s_samples = cell(gw_M, N);
 k_samples = cell(gw_M, N);
 drawdown = cell(gw_M, N);
+s_gw
 
 files = dir('sample_data');
 for i = 3:length(files)
     load(strcat('sample_data/',files(i).name))
+    s1
+    t
     index_s1 = find(s == s_gw);
     s_samples{index_s1, t} = sample_logs;
     k_samples{index_s1, t} = sample_logk;
