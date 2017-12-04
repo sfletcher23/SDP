@@ -35,10 +35,10 @@ tlist = [item for sublist in tlist for item in sublist]
 if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
     taskId = int(os.getenv('SLURM_ARRAY_TASK_ID'))
     jobId = int(os.getenv('SLURM_JOB_ID'))
-    i = taskId
+    i = 121
     print(taskId)
 else:
-    i = 4
+    i = 121
 
 i = reruns[i-1]
 

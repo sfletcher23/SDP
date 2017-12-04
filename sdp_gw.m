@@ -65,25 +65,25 @@ sampleProb = [];
 
 if runParam.calculateTgw
 
-    [K_samples, S_samples] = gen_param_dist(gwParam.sampleSize);
-
+    
+    % Load parameter and drawdown samples
+    load('T_gw_inputs', 's_samples', 'k_samples', 'drawdown')
+    
     % Get min and max hydrograph
-    % Get neural net script
-    netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
-    netscript = str2func(netname);
-    maxK = max(K_samples);
-    minK = min(K_samples);
-    maxS = max(S_samples);
-    minS = min(S_samples);
-    time = 1*365:365:N*365;
-    x = [ones(1,N) * maxK; ones(1,N) * maxS; time]; 
-    y = netscript(x, gwParam);
-    minDrawdownHydrograph = y;
-    x = [ones(1,N) * minK; ones(1,N) * minS; time]; 
-    y = netscript(x, gwParam);
-    maxDrawdownHydrograph = y;
+    drawdown_max = [ 71.8024349691912,	98.9996385259814,	121.941450801024,	141.343687632105,	157.856744357095,	172.048031095633,	184.398168603787, ...
+                         195.305381025659,	205.094059319596,	214.024853008525,	222.304709021687,	230.096011944031,	237.524453528662,	244.685548197193, ...
+                         251.649884766433,	258.467318232683,	265.170400521298,	271.777451521216,	278.295783299501,	284.725670246833,	291.065599430146, ...
+                         297.318968271482,	303.501574870096,	309.648071618181,	315.814627673233,	322.075373217118,	328.512369315768,	335.202000802936, ...
+                         342.202671675442,	349.547910713690];
+    drawdown_min = [7.90152696173453,	10.8863953854826,	13.3341292794019,	15.3663710702284,	17.0783085592299,	18.5440767178084,	19.8211011075899, ...
+                        20.9535357329021,	21.9749402601961,	22.9103236238453,	23.7776598095863,	24.5889611257012,	25.3509773897663,	26.0655789803655, ...
+                        26.7298813924321,	27.3361843409086,	27.8718371562427,	28.3192122981390,	28.6560732294635,	28.8567461499751,	28.8945904598435, ...
+                        28.7461885505084,	28.3972642466096,	27.8494647933049,	27.1259694602479,	26.2731049674530,	25.3557618531984,	24.4468338880858, ...
+                        23.6140170959438,	22.9088843642109] ;
+    
+    
     for t = 1:N
-        indexValidState = s_gw <= 200 - maxDrawdownHydrograph(t) + 2;
+        indexValidState = floor(drawdown_min(t)) <= s_gw & s_gw <= ceil(drawdown_max(t));
         index_s_gw_time{t} = find(indexValidState);
     end
 
@@ -91,29 +91,22 @@ if runParam.calculateTgw
 
     % Get transmat vector for gw when pumping for current gw state
 
-    stateInfeasible = true(gw_M, N);
-    numRelevantSamples = zeros(gw_M, N);
-    sampleProb = cell(gw_M, N);
-    indexAbove = cell(gw_M, N);
-    indexBelow = cell(gw_M, N);
-
     T_gw_all = zeros(gw_M, gw_M, N);
 
     for t =1:N
-        parfor index_s1 = 1:gw_M
+        for index_s1 = 1:gw_M
             s1_now = s_gw(index_s1);
-            [T_gw_temp, numRel, stateInf, indAbv, indBlw, smpPrb] = ...
-                gw_transrow_nn(gwParam, t, K_samples, S_samples, s1_now, s_gw, runParam.adjustOutput);
+            if ismember(index_s_gw_time{t}, index_s1)
+                dd_input = drawdown{index_s1,t};
+                [T_gw_temp] = gw_transrow_numint(gwParam, s1, s_gw, dd_input )'
+            else
+                T_gw_temp = NaN;
+            end
             T_gw_all(:,index_s1,t) = T_gw_temp';
-            numRelevantSamples(index_s1,t) = numRel;
-            stateInfeasible(index_s1,t) = stateInf;
-            indexAbove{index_s1, t} = indAbv;
-            indexBelow{index_s1, t} = indBlw;
-            sampleProb{index_s1, t} = smpPrb;
         end
     end    
     
-    save(strcat('T_gw_',datetime), 'T_gw_all', 'K_samples', 'S_samples', 'index_s_gw_time', 'numRelevantSamples', 'stateInfeasible', 'sampleProb')
+    save(strcat('T_gw_',datetime), 'T_gw_all')
     
 else
     load(gwParam.TgwLoadName)
