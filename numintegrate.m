@@ -27,8 +27,14 @@ s_gw
 files = dir('sample_data');
 for i = 3:length(files)
     load(strcat('sample_data/',files(i).name))
-    s1
+    s
     t
+    if isstring(s)
+        s = str2num(s)
+    end
+    if isstring(t)
+        t = str2num(t)
+    end
     index_s1 = find(s == s_gw);
     s_samples{index_s1, t} = sample_logs;
     k_samples{index_s1, t} = sample_logk;
