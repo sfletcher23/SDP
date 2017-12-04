@@ -24,8 +24,8 @@ k_samples = cell(gw_M, N);
 drawdown = cell(gw_M, N);
 
 files = dir('sample_data');
-for file = files(3:end)
-    load(file.name)
+for i = 3:length(files)
+    load(strcat('sample_data/',files(i).name))
     index_s1 = find(s == s_gw);
     s_samples{index_s1, t} = sample_logs;
     k_samples{index_s1, t} = sample_logk;
