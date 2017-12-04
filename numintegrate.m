@@ -29,10 +29,10 @@ for i = 3:length(files)
     load(strcat('sample_data/',files(i).name))
     s
     t
-    if isstring(s)
+    if ~isnumeric(s)
         s = str2num(s)
     end
-    if isstring(t)
+    if ~isnumeric(t)
         t = str2num(t)
     end
     index_s1 = find(s == s_gw);
