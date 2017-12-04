@@ -32,4 +32,15 @@ for i = 1:20
     drawdown{index_s1, t} = dd;
 end
 
+save('T_gw_inputs', 's_samples', 'k_samples', 'drawdown')
+
+%% Calculate T_gw_row
+
+s1 = 22;
+t = 1;
+index_s1 = find(s1 == s_gw);
+dd_input = drawdown{index_s1, t};
+[T_gw_row] = gw_transrow_numint(gwParam, s1, s_gw, dd_input )
+
+
 

@@ -7,7 +7,7 @@ import matplotlib as ml
 import matplotlib.pyplot as plt
 import os
 
-num_sample = 5000
+num_sample = 2
 plotOn = True
 if "SLURM_JOB_ID" in os.environ:
     plotOn = False
