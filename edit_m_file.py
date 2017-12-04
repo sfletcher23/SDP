@@ -32,19 +32,21 @@ for i in range(len(time)):
 dd = [item for sublist in dd for item in sublist]
 tlist = [item for sublist in tlist for item in sublist]
 
+dd = [32, 39, 40, 41, 42, 43, 44, 45, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+      42, 43, 44, 45, 46, 47, 48, 49]
+tlist = [22, 22, 22, 22,22,22,22,22, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+         30,  30, 30, 30, 30, 30, 30, 30]
+
 if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
     taskId = int(os.getenv('SLURM_ARRAY_TASK_ID'))
     jobId = int(os.getenv('SLURM_JOB_ID'))
-    i = 121
     print(taskId)
+    i = taskId
 else:
-    i = 121
+    i = 12
 
-i = reruns[i-1]
-
-s1 = str(dd[i])
-t = str(tlist[i])
-
+s1 = str(dd[i-1])
+t = str(tlist[i-1])
 
 # open .m file
 if "SLURM_JOB_ID" in os.environ:

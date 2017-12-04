@@ -1,5 +1,4 @@
-function [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, ...
-    s_gw, s_expand, exp_vectors, K_samples, S_samples, sampleProb ] = ...
+function [ V, X1, X2, T_gw_all, cumTgw, s_gw, s_expand, exp_vectors ] = ...
     sdp_gw( runParam, costParam, popParam, gwParam, water, datetime )
 
 % Run SDP for groundwater model. 
@@ -59,15 +58,12 @@ end
 %% Get K and S samples and use to prune state space
 
 N = runParam.N;
-numRelevantSamples = [];
-stateInfeasible = [];
-sampleProb = [];
 
 if runParam.calculateTgw
 
     
     % Load parameter and drawdown samples
-    load('T_gw_inputs', 's_samples', 'k_samples', 'drawdown')
+    load('T_gw_inputs_Dec4_wgaps','drawdown')
     
     % Get min and max hydrograph
     drawdown_max = [ 71.8024349691912,	98.9996385259814,	121.941450801024,	141.343687632105,	157.856744357095,	172.048031095633,	184.398168603787, ...
@@ -83,8 +79,9 @@ if runParam.calculateTgw
     
     
     for t = 1:N
-        indexValidState = floor(drawdown_min(t)) <= s_gw & s_gw <= ceil(drawdown_max(t));
+        indexValidState = ceil(drawdown_min(t)) <= s_gw & s_gw <= floor(drawdown_max(t));
         index_s_gw_time{t} = find(indexValidState);
+        index_s_gw_time{t} =  [1 index_s_gw_time{t}];
     end
 
 % Calculate Groudnwater transition matrix when pumping
@@ -96,9 +93,9 @@ if runParam.calculateTgw
     for t =1:N
         for index_s1 = 1:gw_M
             s1_now = s_gw(index_s1);
-            if ismember(index_s_gw_time{t}, index_s1)
+            if ismember(index_s1, index_s_gw_time{t})
                 dd_input = drawdown{index_s1,t};
-                [T_gw_temp] = gw_transrow_numint(gwParam, s1, s_gw, dd_input )'
+                [T_gw_temp] = gw_transrow_numint(gwParam, s1_now, s_gw, dd_input )';
             else
                 T_gw_temp = NaN;
             end

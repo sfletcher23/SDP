@@ -1,5 +1,5 @@
 function [ ] = plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, sampleProb, K_samples, S_samples )
+    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water )
 % Make plots from SDP and simulation results
 
 [~,~,N] = size(T_gw_all);

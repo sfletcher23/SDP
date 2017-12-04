@@ -9,7 +9,7 @@ tic
 runParam = struct;
 runParam.runSDP = true;
 runParam.simulateOn = true;
-runParam.calculateTgw = false;
+runParam.calculateTgw = true;
 runParam.saveOn = false; 
 runParam.simNum = 500;
 runParam.simpleVersion = false;
@@ -20,7 +20,7 @@ runParam.adjustOutput = true;
 runParam.runSDPfunction = false;
 runParam.oldCost = true;
 runParam.percentile = 90;
-runParam.N = 30;
+runParam.N = 29;
 
 plotParam = struct;
 plotParam.plotsOn = true;
@@ -116,8 +116,7 @@ if runParam.runSDPfunction
         parpool('local', str2num(getenv('SLURM_CPUS_PER_TASK')))
     end
     
-    [ V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, lowestCostAction, ...
-        s_gw, s_expand, exp_vectors, K_samples, S_samples, sampleProb ] = ...
+        [ V, X1, X2, T_gw_all, cumTgw, s_gw, s_expand, exp_vectors ] = ...
         sdp_gw( runParam, costParam, popParam, gwParam, water, datetime );
 
     if runParam.saveOn
@@ -155,11 +154,11 @@ end
 
 if plotParam.plotsOn
 	plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-        lowestCostAction, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, sampleProb, K_samples, S_samples);
+        lowestCostAction, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water);
     
     if runParam.solveNoLearning
         plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
-        lowestCostAction, simnolearn, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water, sampleProb, K_samples, S_samples);
+        lowestCostAction, simnolearn, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water);
     
     % Combined plot
     figure;

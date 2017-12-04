@@ -38,7 +38,7 @@ sim.sampleIndexOverTime = zeros(gwParam.sampleSize,N,R);
 sim.failureProbOverTime = zeros(R,N);
 
 % Initial state
-s_gw_initial = 0;
+s_gw_initial = 10;
 if runParam.capacityDelay 
     s_expand_initial = 1;
 else
@@ -53,6 +53,7 @@ state_expand(1) = s_expand_initial;
 for i = 1:R
     
     state_gw_now = zeros(1,N);
+    state_gw_now(1) = s_gw_initial;
     state_expand_now = zeros(1,N);
     state_expand_now(1) = s_expand_initial;
     action_gw_now = zeros(1,N);
