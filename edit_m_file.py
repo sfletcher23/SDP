@@ -41,7 +41,7 @@ if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
     taskId = int(os.getenv('SLURM_ARRAY_TASK_ID'))
     jobId = int(os.getenv('SLURM_JOB_ID'))
     print(taskId)
-    i = taskId
+    i = 10
 else:
     i = 12
 

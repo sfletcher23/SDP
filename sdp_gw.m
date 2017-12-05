@@ -1,4 +1,4 @@
-function [ V, X1, X2, T_gw_all, cumTgw, s_gw, s_expand, exp_vectors ] = ...
+function [ V, X1, X2, T_gw_all, cumTgw, s_gw, s_expand, exp_vectors, lowestCost, lowestCostAction ] = ...
     sdp_gw( runParam, costParam, popParam, gwParam, water, datetime )
 
 % Run SDP for groundwater model. 
@@ -410,89 +410,89 @@ end
 % normal pumping costs but not exaggerated pumping costs.
 
 lowestCost = [];
-lowestCostAction = [];
+lowestCostAction = 2;
 
 if runParam.solveNoLearning
     
-    % Get water demand
-    waterDemand = gwParam.pumpingRate;
-    % Get hydrograph for each sample;
-    netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
-    netscript = str2func(netname);
-    headSample = zeros(length(K_samples), N);
-    for i = 1:length(K_samples)
-        x = [repmat(K_samples(i),[1,N]); repmat(S_samples(i),[1,N]); [365:365:365*(N)]];
-        tempHead = netscript(x, gwParam); 
-        headSample(i,:) = tempHead;
-    end
-    headSampleRounded = round2x(headSample, s_gw);
-    indexPumpingOff = headSample <= gwParam.depthLimit;
-    
-    meanCostOverTime = zeros(3,N);
-    meanShortageOverTime = zeros(3,N);
-    meanTotalCost = zeros(3,1);
-    meanTotalShortage = zeros(3,1);
-    for index_a2 = 1:3
-        a2 = a_expand_available(index_a2);
-        costOverTime = zeros(gwParam.sampleSize,N);
-        expansionCostOverTime = zeros(gwParam.sampleSize,N);
-        pumpingCostOverTime = zeros(gwParam.sampleSize,N);
-        shortageOverTime = zeros(gwParam.sampleSize,N);
-        capacityOverTime = zeros(gwParam.sampleSize,N);
-        marginalDesalCostOverTime = zeros(gwParam.sampleSize,N);
-        totalCost = zeros(gwParam.sampleSize,1);
-        totalShortage = zeros(gwParam.sampleSize,1);
-        parfor i = 1:gwParam.sampleSize
-            costOverTime_sample = zeros(1,N);
-            expansionCostOverTime_sample = zeros(1,N);
-            pumpingCostOverTime_sample = zeros(1,N);
-            shortageOverTime_sample = zeros(1,N);
-            capacityOverTime_sample = zeros(1,N);
-            marginalDesalCostOverTime_sample = zeros(1,N);
-            for t = 1:N
-                s1 = 200 - headSampleRounded(i,t);
-                a1 = ~indexPumpingOff(i,t);
-                if t ==1
-                    s2_now = 0;
-                    a2_now = a2;
-                else
-                    a2_now = 0;
-                    switch a2
-                        case 0
-                            s2_now = 0;
-                        case 1
-                            s2_now = water.desal_capacity_expansion.small;
-                        case 2
-                            s2_now = water.desal_capacity_expansion.large;
-                    end
-                end
-                [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply, othergw_supply ] ...
-                 = cost_supply_func( a1, a2_now, s1, s2_now, costParam, water, gwParam, t, gwParam.pumpingRate, false, []);
-                costOverTime_sample(t) = cost;
-                expansionCostOverTime_sample(t) = expansionCost;
-                pumpingCostOverTime_sample(t) = pumpingCost;
-                shortageOverTime_sample(t) = shortage;
-                capacityOverTime_sample(t) = capacity;
-                marginalDesalCostOverTime_sample(t) = marginalDesalCost;
-            end
-            costOverTime(i,:) =  costOverTime_sample;
-            expansionCostOverTime(i,:) = expansionCostOverTime_sample;
-            pumpingCostOverTime(i,:) =  pumpingCostOverTime_sample;
-            shortageOverTime(i,:) = shortageOverTime_sample;
-            capacityOverTime(i,:) = capacityOverTime_sample;
-            marginalDesalCostOverTime(i,:) = marginalDesalCostOverTime_sample;
-            totalCost(i)=sum(costOverTime_sample);
-            totalShortage(i)=sum(costOverTime_sample);
-        end
-        meanCostOverTime(index_a2,:) = mean(costOverTime,1);
-        meanShortageOverTime(index_a2,:) = mean(shortageOverTime,1);
-        meanTotalCost(index_a2) = mean(totalCost);
-        meanTotalShortage(index_a2) = mean(totalShortage);
-    end
-[lowestCost, lowestCostActionIndex] = min(meanTotalCost);
-lowestCostAction = a_expand_available(lowestCostActionIndex);
-% figure; plot(1:N, meanCostOverTime)
-% figure; plot(1:N,  meanShortageOverTime)
+%     % Get water demand
+%     waterDemand = gwParam.pumpingRate;
+%     % Get hydrograph for each sample;
+%     netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
+%     netscript = str2func(netname);
+%     headSample = zeros(length(K_samples), N);
+%     for i = 1:length(K_samples)
+%         x = [repmat(K_samples(i),[1,N]); repmat(S_samples(i),[1,N]); [365:365:365*(N)]];
+%         tempHead = netscript(x, gwParam); 
+%         headSample(i,:) = tempHead;
+%     end
+%     headSampleRounded = round2x(headSample, s_gw);
+%     indexPumpingOff = headSample <= gwParam.depthLimit;
+%     
+%     meanCostOverTime = zeros(3,N);
+%     meanShortageOverTime = zeros(3,N);
+%     meanTotalCost = zeros(3,1);
+%     meanTotalShortage = zeros(3,1);
+%     for index_a2 = 1:3
+%         a2 = a_expand_available(index_a2);
+%         costOverTime = zeros(gwParam.sampleSize,N);
+%         expansionCostOverTime = zeros(gwParam.sampleSize,N);
+%         pumpingCostOverTime = zeros(gwParam.sampleSize,N);
+%         shortageOverTime = zeros(gwParam.sampleSize,N);
+%         capacityOverTime = zeros(gwParam.sampleSize,N);
+%         marginalDesalCostOverTime = zeros(gwParam.sampleSize,N);
+%         totalCost = zeros(gwParam.sampleSize,1);
+%         totalShortage = zeros(gwParam.sampleSize,1);
+%         parfor i = 1:gwParam.sampleSize
+%             costOverTime_sample = zeros(1,N);
+%             expansionCostOverTime_sample = zeros(1,N);
+%             pumpingCostOverTime_sample = zeros(1,N);
+%             shortageOverTime_sample = zeros(1,N);
+%             capacityOverTime_sample = zeros(1,N);
+%             marginalDesalCostOverTime_sample = zeros(1,N);
+%             for t = 1:N
+%                 s1 = 200 - headSampleRounded(i,t);
+%                 a1 = ~indexPumpingOff(i,t);
+%                 if t ==1
+%                     s2_now = 0;
+%                     a2_now = a2;
+%                 else
+%                     a2_now = 0;
+%                     switch a2
+%                         case 0
+%                             s2_now = 0;
+%                         case 1
+%                             s2_now = water.desal_capacity_expansion.small;
+%                         case 2
+%                             s2_now = water.desal_capacity_expansion.large;
+%                     end
+%                 end
+%                 [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply, othergw_supply ] ...
+%                  = cost_supply_func( a1, a2_now, s1, s2_now, costParam, water, gwParam, t, gwParam.pumpingRate, false, []);
+%                 costOverTime_sample(t) = cost;
+%                 expansionCostOverTime_sample(t) = expansionCost;
+%                 pumpingCostOverTime_sample(t) = pumpingCost;
+%                 shortageOverTime_sample(t) = shortage;
+%                 capacityOverTime_sample(t) = capacity;
+%                 marginalDesalCostOverTime_sample(t) = marginalDesalCost;
+%             end
+%             costOverTime(i,:) =  costOverTime_sample;
+%             expansionCostOverTime(i,:) = expansionCostOverTime_sample;
+%             pumpingCostOverTime(i,:) =  pumpingCostOverTime_sample;
+%             shortageOverTime(i,:) = shortageOverTime_sample;
+%             capacityOverTime(i,:) = capacityOverTime_sample;
+%             marginalDesalCostOverTime(i,:) = marginalDesalCostOverTime_sample;
+%             totalCost(i)=sum(costOverTime_sample);
+%             totalShortage(i)=sum(costOverTime_sample);
+%         end
+%         meanCostOverTime(index_a2,:) = mean(costOverTime,1);
+%         meanShortageOverTime(index_a2,:) = mean(shortageOverTime,1);
+%         meanTotalCost(index_a2) = mean(totalCost);
+%         meanTotalShortage(index_a2) = mean(totalShortage);
+%     end
+% [lowestCost, lowestCostActionIndex] = min(meanTotalCost);
+% lowestCostAction = a_expand_available(lowestCostActionIndex);
+% % figure; plot(1:N, meanCostOverTime)
+% % figure; plot(1:N,  meanShortageOverTime)
     
 end
 

@@ -1,4 +1,4 @@
-function [ ] = plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, numRelevantSamples, stateInfeasible, lowestCost, ...
+function [ ] = plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, lowestCost, ...
     lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water )
 % Make plots from SDP and simulation results
 
@@ -181,6 +181,9 @@ end
 %% Plot first drawdown level when build (when nocapacity)
 if true
 X2nocap = permute(X2(:,1,1:end-1),[1,3,2]);
+X2nocap(1,:) = 0;
+indexNan = isnan(X2nocap);
+X2nocap(indexNan) = 0;
 indexZeros = ~flipud(X2nocap == 0);
 indexFirstZero =sum(cumprod(double(indexZeros),1)) + 3;
 indexNan = sum(cumprod(~isnan(X2nocap)));
@@ -372,7 +375,7 @@ if plotParam.plotinfoOverTime
     sample = randsample(R,numSamples);
     netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
     netscript = str2func(netname); 
-    
+    load('T_gw_inputs_Dec4_wgaps','s_samples', 'k_samples')
 
     figure;
     finalHead = zeros(5,N,6);
@@ -389,25 +392,23 @@ if plotParam.plotinfoOverTime
                 maxTime = t-1;
                 break;
             end
+            K_samples = k_samples{indexState, t};
+            S_samples = s_samples{indexState, t};
             headSamples = zeros(length(K_samples),N);
             for i = 1:length(K_samples)
-                x = [repmat(log(K_samples(i)),[1,N]); repmat(log(S_samples(i))  ,[1,N]); [365:365:365*(N)]];
+                x = [repmat(K_samples(i),[1,N]); repmat(S_samples(i)  ,[1,N]); [365:365:365*(N)]];
                 tempDrawdown = netscript(x, gwParam);
                 headSamples(i,:) = gwParam.startingHead - tempDrawdown;
             end
            [headSamplesSorted, index] = sort(headSamples);
-           cumProb = cumsum(sampleProb{indexState,t}(index(:,end)));
-           indexp5 = find(cumProb > 0.05,1);
-           indexp25 = find(cumProb > 0.25,1);
-           indexp50 = find(cumProb > 0.5,1);
-           indexp75 = find(cumProb > 0.75,1);
-           indexp95 = find(cumProb > 0.95,1);
-           p5(t,:) = headSamplesSorted(indexp5,:);
-           p95(t,:) = headSamplesSorted(indexp95,:);
-           sampleIndexP5toP95 = index(indexp5:indexp95,end);
-           samplesP5toP95{t} = [K_samples(sampleIndexP5toP95) ; S_samples(sampleIndexP5toP95)];
-           finalHead(:,t,k) = [headSamplesSorted(indexp5,end); headSamplesSorted(indexp25,end); headSamplesSorted(indexp50,end);...
-               headSamplesSorted(indexp75,end); headSamplesSorted(indexp95,end)];
+           headp5 = prctile(headSamplesSorted, 5, 1);
+           headp25 = prctile(headSamplesSorted, 25, 1);
+           headp50 = prctile(headSamplesSorted, 50, 1);
+           headp75 = prctile(headSamplesSorted, 75, 1);
+           headp95 = prctile(headSamplesSorted, 95, 1);
+           p5(t,:) = headp5;
+           p95(t,:) = headp95;
+           finalHead(:,t,k) = [headp5(end); headp25(end); headp50(end); headp75(end); headp95(end)];
 
         end
 
@@ -424,7 +425,8 @@ if plotParam.plotinfoOverTime
         end
         subplot(1,2,2)
         for t = 1:maxTime
-            scatter(samplesP5toP95{t}(1,:),samplesP5toP95{t}(2,:),'o', 'k','MarkerFaceColor', clrmp(t,:))
+            index_s1 = find(headSim(t) == s_gw);
+            scatter(k_samples{index_s1,t},s_samples{index_s1,t},'o', 'k','MarkerFaceColor', clrmp(t,:))
             hold on
             xlabel('K [m/d]')
             ylabel('S')
