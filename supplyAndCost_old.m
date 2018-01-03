@@ -1,5 +1,5 @@
 function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply] ...
-    = supplyAndCost_old( a1, a2, s1, s2, costParam, water, gwParam, t, demand, capacityDelay, exp_vectors)
+    = supplyAndCost_old( a1, a2, s1, s2, costParam, water, gwParam, t, demand, capacityDelay, exp_vectors, makePlot)
 
 
 % Calculate the capacity, supply, and cost in the current period given
@@ -39,6 +39,7 @@ function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, sh
     D=0.508;
     v=0.24669;
     aquiferDepth = 1200;
+    startingDepth = gwParam.startingHead;
     if gwParam.exaggeratePumpCost
         v= 70;
         cost_per_kwh=.01;
@@ -86,6 +87,53 @@ function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, sh
     pumpingCost =  pump_cost_perunit * a1 * minjur_supply * discountFactor;
     marginalDesalCost = exp_supply * costParam.marginal_cost;
     cost = shortageCost + expansionCost + pumpingCost + marginalDesalCost;
+    
+    
+    if makePlot
+        figure;
+        f_pump = f;
+        D_pump = D;
+        v_pump = v;
+        density_pump = density;
+        percent_eff_pump = percent_eff;
+        for s1 = 1:400
+            Hf(s1) = (s1 + startingDepth) + f_pump * (s1+startingDepth)/D_pump * v_pump^2 / (2*9.81);
+            pc(s1) = density_pump * 9.81 * Hf(s1) * conversion_factor ...
+            * (100/percent_eff_pump) * cost_per_kwh;
+        end
+        subplot(1,2,1)
+        plot((1:400)+ startingDepth, pc)
+        xlabel('drawdown [m]')
+        ylabel('pumping cost [$/m3]')
+        title('Pumping costs')
+        subplot(1,2,2)
+        plot((1:400) + startingDepth, Hf)
+        xlabel('drawdown [m]')
+        ylabel('effective depth [m]')
+        title('Effective pumping depth')
+        
+        fig = figure; 
+        colors = get(fig, 'defaultAxesColorOrder');
+        set(fig,'defaultAxesColorOrder',[colors(1,:); colors(2,:)]);
+        yyaxis left
+        bl = bar([costParam.shortage_cost 0; pc(1) pc(end) - pc(1); 0 0; costParam.marginal_cost 0; 0 0], 'stacked');
+        ylim([0 10])
+        ylabel('Marginal Costs [$/cm]')
+        yyaxis right
+        br = bar([0; 0 ;0 ;0 ; expansionCost/1E6], 'FaceColor', colors(2,:));
+        ylim([0 700])
+        ylabel('Capex [Million $]')
+        set(gca, 'XTickLabel', {'shortage', 'pumping', 'brackish', 'desal opex', 'desal capex'})
+        bl(1).FaceColor = colors(1,:);
+        bl(2).FaceColor = colors(1,:);
+        bl(2).FaceAlpha = 0.4;
+        b = findall(fig,'Type', 'Bar');
+        set(b, 'BarWidth', 0.6)
+        hold on
+        line([4.5 4.5], [0 700], 'Color', 'k')
+        title('Cost Assumptions')
+        expansionCost/1E6
+    end
 
 
 end

@@ -335,7 +335,7 @@ if plotParam.simPlotsOn
     
     
     % Plot expansion time distribution
-    [~,~, largeCost,~,~,~,~,~,~,~] = supplyAndCost( 0, 2, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
+    [~,~, largeCost,~,~,~,~,~,~] = supplyAndCost( 0, 2, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
     indexLarge = sim.state_expand == 17;
     expLargeOverTime = zeros(size(sim.state_expand));
     expLargeOverTime(indexLarge) = 1;
@@ -406,7 +406,12 @@ end
     l.Location = 'southeast'
     legend('boxoff')
     
-
+    
+%% Cost plot
+[ ~,~,~,~,~,~,~,~,~] = supplyAndCost( 1, 2, 1, 0, costParam, water, gwParam, 0, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors, true);
+[ ~,~,~,~,~,~,~,~,~] = supplyAndCost_old( 1, 2, 1, 0, costParam, water, gwParam, 0, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors, true);
+    
+    
 %% Show updated predictions over time
 if plotParam.plotinfoOverTime 
        

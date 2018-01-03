@@ -9,16 +9,16 @@ tic
 runParam = struct;
 runParam.runSDP = true;
 runParam.simulateOn = true;
-runParam.calculateTgw = true;
+runParam.calculateTgw = false;
 runParam.saveOn = true; 
 runParam.simNum = 1000;
 runParam.simpleVersion = false;
 runParam.flexOn = true;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
-runParam.adjustOutput = true;
+runParam.adjustOutput = true; 
 runParam.runSDPfunction = true;
-runParam.oldCost = true;
+runParam.oldCost = false;
 runParam.percentile = 0;
 runParam.N = 30;
 
@@ -48,7 +48,7 @@ gwParam.exaggeratePumpCost = false;
 gwParam.enforceLimit = false;
 gwParam.pumpingSubsidy = true;
 gwParam.infoScenario = 'full_range';
-gwParam.TgwLoadName = 'T_gw_28_Nov_2017_11_38_10';
+gwParam.TgwLoadName = 'T_gw_Dec5';
 gwParam.startingHead = 337.143;
 gwParam.nstp = 100;
 
