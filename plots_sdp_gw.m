@@ -1,5 +1,5 @@
 function [ ] = plots_sdp_gw(  V, X1, X2, T_gw_all, cumTgw, lowestCost, ...
-    lowestCostActionIndex, sim, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water )
+    lowestCostActionIndex, sim, simnolearn_build, simnolearn_nobuild, plotParam, s_gw, s_expand, exp_vectors, runParam, gwParam, costParam, water )
 % Make plots from SDP and simulation results
 
 [~,~,N] = size(T_gw_all);
@@ -185,18 +185,26 @@ X2nocap(1,:) = 0;
 indexNan = isnan(X2nocap);
 X2nocap(indexNan) = 0;
 indexZeros = ~flipud(X2nocap == 0);
-indexFirstZero =sum(cumprod(double(indexZeros),1)) + 3;
+indexFirstZero =gw_M - sum(cumprod(double(indexZeros),1));
 indexNan = sum(cumprod(~isnan(X2nocap)));
 indexReplaceNan = indexFirstZero >= indexNan;
 indexFirstZero(indexReplaceNan) = 1;
 figure;
-scatter(1:N, s_gw(indexFirstZero));
+scatter(1:N, gwParam.startingHead -   s_gw(indexFirstZero));
 xlabel('Year')
 ylabel('Head [m]')
-title('Optimal expansion policy: Drawdown Threshold for Exapsnion over Time')
+title('Drawdown Threshold for Exapsnion')
 hold on
-%line([0 30], [gwParam.startingHead-s_gw(end)-5 , gwParam.startingHead + 5], 'Color', 'k')
-%line([0 30], [200-gwParam.depthLimit 200-gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
+line([0 30], [gwParam.startingHead, gwParam.startingHead ], 'Color', 'k')
+line([0 30], [gwParam.startingHead-gwParam.depthLimit gwParam.startingHead-gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
+
+
+% plot first drawdown level when p(reach limit) = 1
+indexOne = ~(abs(cumTgw - 1) < .001);
+indexOne(1,:) = 1;
+indexFirstOne =sum(cumprod(double(indexOne),1)) ;
+figure;
+scatter(1:N, s_gw(indexFirstOne));
     
 end
     
@@ -222,17 +230,27 @@ end
 
 if plotParam.simPlotsOn
 
-if R == 1
+    if R > 1
+        indexSample = randi([1 R], 1);
+    end
+    state_gw = sim.state_gw(indexSample, :);
+    action_gw = sim.action_gw(indexSample, :);
+    failureProbOverTime = sim.failureProbOverTime(indexSample, :);
+    costOverTime = sim.costOverTime(indexSample, :);
+    shortageCostOverTime = sim.shortageCostOverTime(indexSample, :);
+    expansionCostOverTime = sim.expansionCostOverTime(indexSample, :);
+    pumpingCostOverTime = sim.pumpingCostOverTime(indexSample, :);
+    margDesalCostOverTime = sim.margDesalCostOverTime(indexSample, :);
 
-    % Plot state evolution w/ actions
-    figure;
-    yyaxis left
-    plot(1:N, sim.state_gw)
-    hold on
-    yyaxis right
-    plot(1:N, sim.action_gw)
-    xlabel('time')
-    legend('Drawdown', 'pumping on?')
+%     % Plot state evolution w/ actions
+%     figure;
+%     yyaxis left
+%     plot(1:N, state_gw)
+%     hold on
+%     yyaxis right
+%     plot(1:N, action_gw)
+%     xlabel('time')
+%     legend('Drawdown', 'pumping on?')
 
     % figure;
     % yyaxis left
@@ -247,15 +265,15 @@ if R == 1
     % Plot system performance
     figure
     subplot(1,3,1)
-    plot(1:N, sim.failureProbOverTime)
+    plot(1:N, failureProbOverTime)
 
 
     subplot(1,3,2)
-    plot(1:N,sim.costOverTime/1E6);
+    plot(1:N,costOverTime/1E6);
     yLarge = gca;
     % ylim([0 700])
     hold on
-    bar(1:N, [sim.shortageCostOverTime./1E6; sim.expansionCostOverTime./1E6; sim.pumpingCostOverTime./1E6; sim.margDesalCostOverTime./1E6]', 'stacked');
+    bar(1:N, [shortageCostOverTime./1E6; expansionCostOverTime./1E6; pumpingCostOverTime./1E6; margDesalCostOverTime./1E6]', 'stacked');
     legend('Total cost', 'Shortage cost', 'Expansion Cost', 'Pumping Cost', 'Desal costs')
     title(strcat('Total cost [M$]: ', num2str(sum(sim.costOverTime)/1E6, '%.3E')))
     ylabel('M$')
@@ -270,17 +288,17 @@ if R == 1
     % legend('Location', 'southwest')
     % ylabel('MCM/y');
 
-    subplot(1,3,3)
-    plot(1:N,sim.shortageOverTime/1E6)
-    hold on
-    plot(1:N,sim.demandOverTime/1E6)
-    plot(1:N,sim.capacityOverTime/1E6)
-    bar(1:N, [sim.minjurSupplyOverTime/1E6; sim.expSupplyOverTime/1E6]', 'stacked');
-    legend('shortage', 'demand', 'capacity', 'minjur supply', 'exp supply')
-    legend('Location', 'southwest')
-    ylabel('MCM/y');
-    
-else
+%     subplot(1,3,3)
+%     plot(1:N,sim.shortageOverTime/1E6)
+%     hold on
+%     plot(1:N,sim.demandOverTime/1E6)
+%     plot(1:N,sim.capacityOverTime/1E6)
+%     bar(1:N, [sim.minjurSupplyOverTime/1E6; sim.expSupplyOverTime/1E6]', 'stacked');
+%     legend('shortage', 'demand', 'capacity', 'minjur supply', 'exp supply')
+%     legend('Location', 'southwest')
+%     ylabel('MCM/y');
+%     
+
     % Plot hydrographs
     figure;
     indexLimit = find(sim.state_gw == -1 | sim.state_gw >= gwParam.depthLimit);
@@ -318,23 +336,16 @@ else
     
     % Plot expansion time distribution
     [~,~, largeCost,~,~,~,~,~,~,~] = supplyAndCost( 0, 2, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
-    [~,~, smallCost,~,~,~,~,~,~,~] = supplyAndCost( 0, 1, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
-    indexLarge = sim.expansionCostOverTime == largeCost;
-    indexSmall = sim.expansionCostOverTime == smallCost;
-    expLargeOverTime = zeros(size(sim.expansionCostOverTime));
-    expSmallOverTime = zeros(size(sim.expansionCostOverTime));
+    indexLarge = sim.state_expand == 17;
+    expLargeOverTime = zeros(size(sim.state_expand));
     expLargeOverTime(indexLarge) = 1;
-    expSmallOverTime(indexSmall) = 1;
     [rLarge,cLarge] = find(expLargeOverTime);
-    [rSmall,cSmall] = find(expSmallOverTime);
     % for every row, take the minimum column index and put NaN if none is found
     expTimeLarge = accumarray(rLarge,cLarge,[size(expLargeOverTime,1),1],@min,32);
-    expTimeSmall = accumarray(rSmall,cSmall,[size(expSmallOverTime,1),1],@min,32);
-    countNever = sum((expTimeLarge == 32 & expTimeSmall == 32));
+    countNever = sum((expTimeLarge == 32 ));
     figure
-    yLarge = histc(expTimeLarge,[0:32]);
-    ySmall = histc(expTimeSmall,[0:32]);
-    bar(0:31, [yLarge(1:end-1) ySmall(1:end-1)], 'stacked')
+    yLarge = histc(expTimeLarge, [0:32]);
+    bar(0:31, [yLarge(1:end-1) ], 'stacked')
     hold on 
     bar(31, countNever, 'k')
     ax = gca;
@@ -345,26 +356,56 @@ else
     xlabel('Expansion Year')
     ylabel('Frequency')
     if runParam.flexOn
-        legend('Large plant', 'Small plant', 'Never')
+        legend('Build',  'Never build')
     end
     title(strcat('Histogram of expansion time in ', num2str(R), ' simulations'))
     
     % Plot total shortage vs total cost
+    if false
     totalCost = sum(sim.costOverTime,2);
     totalShortage = sum(sim.shortageOverTime,2);
     figure
     scatter(totalShortage,totalCost)
     title(strcat('Average Total Cost: ', num2str(sim.averageTotalCost, '%.3E')))
+    end
     
-    % Bagplot!! Eventually, have different bags for learning vs no learning
-    % and flexible vs no flexible
     
+    
+
+
 end
 
-end
 
-
-
+%%  Combined plots
+    figure;
+    totalCostFlex = sum(sim.costOverTime,2);
+    totalCostBuild = sum(simnolearn_build.costOverTime,2);
+    totalCostNoBuild = sum(simnolearn_nobuild.costOverTime,2);
+    totalShortageFlex = sum(sim.shortageOverTime,2);
+    totalShortageBuild = sum(simnolearn_build.shortageOverTime,2);
+    totalShortageNoBuild = sum(simnolearn_nobuild.shortageOverTime,2);
+    subplot(1,2,1)
+    hold on
+    c = cdfplot(totalCostBuild/1E9);
+    c.LineWidth = 1.5;
+    c = cdfplot(totalCostNoBuild/1E9)
+    c.LineWidth = 1.5;
+    c = cdfplot(totalCostFlex/1E9)
+    c.LineWidth = 1.5;
+    xlabel('30-year Cost with Damages [Bn$]')
+    subplot(1,2,2)
+    hold on
+    c = cdfplot(totalShortageBuild/1E6)
+    c.LineWidth = 1.5;
+    c = cdfplot(totalShortageNoBuild/1E6)
+    c.LineWidth = 1.5;
+    c = cdfplot(totalShortageFlex/1E6)
+    c.LineWidth = 1.5;
+    xlabel('30-year Shortages [MCM]')
+    l = legend('Build', 'No Build', 'Flexible')
+    l.Location = 'southeast'
+    legend('boxoff')
+    
 
 %% Show updated predictions over time
 if plotParam.plotinfoOverTime 
@@ -375,7 +416,7 @@ if plotParam.plotinfoOverTime
     sample = randsample(R,numSamples);
     netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
     netscript = str2func(netname); 
-    load('T_gw_inputs_Dec4_wgaps','s_samples', 'k_samples')
+    load('T_gw_inputs_Dec4','s_samples', 'k_samples')
 
     figure;
     finalHead = zeros(5,N,6);
@@ -443,6 +484,7 @@ if plotParam.plotinfoOverTime
         subplot(1,2,1)
         x = t:N;
         X=[x,fliplr(x)];
+        index_s1 = headSim(t);
         scatter(t,gwParam.startingHead-headSim(t),35, 'd', 'k', 'MarkerFaceColor', 'k')
         Y=[p5(t,t:end),fliplr(p95(t,t:end))];
         hold on
@@ -453,28 +495,29 @@ if plotParam.plotinfoOverTime
         set(gca,'FontSize',10)
         title('Head predictions')
         subplot(1,2,2)
-        scatter(samplesP5toP95{t}(1,:),samplesP5toP95{t}(2,:),'o', 'k','MarkerFaceColor', clrmp(t,:))
+        scatter(k_samples{index_s1,t},s_samples{index_s1,t},'o', 'k','MarkerFaceColor', clrmp(t,:))
         hold on
-        xlabel('K [m/d]')
-        ylabel('S')
+        xlabel('Log K [m/d]')
+        ylabel('Log S')
         set(gca,'linewidth',1.5)
         set(gca,'FontSize',10)
-        set(gca,'Units','normalized')
-        pos = get(gca, 'Position');
-        set(gca, 'Position', pos + [0 0.05 0 -0.05])
+%         set(gca,'Units','normalized')
+%         pos = get(gca, 'Position');
+%         set(gca, 'Position', pos + [0 0.05 0 -0.05])
         title('Parameters')
-        xlim([0 45])
+        xlim([1.5 2.7])
+        ylim([-12.02 -10.7])
 %         if t == 1
 %             suptitle('Updated predictions over time (90% CI)')
 %         end
-        set(fig,'Position', [680 558 1000 750])
-        %if t == 1 
-            set(gca,'Units','normalized')
-            xLabelHandle = get( gca ,'XLabel' );
-            pos  = get( xLabelHandle , 'position' )
-            pos1 = pos - [0 0.02 0]; 
-            set( xLabelHandle , 'position' , pos1 );
-        %end
+%         set(fig,'Position', [680 558 1000 750])
+%         %if t == 1 
+%             set(gca,'Units','normalized')
+%             xLabelHandle = get( gca ,'XLabel' );
+%             pos  = get( xLabelHandle , 'position' )
+%             pos1 = pos - [0 0.02 0]; 
+%             set( xLabelHandle , 'position' , pos1 );
+%         %end
         frames(t) = getframe(gcf);
     end
 

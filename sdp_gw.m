@@ -1,5 +1,5 @@
 function [ V, X1, X2, T_gw_all, cumTgw, s_gw, s_expand, exp_vectors, lowestCost, lowestCostAction ] = ...
-    sdp_gw( runParam, costParam, popParam, gwParam, water, datetime )
+    sdp_gw( runParam, costParam, gwParam, water, datetime )
 
 % Run SDP for groundwater model. 
 V = [];
@@ -63,7 +63,7 @@ if runParam.calculateTgw
 
     
     % Load parameter and drawdown samples
-    load('T_gw_inputs_Dec4_wgaps','drawdown')
+    load('T_gw_inputs_Dec4','drawdown')
     
     % Get min and max hydrograph
     drawdown_max = [ 71.8024349691912,	98.9996385259814,	121.941450801024,	141.343687632105,	157.856744357095,	172.048031095633,	184.398168603787, ...
@@ -103,7 +103,7 @@ if runParam.calculateTgw
         end
     end    
     
-    save(strcat('T_gw_',datetime), 'T_gw_all')
+    %save(strcat('T_gw_',datetime), 'T_gw_all')
     
 else
     load(gwParam.TgwLoadName)
@@ -111,13 +111,16 @@ end
 
 % Calculate expected total drawdown for each state
 cumTgw = zeros(gw_M, N);
+T_gw_temp = T_gw_all;
+indexNan = isnan(T_gw_temp);
+T_gw_temp(indexNan) = 0;
 for t = linspace(N,1,N)
     for index_s1 = 1:gw_M
         s1 = s_gw(index_s1);
         if t == N 
-            cumTgw(index_s1,t) = T_gw_all(1,index_s1,t);
+            cumTgw(index_s1,t) = T_gw_temp(1,index_s1,t);
         else
-            cumTgw(index_s1,t) = sum(T_gw_all(:,index_s1,t) .* cumTgw(:,t+1));
+            cumTgw(index_s1,t) = sum(T_gw_temp(:,index_s1,t) .* cumTgw(:,t+1));
         end
     end
 end
@@ -298,7 +301,7 @@ for t = linspace(N,1,N)
                     demandThisPeriod = gwParam.pumpingRate;
 
                     % Calculate cost and shortages this period
-                    [ cost, ~,~, ~,~, ~, ~, ~, ~, ~ ] = cost_supply_func( a1, a2, s1, s2, costParam, water, gwParam, t, demandThisPeriod, runParam.capacityDelay, exp_vectors);
+                    [ cost, ~,~, ~,~, ~, ~, ~, ~] = cost_supply_func( a1, a2, s1, s2, costParam, water, gwParam, t, demandThisPeriod, runParam.capacityDelay, exp_vectors);
 
                     % Calculate transition matrix
                     
@@ -412,7 +415,7 @@ end
 lowestCost = [];
 lowestCostAction = 2;
 
-if runParam.solveNoLearning
+if false && runParam.solveNoLearning
     
 %     % Get water demand
 %     waterDemand = gwParam.pumpingRate;

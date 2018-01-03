@@ -1,4 +1,4 @@
-function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply, othergw_supply ] ...
+function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, shortage, capacity, minjur_supply, exp_supply] ...
     = supplyAndCost_old( a1, a2, s1, s2, costParam, water, gwParam, t, demand, capacityDelay, exp_vectors)
 
 
@@ -8,7 +8,6 @@ function [ cost, shortageCost, expansionCost, pumpingCost, marginalDesalCost, sh
 % First: Calculate capacity available
 
     % Groundwater capacity this period
-    othergw_supply = gwParam.otherPumpingRate;
     if a1 == 0 || s1 == 200 || s1 == -1
         minjur_capacity = 0;
     else
