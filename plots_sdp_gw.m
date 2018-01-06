@@ -205,7 +205,7 @@ indexOne(1,:) = 1;
 indexFirstOne =sum(cumprod(double(indexOne),1)) ;
 figure;
 scatter(1:N, s_gw(indexFirstOne));
-    
+title('drawdown beyond which p(limit) = 1')    
 end
     
 
@@ -335,7 +335,7 @@ if plotParam.simPlotsOn
     
     
     % Plot expansion time distribution
-    [~,~, largeCost,~,~,~,~,~,~] = supplyAndCost( 0, 2, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors);
+    [~,~, largeCost,~,~,~,~,~,~] = supplyAndCost( 0, 2, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors, false);
     indexLarge = sim.state_expand == 17;
     expLargeOverTime = zeros(size(sim.state_expand));
     expLargeOverTime(indexLarge) = 1;

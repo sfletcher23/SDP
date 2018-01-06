@@ -32,7 +32,7 @@ plotParam.plotinfoOverTime = true;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 10;    % $/m^2
+costParam.shortage_cost = 20;    % $/m^2
 costParam.marginal_cost = .48;
 costParam.discount_rate = 0.0;
 
