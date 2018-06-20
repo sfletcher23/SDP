@@ -2,12 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7761629d-54a2-442a-9864-4dcb83efaf00" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/infoOverTime.mpv4.avi" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Results/Base/exp_time_hist.fig" afterPath="$PROJECT_DIR$/Results/Base/exp_time_hist.fig" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Results/Base/hydro_confint_overtime.fig" afterPath="$PROJECT_DIR$/Results/Base/hydro_confint_overtime.fig" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/numintegrate.m" afterPath="$PROJECT_DIR$/numintegrate.m" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/plots_sdp_gw.m" afterPath="$PROJECT_DIR$/plots_sdp_gw.m" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/run_finite_horizon.m" afterPath="$PROJECT_DIR$/run_finite_horizon.m" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/sdp_gw.m" afterPath="$PROJECT_DIR$/sdp_gw.m" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/run_sensitivity.m" afterPath="$PROJECT_DIR$/run_sensitivity.m" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/simulate_hydrographs.m" afterPath="$PROJECT_DIR$/simulate_hydrographs.m" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -350,6 +351,60 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/edit_m_file.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sampling.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="9" column="17" lean-forward="false" selection-start-line="9" selection-start-column="17" selection-end-line="9" selection-end-column="17" />
+          <folding>
+            <element signature="e#0#24#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Desktop/Code/MODFLOW/Stochastic_MODFLOW_repo/Distribution fitting.ipynb">
+      <provider selected="true" editor-type-id="ipnb-editor">
+        <state>
+          <selected id="-1" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/edit_m_file.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="645">
+          <caret line="43" column="10" lean-forward="false" selection-start-line="43" selection-start-column="10" selection-end-line="43" selection-end-column="10" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sampling.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="9" column="17" lean-forward="false" selection-start-line="9" selection-start-column="17" selection-end-line="9" selection-end-column="17" />
+          <folding>
+            <element signature="e#0#24#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Desktop/Code/MODFLOW/Stochastic_MODFLOW_repo/Distribution fitting.ipynb">
+      <provider selected="true" editor-type-id="ipnb-editor">
+        <state>
+          <selected id="-1" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/edit_m_file.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">

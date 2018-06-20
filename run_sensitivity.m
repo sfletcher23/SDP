@@ -189,55 +189,51 @@ if plotParam.plotsOn
     N = 30;
     
     % Expansion time sensitivity
+    fig = cell(1,4);
+    xlabels = cell(1,4);
+    ylabels = cell(1,4);
+    xticks = cell(1,4);
+    leg = cell(1,4);
+    axs = cell(1,4);
     for i = 1 :length(sensParams)
-        figure;
+        fig{i} = figure;
+        xticktext = cell(1,length(sensInput{i}{3}));
         for j = 1:length(sensInput{i}{3})
             evalin('base', strcat('sim = sim_', sensParams{i}, num2str(j),';'));
             % Plot expansion time distribution
             [~,~, largeCost,~,~,~,~,~,~] = supplyAndCost( 0, 2, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors, false);
-            [~,~, smallCost,~,~,~,~,~,~] = supplyAndCost( 0, 1, 0, 0, costParam, water, gwParam, 1, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors, false);
-            indexLarge = sim.expansionCostOverTime == largeCost;
-            indexSmall = sim.expansionCostOverTime == smallCost;
-            expLargeOverTime = zeros(size(sim.expansionCostOverTime));
-            expSmallOverTime = zeros(size(sim.expansionCostOverTime));
+            indexLarge = sim.state_expand == 17;
+            expLargeOverTime = zeros(size(sim.state_expand));
             expLargeOverTime(indexLarge) = 1;
-            expSmallOverTime(indexSmall) = 1;
             [rLarge,cLarge] = find(expLargeOverTime);
-            [rSmall,cSmall] = find(expSmallOverTime);
             % for every row, take the minimum column index and put NaN if none is found
             expTimeLarge = accumarray(rLarge,cLarge,[size(expLargeOverTime,1),1],@min,32);
-            expTimeSmall = accumarray(rSmall,cSmall,[size(expSmallOverTime,1),1],@min,32);
-            countNever = sum((expTimeLarge == 32 & expTimeSmall == 32));
-            yLarge = histc(expTimeLarge,[0:32]);
-            ySmall = histc(expTimeSmall,[0:32]);
-            subplot(1,length(sensInput{i}{3}), j)
-            bar(0:31, [yLarge(1:end-1) ySmall(1:end-1)], 'stacked')
+            countNever = sum((expTimeLarge == 32 ));
+            yLarge = histc(expTimeLarge, [0:32]);
+            dec1exp = sum(yLarge(1:10));
+            dec2exp = sum(yLarge(11:20));
+            dec3exp = sum(yLarge(21:30));
+            nevexp = yLarge(end);
+            bardata = zeros(4);
+            bardata(j,:) = [dec1exp dec2exp dec3exp nevexp];
+            bar(1:4, bardata, 'stacked')
             hold on 
-            bar(31, countNever, 'k')
-            ax = gca;
-            ax.XTick = [0:31];
-            ax.XTickLabel = num2cell(0:31,1);
-            ax.XTickLabel{end} = 'Never';
-            xlim([0 32])
-            ylim([0 500])
-            xlabel('Expansion Year')
-            ylabel('Frequency')
-            if runParam.flexOn
-                legend('Large plant', 'Small plant', 'Never')
-            end
-            if isnumeric(sensInput{i}{3}{j})
-                title(strcat(sensParams{i}, ' = ',  num2str(sensInput{i}{3}{j})));  
-            else
-                title(strcat(sensParams{i}, ' = ',  sensInput{i}{3}{j}));  
-            end
+            xticktext{j} = sensInput{i}{3}{j};
         end
-        suptitle(strcat('Histograms of expansion time in ', num2str(R), ' simulations'))
+        axs{i} = gca;
+        axs{i}.XTick = 1:4;
+        axs{i}.XTickLabel = xticktext;
+        xticks{i} = xticktext;
+        xlabels{i} = xlabel('Expansion Year');
+        ylabels{i} = ylabel('Frequency (in 1000 simulations)');
+        title(strcat('Sensitivity of expansion time to',{' '}, strrep(sensParams{i},'_', ' ')))
+        leg{i} = legend('1st Decade', '2nd Decade', '3rd Decade', 'Never');
     end
     
     
     % Plot first drawdown level when build (when nocapacity)
     for i = 1:length(sensParams)
-        figure;
+        fig{i+2} = figure;
         legText = cell(1,length(sensInput{i}{3})+2);
         for j = 1:length(sensInput{i}{3})
             evalin('base', strcat( 'X2 = ', sensParams{i}, '_Output{j}{4};'));
@@ -262,37 +258,52 @@ if plotParam.plotsOn
             end
             hold on
             plot(1:N, gwParam.startingHead -   s_gw(indexFirstZero), '-o');
-            xlabel('Year')
-            ylabel('Head [m]')
+            xlabels{i+2} = xlabel('Year');
+            ylabels{i+2} = ylabel('Head [m]');
             hold on
             legText{j+2} = num2str(sensInput{i}{3}{j});
+            axs{i+2} = gca;
         end
-        title(strcat('Sensitivity of Drawdown Threshold for Exapsnion to ',' ', sensParams{i}))
-        legend(legText)
+        title(strcat('Sensitivity of drawdown threshold for exapsnion to ',{' '}, strrep(sensParams{i},'_', ' ')))
+        leg{i+2} = legend(legText);
     end
     
     
-    % Plot total shortage vs total cost
+    % Plot total cost cdf
+    if false
     for i = 1:length(sensParams)
         figure;
+        legtext = cell(1,length(sensInput{i}{3}));
         for j = 1:length(sensInput{i}{3})
             evalin('base', strcat('sim = sim_', sensParams{i}, num2str(j),';'));
             totalCost = sum(sim.costOverTime,2);
-            totalShortage = sum(sim.shortageOverTime,2);
-            subplot(1,length(sensInput{i}{3}), j)
-            scatter(totalShortage/gwParam.pumpingRate,totalCost/1E9)
-            ylim([0 4])
-            xlim([0 8])
-            if isnumeric(sensInput{i}{3}{j})
-                title(strcat('Avg Cost:', num2str(sim.averageTotalCost, '%.1E'), ',  ', sensParams{i}, ' = ',  num2str(sensInput{i}{3}{j})));  
-            else
-                title(strcat(sensParams{i}, ' = ',  sensInput{i}{3}{j}));  
-            end
+            c = cdfplot(totalCost/1E9);
+            c.LineWidth = 1.5;
+            hold on 
+            legtext{j} = num2str(sensInput{i}{3}{j});
         end
-        suptitle(strcat('Total shortage vs total cost'))
+        title(strcat('Sensitivity of cost (with damages) to',{' '}, strrep(sensParams{i},'_', ' ')))
+        legend(legtext)
+    end
     end
     
+    
+    % Combine 
+    f = figure;
+    for i=1:4
+        sub(i) = subplot(2,2,i);
+    end
+    for i=1:4
+        copyobj([leg{i} axs{i}],f);
+        copyobj(allchild(get(fig{i},'CurrentAxes')),sub(i));
+        copyobj(xlabels{i},sub(i));
+        copyobj(ylabels{i},sub(i));
+    end
+    for i=1:2
+        copyobj(xticks{i},sub(i));
+    end
 end
+
 
 
 %%

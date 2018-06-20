@@ -95,7 +95,7 @@ end
 %% Visualize results: plot optimal policies
 
 if plotParam.policyPlotsOn
-    addpath('/Users/sarahfletcher/Documents/MATLAB/cbrewer');
+    addpath(genpath('/Users/sarahfletcher/Documents/MATLAB/cbrewer'));
     gw_step = s_gw(3) - s_gw(2);
     exp_step = s_expand(2) - s_expand(1);
     blues = colormap(cbrewer('seq', 'Blues', 6));
@@ -180,6 +180,7 @@ end
     
 %% Plot first drawdown level when build (when nocapacity)
 if true
+cmap = cbrewer('div', 'BrBG', 2)
 X2nocap = permute(X2(:,1,1:end-1),[1,3,2]);
 X2nocap(1,:) = 0;
 indexNan = isnan(X2nocap);
@@ -190,16 +191,32 @@ indexNan = sum(cumprod(~isnan(X2nocap)));
 indexReplaceNan = indexFirstZero >= indexNan;
 indexFirstZero(indexReplaceNan) = 1;
 figure;
-scatter(1:N, gwParam.startingHead -   s_gw(indexFirstZero));
+hold on
+a = area(1:N, [(gwParam.startingHead-gwParam.depthLimit)*ones(1,N); ...
+    gwParam.startingHead -   s_gw(indexFirstZero) - (gwParam.startingHead-gwParam.depthLimit)*ones(1,N);...
+    s_gw(indexFirstZero)]');
+a(1).FaceColor = [1 1 1];
+a(2).FaceColor = cmap(1,:);
+a(3).FaceColor = cmap(3,:);
+plot(1:N, gwParam.startingHead -   s_gw(indexFirstZero),'k-o', 'MarkerFaceColor', 'k');
 xlabel('Year')
 ylabel('Head [m]')
-title('Drawdown Threshold for Exapsnion')
-hold on
-line([0 30], [gwParam.startingHead, gwParam.startingHead ], 'Color', 'k')
-line([0 30], [gwParam.startingHead-gwParam.depthLimit gwParam.startingHead-gwParam.depthLimit], 'Color', 'r', 'LineStyle','--')
+title('Drawdown Threshold for Exapsnion', 'FontSize', 16)
+l1 = line([0 30], [gwParam.startingHead, gwParam.startingHead ], 'Color', 'k', 'LineStyle', '--')
+l2 = line([0 30], [gwParam.startingHead-gwParam.depthLimit gwParam.startingHead-gwParam.depthLimit], 'Color', 'r')
+ylim([gwParam.startingHead-gwParam.depthLimit - 5 , gwParam.startingHead+4])
+xlim([1 27])
+hline = findobj(gcf, 'type', 'line');
+set(hline,'LineWidth',3)
+ax = gca;
+set(ax,'LineWidth',3)
+set(ax, 'FontSize', 14)
+[ll, ll2] = legend([a(2) a(3) l1 l2], {'Expand', 'No Expand', 'Starting Head', 'Depth Limit'})
+ll.LineWidth = 1;
 
 
 % plot first drawdown level when p(reach limit) = 1
+if false
 indexOne = ~(abs(cumTgw - 1) < .001);
 indexOne(1,:) = 1;
 indexFirstOne =sum(cumprod(double(indexOne),1)) ;
@@ -207,9 +224,14 @@ figure;
 scatter(1:N, s_gw(indexFirstOne));
 title('drawdown beyond which p(limit) = 1')    
 end
-    
-
-
+end
+if false
+fig = gcf;
+fig.PaperSize = [6 5]
+set(findall(gcf,'type','text'),'Interpreter', 'latex')
+set(findall(gca,'type','text'),'Interpreter', 'latex')
+set(findall(ll2,'type','text'),'Interpreter', 'latex')
+end
 
 %% Plot heat maps
 if plotParam.plotHeatMaps 
@@ -406,6 +428,21 @@ end
     l.Location = 'southeast'
     legend('boxoff')
     
+    figure;
+    subplot(3,1,2)
+    hold on
+    c = cdfplot(totalCostBuild/1E9);
+    c.LineWidth = 1.5;
+    c = cdfplot(totalCostNoBuild/1E9)
+    c.LineWidth = 1.5;
+    c = cdfplot(totalCostFlex/1E9)
+    c.LineWidth = 1.5;
+    xlabel('30-year Cost with Damages [Bn$]')
+    l = legend('Build', 'No Build', 'Flexible')
+    l.Location = 'southeast'
+    legend('boxoff')
+    suptitle('CDF of Total Cost (Including Shortage Damages)')
+    
     
 %% Cost plot
 [ ~,~,~,~,~,~,~,~,~] = supplyAndCost( 1, 2, 1, 0, costParam, water, gwParam, 0, gwParam.pumpingRate, runParam.capacityDelay, exp_vectors, true);
@@ -419,9 +456,11 @@ if plotParam.plotinfoOverTime
     numSamples = 1;
 
     sample = randsample(R,numSamples);
+    sample = 158;
     netname = strcat('myNeuralNetworkFunction_', num2str(gwParam.nnNumber));
     netscript = str2func(netname); 
     load('T_gw_inputs_Dec4','s_samples', 'k_samples')
+    step = 2;
 
     figure;
     finalHead = zeros(5,N,6);
@@ -432,7 +471,7 @@ if plotParam.plotinfoOverTime
         p95 = zeros(N);
         samplesP5toP95 = cell(N,1);
         maxTime = N;
-        for t = 1:N
+        for t = 1:step:N
             indexState = find(headSim(t) == s_gw);
             if indexState == 1
                 maxTime = t-1;
@@ -459,28 +498,35 @@ if plotParam.plotinfoOverTime
         end
 
         subplot(1,2,1)
-        for t = 1:maxTime
+        for t = 1:step:maxTime
             x = t:N;
             X=[x,fliplr(x)];
-            scatter(t,gwParam.startingHead-headSim(t),'*', 'k')
             Y=[p5(t,t:end),fliplr(p95(t,t:end))];
             hold on
             fill(X,Y,clrmp(t,:)); 
+            line([0 N], [gwParam.startingHead - gwParam.depthLimit, gwParam.startingHead - gwParam.depthLimit], 'Color', 'b', 'LineStyle', '--', 'LineWidth', 2) 
+            scatter(t,gwParam.startingHead-headSim(t),'h', 'k', 'MarkerFaceColor', 'k', 'SizeData', 40)
             xlabel('Year')
             ylabel('Head [m]')
+            title('Hydraulic Head 90% CI') 
+            legend('Head CI', 'depth limit', 'simulated obs')
+            legend('boxoff')
         end
         subplot(1,2,2)
-        for t = 1:maxTime
+        for t = 1:step:maxTime
             index_s1 = find(headSim(t) == s_gw);
             scatter(k_samples{index_s1,t},s_samples{index_s1,t},'o', 'k','MarkerFaceColor', clrmp(t,:))
             hold on
             xlabel('K [m/d]')
             ylabel('S')
+            ylim([-12.05 -10.7])
+            xlim([0 2.75])
+            title('Parameter samples')
         end
         
-%         line([0 N], [200 - gwParam.depthLimit, 200 - gwParam.depthLimit], 'Color', 'r', 'LineStyle', '--')   
+%           
     end
-    suptitle('Hydrograph Confidence Intervals Over Time')
+    suptitle('Bayesian Learning Over Time')
     
     if false
     % Make movie for one sample
@@ -565,3 +611,6 @@ if plotParam.plotinfoOverTime
 
 end
 
+%%
+fig = gcf;
+fig.PaperSize = [7 5.5];

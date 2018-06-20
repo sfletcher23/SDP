@@ -93,12 +93,14 @@ end
 
 %% Error histogram
 
-if false
-    runs = 500;
+if true
+    runs = round(1000/3);
     N = 30;
-    error_nn = zeros([length(runs) N]);
+    error_nn = zeros([length(runs) N-1]);
     error_sdp = zeros([length(runs) N]);
     error_sdp_nn = zeros([length(runs) N]);
+    y_nn = zeros([length(runs), N]);
+    y_modflow = zeros([length(runs), N]);
     
     for j = 1:runs
         
@@ -110,82 +112,90 @@ if false
 
         % Get estimates from nn and modflow output
         xsample = x(:,indexMin:indexMax);
-        y_nn = netscript(xsample, gwParam);
-        y_modflow = t(:, indexMin:indexMax);
+        y_nn_temp = netscript(xsample, gwParam);
+        y_modflow_temp = t(:, indexMin:indexMax);
         time_nn = xsample(3,:);
         time_sdp = 0:N;
         indexTime = ismember(round(time_nn/365,2),time_sdp); 
-        y_nn = y_nn(indexTime);
-        y_modflow = y_modflow(indexTime);
-
-        % Get estimates using SDP
-        [s_gw, gw_M] = gen_water_growth_states(gwParam);
-        gw_state = zeros(1,N+1);
-        % [K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist('full_range', gwParam, 1, N);
-        K_samples_thisPeriod = hk(i);
-        S_samples_thisPeriod = ss(i);
-        % K_samples_thisPeriod = 0.6701;
-        % S_samples_thisPeriod = 0.2062;
-        for time = 1:N
-            % Get transmat vector to next GW state 
-            if time == 1
-                gw_state_current = 0;
-            else
-                gw_state_current = gw_state(time);
-            end
-            [T_current_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples, drawdown] = gw_transrow_nn(gwParam, time, K_samples_thisPeriod, S_samples_thisPeriod, gw_state_current, s_gw, adjustOutput);
-            p = rand();
-            index = find(p < cumsum(T_current_gw),1);
-            gw_state(time+1) = s_gw(index);
-        end
-        y_sdp = gwParam.startingHead - gw_state;
-        y_sdp = y_sdp(2:end);
-        y_nn = gwParam.startingHead - y_nn;
+        y_nn(j,:) =  y_nn_temp(indexTime);
+        y_modflow(j,:) = y_modflow_temp(indexTime);
         
-        error_nn(j,:) = y_nn - y_modflow;
-        error_sdp(j,:) = y_sdp - y_modflow;
-        error_sdp_nn(j,:) = y_sdp - y_nn;
+
+%         % Get estimates using SDP
+%         [s_gw, gw_M] = gen_water_growth_states(gwParam);
+%         gw_state = zeros(1,N+1);
+%         % [K_samples_thisPeriod, S_samples_thisPeriod] = gen_param_dist('full_range', gwParam, 1, N);
+%         K_samples_thisPeriod = hk(i);
+%         S_samples_thisPeriod = ss(i);
+%         % K_samples_thisPeriod = 0.6701;
+%         % S_samples_thisPeriod = 0.2062;
+%         for time = 1:N
+%             % Get transmat vector to next GW state 
+%             if time == 1
+%                 gw_state_current = 0;
+%             else
+%                 gw_state_current = gw_state(time);
+%             end
+%             [T_current_gw, numRelevantSamples, stateInfeasible, indexAbove, indexBelow, indexRelevantSamples, drawdown] = gw_transrow_nn(gwParam, time, K_samples_thisPeriod, S_samples_thisPeriod, gw_state_current, s_gw, adjustOutput);
+%             p = rand();
+%             index = find(p < cumsum(T_current_gw),1);
+%             gw_state(time+1) = s_gw(index);
+%         end
+%         y_sdp = gwParam.startingHead - gw_state;
+%         y_sdp = y_sdp(2:end);
+%         y_nn = gwParam.startingHead - y_nn;
+        
+        
+%         error_sdp(j,:) = y_sdp - y_modflow;
+%         error_sdp_nn(j,:) = y_sdp - y_nn;
 
     end
+    
+    dd_nn = diff(gwParam.startingHead - y_nn,1, 2);
+    dd_modflow = diff(y_modflow,1, 2);
+    error_nn = dd_nn - dd_modflow;
+    index_above_depth = y_modflow > (gwParam.startingHead - gwParam.depthLimit);
+    error_above_depth = error_nn(index_above_depth(:,2:end));
+    
     figure;
-    subplot(1,3,1)
-    hist(error_nn,10,'k');
+%     subplot(1,3,1) 
+    hist(error_above_depth,50,'k');
     h = gca;
     h.ColorOrder = repmat([1 1 1], [7, 1]);
     set(get(gca,'child'),'FaceColor','k','EdgeColor','k');
-    xlabel('ANN head - MODFLOW head')
+    xlabel('ANN drawdown - MODFLOW drawdown [m]')
     ylabel('instances')
-    rmse = sqrt(mean(reshape(error_nn, 1, []) .^ 2));
-    title(strcat('RMSE: ', num2str(rmse)))
+    rmse = sqrt(mean(reshape(error_above_depth, 1, []) .^ 2));
+    title(strcat('Drawdown Error from ANN: RMSE= ', num2str(rmse)))
     xlim([-20 20])
     
-    subplot(1,3,2)
-    hist(error_sdp_nn,10,'k');
-    h = gca;
-    h.ColorOrder = repmat([1 1 1], [7, 1]);
-    set(get(gca,'child'),'FaceColor','k','EdgeColor','k');
-    xlabel('SDP head - ANN head')
-    ylabel('instances')
-    rmse = sqrt(mean(reshape(error_sdp_nn, 1, []) .^ 2));
-    title(strcat('RMSE: ', num2str(rmse)))
-    xlim([-20 20])
-    
-    subplot(1,3,3)
-    hist(error_sdp,10,'k');
-    h = gca;
-    h.ColorOrder = repmat([1 1 1], [7, 1]);
-    set(get(gca,'child'),'FaceColor','k','EdgeColor','k');
-    xlabel('SDP head - MODFLOW head')
-    ylabel('instances')
-    rmse = sqrt(mean(reshape(error_sdp,1, []) .^ 2));
-    title(strcat('RMSE: ', num2str(rmse)))
-    xlim([-20 20])
+%     subplot(1,3,2)
+%     hist(error_sdp_nn,10,'k');
+%     h = gca;
+%     h.ColorOrder = repmat([1 1 1], [7, 1]);
+%     set(get(gca,'child'),'FaceColor','k','EdgeColor','k');
+%     xlabel('SDP head - ANN head')
+%     ylabel('instances')
+%     rmse = sqrt(mean(reshape(error_sdp_nn, 1, []) .^ 2));
+%     title(strcat('RMSE: ', num2str(rmse)))
+%     xlim([-20 20])
+%     
+%     subplot(1,3,3)
+%     hist(error_sdp,10,'k');
+%     h = gca;
+%     h.ColorOrder = repmat([1 1 1], [7, 1]);
+%     set(get(gca,'child'),'FaceColor','k','EdgeColor','k');
+%     xlabel('SDP head - MODFLOW head')
+%     ylabel('instances')
+%     rmse = sqrt(mean(reshape(error_sdp,1, []) .^ 2));
+%     title(strcat('RMSE: ', num2str(rmse)))
+%     xlim([-20 20])
     
     
 end
 
 %% Simulate sdp hydrographs from multiple using data updating
-if true
+if false
 
 sampleSize = 1000;
 runs = 20;
