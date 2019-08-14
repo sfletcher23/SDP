@@ -31,7 +31,7 @@ function [p] = unnorm_param_pdf(logk, logs)
 
 [a, b] = size(logk);
 
-s1 = 7.0; % This is the observation used in the likelihood function
+s1 = 34.0;
 t = 1;
 
 % NN info - this is a neural net that represents a groundwater model

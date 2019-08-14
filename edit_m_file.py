@@ -42,7 +42,7 @@ if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
     jobId = int(os.getenv('SLURM_JOB_ID'))
     print(taskId)
     # i = 10
-else:
+# else:
     # i = 12
 
 s1 = str(dd[i-1])
