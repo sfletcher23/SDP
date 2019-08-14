@@ -67,7 +67,7 @@ for i = 1:length(K_samples)
     drawdown_t_next(i) = tempHead(end);
 end
 
-if strcmp(gwParam.likelihoodfct, 'uniform') % Need to fix this with new drawdon approach if use again
+if strcmp(gwParam.likelihoodfct, 'uniform') % Need to change this with new drawdon approach if use again
     margin = gwParam.llhstddev; 
     indexRelevantSamples = abs(drawdown_t_current - s1) < margin;
     numRelevantSamples = sum(indexRelevantSamples);

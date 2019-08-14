@@ -2,6 +2,7 @@
 
 infoScenarios = {'high_narrow','high_wide', 'medium_narrow','medium_wide','low_narrow', 'low_wide' };
 infoNames = {'high narrow','high wide', 'medium narrow','medium wide','low narrow', 'low wide' };
+N = runParam.N;
 time = 0:N;
 
 

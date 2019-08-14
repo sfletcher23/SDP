@@ -7,8 +7,8 @@ tic
 
 % Run paramters
 runParam = struct;
-runParam.runSDP = false;
-runParam.simulateOn = false;
+runParam.runSDP = true;
+runParam.simulateOn = true;
 runParam.calculateTgw = false;
 runParam.saveOn = true; 
 runParam.simNum = 1000;
@@ -17,7 +17,7 @@ runParam.flexOn = true;
 runParam.capacityDelay = true;
 runParam.solveNoLearning = true;
 runParam.adjustOutput = true; 
-runParam.runSDPfunction = false;
+runParam.runSDPfunction = true;
 runParam.oldCost = false;
 runParam.percentile = 0;
 runParam.N = 30;
@@ -32,9 +32,9 @@ plotParam.plotinfoOverTime = true;
 
 % Cost paramters
 costParam = struct;
-costParam.shortage_cost = 10;    % $/m^2
+costParam.shortage_cost = 20;    % $/m^2
 costParam.marginal_cost = .48;
-costParam.discount_rate = 0.0;
+costParam.discount_rate = 0.05;
 
 
 % GW Parameters

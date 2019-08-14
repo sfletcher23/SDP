@@ -5,9 +5,11 @@ S_upper = 2.2E-5;
 K_lower = 0.9;
 K_upper = 14;
 
-% Integrate posterior to get normalizing constant
-pdf_func = str2func('unnorm_param_pdf');
-norm_c = integral2(pdf_func,log(K_lower),log(K_upper),log(S_lower),log(S_upper));
+% Integrate posterior to get normalizing constant (norm_c) using integral2, which
+% integrates any function over two dimensions. I specified a function
+% representing the unnormalized posterior below.
+pdf_func = str2func('unnorm_param_pdf'); 
+norm_c = integral2(pdf_func,log(K_lower),log(K_upper),log(S_lower),log(S_upper)); 
 
 % Use norm_c to get pdf values of normalized posterior
 logk = log(K_lower):.01:log(K_upper);
@@ -31,10 +33,10 @@ function [p] = unnorm_param_pdf(logk, logs)
 
 [a, b] = size(logk);
 
-s1 = 7.0;
+s1 = 7.0; % This is the observation used in the likelihood function
 t = 1;
 
-% NN info
+% NN info - this is a neural net that represents a groundwater model
 nnNumber = 54212;
 netname = strcat('myNeuralNetworkFunction_', num2str(nnNumber));
 netscript = str2func(netname); 
@@ -49,16 +51,17 @@ S_lower = 6.09E-6;
 S_upper = 2.2E-5;
 L_mean = 0;
 L_sigma = 5;
+
+K_mean = 4.3;
+K_var = 23.58;
+
 K_mu = log((K_mean^2)/sqrt(K_var+K_mean^2));
 K_sigma = sqrt(log(K_var/(K_mean^2)+1));
 
 
 % Calculate prior using lognormal dist for K, uniform for S
-% pd = makedist('Lognormal','mu',K_mu,'sigma',K_sigma);
-% pd = truncate(pd,0,40);
-% prior_k = pdf(pd, k);
 if exp(logk) > 15
-    prior_k = 0;
+    prior_k = 0;    % Truncate far tails to make numerical calc easier
 else
     prior_k = normpdf(logk, K_mu, K_sigma);
 end
@@ -72,12 +75,15 @@ prior_k = reshape(prior_k, 1, []);
 
 % Calculate likelihood using model
 input = [k; s; repmat(365*t, size(k))];
-drawdown_t_current = netscript(input, gwParam);
+drawdown_t_current = netscript(input, gwParam); % get model prediction for this set of input parameters
 y = drawdown_t_current;
-u = s1; 
-likelihood = normpdf(y, u, L_sigma);
+u = s1; % get actual observation
+likelihood = normpdf(y, u, L_sigma); % calculate likelihood assuming normal distribution representing error b/t model and obs
+% Note I assumed L_sigma, bc no data (the observation here is a virtual
+% future observation) but you could use CFC conc data to estimate residual
+% model error
 
-% Multiply prior times likelihood
+% Multiply prior times likelihood to get unnormalized posterior
 p = prior_k .* prior_s .* likelihood; 
 p = reshape(p, a, b);
 
