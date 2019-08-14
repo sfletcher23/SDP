@@ -5,9 +5,7 @@ S_upper = 2.2E-5;
 K_lower = 0.9;
 K_upper = 14;
 
-% Integrate posterior to get normalizing constant (norm_c) using integral2, which
-% integrates any function over two dimensions. I specified a function
-% representing the unnormalized posterior below.
+% Integrate posterior to get normalizing constant
 pdf_func = str2func('unnorm_param_pdf'); 
 norm_c = integral2(pdf_func,log(K_lower),log(K_upper),log(S_lower),log(S_upper)); 
 
