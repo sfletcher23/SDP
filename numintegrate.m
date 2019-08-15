@@ -38,15 +38,15 @@ drawdown = cell(gw_M, N);
 s_gw
 
 files = dir('sample_data');
-for i = 3:length(files)
+for i = 1:length(files)
     load(strcat('sample_data/',files(i).name))
     s
     t
     if ~isnumeric(s)
-        s = str2num(s)
+        s = str2num(s);
     end
     if ~isnumeric(t)
-        t = str2num(t)
+        t = str2num(t);
     end
     index_s1 = find(s == s_gw);
     s_samples{index_s1, t} = sample_logs;
@@ -54,7 +54,7 @@ for i = 3:length(files)
     drawdown{index_s1, t} = dd;
 end
 
-save('T_gw_inputs_Dec4_wgaps', 's_samples', 'k_samples', 'drawdown')
+save('T_gw_inputs_Aug2019', 's_samples', 'k_samples', 'drawdown')
 
 %% Plot some series
 
